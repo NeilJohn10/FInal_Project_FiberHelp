@@ -1,0 +1,65 @@
+﻿using System;
+using System.Threading.Tasks;
+using FiberHelp.Data;
+using Microsoft.EntityFrameworkCore;
+using System.Security.Cryptography;
+using System.Text;
+
+namespace FiberHelp.Services
+{
+    public class AuthService
+    {
+        private readonly AppDbContext _db;
+        public AuthService(AppDbContext db) { _db = db; }
+
+        public bool IsAuthenticated { get; private set; }
+        public string? Email { get; private set; }
+        public string? Role { get; private set; }
+        public string? FullName { get; private set; }
+
+        public event Action? AuthenticationStateChanged;
+
+        private static string HashPassword(string password)
+        {
+            using var sha = SHA256.Create();
+            var bytes = Encoding.UTF8.GetBytes(password ?? string.Empty);
+            var hash = sha.ComputeHash(bytes);
+            return Convert.ToHexString(hash);
+        }
+
+        public async Task<bool> SignInAsync(string email, string password)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
+                    return false;
+
+                var lowered = email.ToLower();
+                var user = await _db.Users.FirstOrDefaultAsync(u => u.Email.ToLower() == lowered);
+                if (user == null) return false;
+                var hashed = HashPassword(password);
+                if (user.PasswordHash != hashed) return false;
+                IsAuthenticated = true;
+                Email = user.Email;
+                Role = user.Role;
+                FullName = user.FullName;
+                AuthenticationStateChanged?.Invoke();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"AuthService.SignInAsync error: {ex}");
+                return false;
+            }
+        }
+
+        public void SignOut()
+        {
+            IsAuthenticated = false;
+            Email = null;
+            Role = null;
+            FullName = null;
+            AuthenticationStateChanged?.Invoke();
+        }
+    }
+}

@@ -1,0 +1,76 @@
+﻿@page "/diag"
+@using FiberHelp.Models
+@using Microsoft.EntityFrameworkCore
+@inject FiberHelp.Data.AppDbContext Db
+@inject FiberHelp.Services.AuthService AuthService
+
+<PageTitle>Diagnostic - FiberHelp</PageTitle>
+
+<h3>Database Diagnostic</h3>
+<p>Connection: <code>@(Db.Database.GetDbConnection().DataSource)</code> / Database: <code>@(Db.Database.GetDbConnection().Database)</code></p>
+
+@if (error != null)
+{
+ <div style="color:darkred">Error: @error</div>
+}
+else
+{
+ <h4>Users (@(users?.Count ??0))</h4>
+ <table class="data-table">
+ <thead><tr><th>Email</th><th>Role</th><th>PasswordHash</th></tr></thead>
+ <tbody>
+ @if (users != null)
+ {
+ foreach (var u in users)
+ {
+ <tr>
+ <td>@u.Email</td>
+ <td>@u.Role</td>
+ <td style="font-family:monospace">@u.PasswordHash</td>
+ </tr>
+ }
+ }
+ </tbody>
+ </table>
+
+ <h4>Customers (@(customers?.Count ??0))</h4>
+ <ul>
+ @if (customers != null)
+ {
+ foreach (var c in customers) { <li>@c.Name (@c.Email)</li>; }
+ }
+ </ul>
+
+ <h4>Tickets (@(tickets?.Count ??0))</h4>
+ <ul>
+ @if (tickets != null)
+ {
+ foreach (var t in tickets) { <li>@t.Title - @t.Customer (@t.Status)</li>; }
+ }
+ </ul>
+}
+
+@code {
+ private List<User>? users;
+ private List<Customer>? customers;
+ private List<Ticket>? tickets;
+ private string? error;
+
+ protected override async Task OnInitializedAsync()
+ {
+ try
+ {
+ // Ensure DB created and seeded
+ Db.Database.EnsureCreated();
+ if (!await Db.Users.AnyAsync()) DbInitializer.Initialize(Db);
+
+ users = await Db.Users.AsNoTracking().ToListAsync();
+ customers = await Db.Customers.AsNoTracking().ToListAsync();
+ tickets = await Db.Tickets.AsNoTracking().ToListAsync();
+ }
+ catch (Exception ex)
+ {
+ error = ex.Message;
+ }
+ }
+}

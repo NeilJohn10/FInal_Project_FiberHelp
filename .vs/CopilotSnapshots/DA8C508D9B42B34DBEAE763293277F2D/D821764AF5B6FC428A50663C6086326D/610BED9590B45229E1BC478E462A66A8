@@ -1,0 +1,11 @@
+﻿{
+  "profiles": {
+    "FiberHelp": {
+      "commandName": "Project",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      }
+    }
+  },
+  "defaultProfile": "FiberHelp"
+}

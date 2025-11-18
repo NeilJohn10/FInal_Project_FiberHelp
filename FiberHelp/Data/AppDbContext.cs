@@ -1,0 +1,45 @@
+using Microsoft.EntityFrameworkCore;
+using FiberHelp.Models;
+
+namespace FiberHelp.Data
+{
+ public class AppDbContext : DbContext
+ {
+ public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
+
+ public DbSet<Ticket> Tickets { get; set; }
+ public DbSet<Customer> Customers { get; set; }
+ public DbSet<User> Users { get; set; }
+
+ protected override void OnModelCreating(ModelBuilder modelBuilder)
+ {
+ base.OnModelCreating(modelBuilder);
+
+ modelBuilder.Entity<Ticket>(entity =>
+ {
+ entity.HasKey(t => t.Id);
+ entity.Property(t => t.Id).ValueGeneratedNever();
+ entity.Property(t => t.Title).HasMaxLength(200);
+ entity.Property(t => t.Status).HasMaxLength(50);
+ entity.Property(t => t.Priority).HasMaxLength(50);
+ });
+
+ modelBuilder.Entity<Customer>(entity =>
+ {
+ entity.HasKey(c => c.Id);
+ entity.Property(c => c.Name).HasMaxLength(200);
+ entity.Property(c => c.Email).HasMaxLength(200);
+ entity.Property(c => c.Plan).HasMaxLength(100);
+ });
+
+ modelBuilder.Entity<User>(entity =>
+ {
+ entity.HasKey(u => u.Id);
+ entity.Property(u => u.Email).HasMaxLength(256).IsRequired();
+ entity.HasIndex(u => u.Email).IsUnique();
+ entity.Property(u => u.Role).HasMaxLength(50);
+ entity.Property(u => u.FullName).HasMaxLength(200);
+ });
+ }
+ }
+}

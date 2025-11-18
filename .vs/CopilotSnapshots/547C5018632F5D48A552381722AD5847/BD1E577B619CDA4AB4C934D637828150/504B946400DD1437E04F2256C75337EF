@@ -1,0 +1,82 @@
+﻿@inherits LayoutComponentBase
+@implements IDisposable
+@using System
+@inject FiberHelp.Services.AuthService AuthService
+@inject NavigationManager Navigation
+
+<div class="main-layout">
+    @if (AuthService.IsAuthenticated)
+    {
+        <header class="top-bar">
+            <div class="brand">FIBERHELP</div>
+            <div class="top-actions">@* place for global actions/avatar *@</div>
+        </header>
+    }
+
+    <main class="body-content">
+        @Body
+    </main>
+</div>
+
+@code {
+    protected override void OnInitialized()
+    {
+        AuthService.AuthenticationStateChanged += OnAuthChanged;
+    }
+
+    // If not authenticated, navigate to login after first render
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            if (!AuthService.IsAuthenticated)
+            {
+                var uri = Navigation.ToBaseRelativePath(Navigation.Uri);
+                if (!uri.StartsWith("login", StringComparison.OrdinalIgnoreCase))
+                {
+                    Navigation.NavigateTo("/login");
+                }
+            }
+        }
+
+        await base.OnAfterRenderAsync(firstRender);
+    }
+
+    private void OnAuthChanged()
+    {
+        // Update UI and navigate appropriately
+        InvokeAsync(() =>
+        {
+            var uri = Navigation.ToBaseRelativePath(Navigation.Uri);
+
+            if (!AuthService.IsAuthenticated)
+            {
+                if (!uri.StartsWith("login", StringComparison.OrdinalIgnoreCase))
+                {
+                    Navigation.NavigateTo("/login");
+                }
+            }
+            else
+            {
+                // If user became authenticated and currently on login page, go to home
+                if (uri.StartsWith("login", StringComparison.OrdinalIgnoreCase))
+                {
+                    Navigation.NavigateTo("/");
+                }
+            }
+
+            StateHasChanged();
+        });
+    }
+
+    public void Dispose()
+    {
+        AuthService.AuthenticationStateChanged -= OnAuthChanged;
+    }
+}
+
+<style>
+    .main-layout { min-height:100vh; display:flex; flex-direction:column; }
+    .top-bar { height:64px; display:flex; align-items:center; justify-content:space-between; padding:20px; background:transparent; }
+    .body-content { flex:1; }
+</style>

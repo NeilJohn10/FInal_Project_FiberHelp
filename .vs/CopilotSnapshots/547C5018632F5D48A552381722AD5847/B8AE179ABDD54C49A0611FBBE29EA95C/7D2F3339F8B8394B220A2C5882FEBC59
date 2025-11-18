@@ -1,0 +1,61 @@
+﻿@inherits LayoutComponentBase
+@implements IDisposable
+@using System
+@inject FiberHelp.Services.AuthService AuthService
+@inject NavigationManager Navigation
+
+<div class="main-layout">
+    @if (AuthService.IsAuthenticated)
+    {
+        <header class="top-bar">
+            <div class="brand">FIBERHELP</div>
+            <div class="top-actions">@* place for global actions/avatar *@</div>
+        </header>
+        <main class="body-content">
+            @Body
+        </main>
+    }
+</div>
+
+@code {
+    protected override void OnInitialized()
+    {
+        AuthService.AuthenticationStateChanged += OnAuthChanged;
+
+        // If not authenticated, navigate to login
+        if (!AuthService.IsAuthenticated)
+        {
+            Navigation.NavigateTo("/login", true);
+        }
+    }
+
+    private void OnAuthChanged()
+    {
+        // When auth state changes, redirect appropriately
+        if (!AuthService.IsAuthenticated)
+        {
+            Navigation.NavigateTo("/login", true);
+        }
+        else
+        {
+            // If user became authenticated and we are on login page, go to home
+            if (Navigation.Uri.EndsWith("/login", StringComparison.OrdinalIgnoreCase))
+            {
+                Navigation.NavigateTo("/", true);
+            }
+        }
+
+        InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        AuthService.AuthenticationStateChanged -= OnAuthChanged;
+    }
+}
+
+<style>
+    .main-layout { min-height:100vh; display:flex; flex-direction:column; }
+    .top-bar { height:64px; display:flex; align-items:center; justify-content:space-between; padding:020px; background:transparent; }
+    .body-content { flex:1; }
+</style>

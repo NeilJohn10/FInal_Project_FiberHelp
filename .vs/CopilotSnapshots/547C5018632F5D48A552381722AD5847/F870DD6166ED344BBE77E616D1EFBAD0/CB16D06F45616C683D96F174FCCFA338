@@ -1,0 +1,26 @@
+﻿<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 240" width="200" height="240">
+  <!-- WiFi Signal Arcs -->
+  <path d="M100 50 Q130 50 150 70" stroke="#001f3f" stroke-width="4" fill="none" stroke-linecap="round"/>
+  <path d="M100 65 Q120 65 135 80" stroke="#001f3f" stroke-width="4" fill="none" stroke-linecap="round"/>
+  <path d="M100 80 Q115 80 125 90" stroke="#001f3f" stroke-width="4" fill="none" stroke-linecap="round"/>
+  
+  <!-- Mirror WiFi Signal Arcs -->
+  <path d="M100 50 Q70 50 50 70" stroke="#001f3f" stroke-width="4" fill="none" stroke-linecap="round"/>
+  <path d="M100 65 Q80 65 65 80" stroke="#001f3f" stroke-width="4" fill="none" stroke-linecap="round"/>
+  <path d="M100 80 Q85 80 75 90" stroke="#001f3f" stroke-width="4" fill="none" stroke-linecap="round"/>
+  
+  <!-- Center WiFi Dot -->
+  <circle cx="100" cy="105" r="6" fill="#001f3f"/>
+  <circle cx="100" cy="105" r="4" fill="none" stroke="#001f3f" stroke-width="1.5"/>
+  
+  <!-- Left Person (Filled) -->
+  <circle cx="75" cy="125" r="8" fill="#001f3f"/>
+  <path d="M70 140 Q70 135 75 135 Q80 135 80 140 L80 155 Q80 160 75 160 Q70 160 70 155 Z" fill="#001f3f"/>
+  
+  <!-- Right Person (Outline) -->
+  <circle cx="125" cy="125" r="8" fill="none" stroke="#001f3f" stroke-width="2"/>
+  <path d="M120 140 Q120 135 125 135 Q130 135 130 140 L130 155 Q130 160 125 160 Q120 160 120 155 Z" fill="none" stroke="#001f3f" stroke-width="2"/>
+  
+  <!-- Text -->
+  <text x="100" y="185" font-size="24" font-weight="900" text-anchor="middle" fill="#001f3f" letter-spacing="2">FIBERHELP</text>
+</svg>

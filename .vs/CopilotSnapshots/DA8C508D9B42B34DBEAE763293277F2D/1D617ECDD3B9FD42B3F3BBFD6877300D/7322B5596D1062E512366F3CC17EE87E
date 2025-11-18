@@ -1,0 +1,30 @@
+﻿using System.Collections.Generic;
+using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
+using FiberHelp.Data;
+using FiberHelp.Models;
+
+namespace FiberHelp.Services
+{
+ public class AdminService
+ {
+ private readonly AppDbContext _db;
+ public AdminService(AppDbContext db) { _db = db; }
+
+ public async Task<List<Ticket>> GetTicketsAsync()
+ {
+ return await _db.Tickets.OrderByDescending(t => t.Created).ToListAsync();
+ }
+
+ public async Task<Ticket?> GetTicketAsync(string id) => await _db.Tickets.FindAsync(id);
+ public async Task CreateTicketAsync(Ticket t) { _db.Tickets.Add(t); await _db.SaveChangesAsync(); }
+ public async Task UpdateTicketAsync(Ticket t) { _db.Tickets.Update(t); await _db.SaveChangesAsync(); }
+ public async Task DeleteTicketAsync(string id) { var t = await _db.Tickets.FindAsync(id); if (t != null) { _db.Tickets.Remove(t); await _db.SaveChangesAsync(); } }
+
+ public async Task<List<Customer>> GetCustomersAsync() => await _db.Customers.OrderByDescending(c => c.JoinDate).ToListAsync();
+ public async Task<Customer?> GetCustomerAsync(string id) => await _db.Customers.FindAsync(id);
+ public async Task CreateCustomerAsync(Customer c) { _db.Customers.Add(c); await _db.SaveChangesAsync(); }
+ public async Task UpdateCustomerAsync(Customer c) { _db.Customers.Update(c); await _db.SaveChangesAsync(); }
+ public async Task DeleteCustomerAsync(string id) { var c = await _db.Customers.FindAsync(id); if (c != null) { _db.Customers.Remove(c); await _db.SaveChangesAsync(); } }
+ }
+}

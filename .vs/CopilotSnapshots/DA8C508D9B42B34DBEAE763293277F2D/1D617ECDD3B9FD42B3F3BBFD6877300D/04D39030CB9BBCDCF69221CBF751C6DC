@@ -1,0 +1,58 @@
+﻿using Microsoft.Extensions.Logging;
+using FiberHelp.Services;
+using Microsoft.EntityFrameworkCore;
+using FiberHelp.Data;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace FiberHelp
+{
+    public static class MauiProgram
+    {
+        public static MauiApp CreateMauiApp()
+        {
+            var builder = MauiApp.CreateBuilder();
+            builder
+                .UseMauiApp<App>()
+                .ConfigureFonts(fonts =>
+                {
+                    fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
+                });
+
+            builder.Configuration.AddJsonFile("appsettings.json", optional: true, reloadOnChange: true);
+
+            builder.Services.AddMauiBlazorWebView();
+            // AuthService requires a scoped DbContext, so register as scoped
+            builder.Services.AddScoped<AuthService>();
+            builder.Services.AddScoped<AdminService>();
+
+            // Get connection string from configuration or fallback to localdb
+            var connectionString = builder.Configuration["ConnectionStrings:DefaultConnection"]
+                ?? "Server=(localdb)\\mssqllocaldb;Database=FiberHelpDb;Trusted_Connection=True;MultipleActiveResultSets=true";
+
+            builder.Services.AddDbContext<AppDbContext>(options => options.UseSqlServer(connectionString));
+
+#if DEBUG
+            builder.Services.AddBlazorWebViewDeveloperTools();
+            builder.Logging.AddDebug();
+#endif
+
+            var app = builder.Build();
+
+            // Apply migrations and seed database
+            try
+            {
+                using var scope = app.Services.CreateScope();
+                var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+                db.Database.Migrate();
+                DbInitializer.Initialize(db);
+            }
+            catch (Exception ex)
+            {
+                // If migration fails, log to debug output. In production you might handle differently.
+                System.Diagnostics.Debug.WriteLine($"Database migration/initialization failed: {ex.Message}");
+            }
+
+            return app;
+        }
+    }
+}

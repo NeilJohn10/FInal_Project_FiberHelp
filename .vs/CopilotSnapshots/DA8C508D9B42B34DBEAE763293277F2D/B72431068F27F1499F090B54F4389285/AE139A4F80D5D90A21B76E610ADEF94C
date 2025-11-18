@@ -1,0 +1,33 @@
+﻿using FiberHelp.Models;
+
+namespace FiberHelp.Data
+{
+ public static class DbInitializer
+ {
+ public static void Initialize(AppDbContext context)
+ {
+ // Ensure database is created
+ context.Database.EnsureCreated();
+
+ // Seed Customers if none exist
+ if (!context.Customers.Any())
+ {
+ context.Customers.AddRange(
+ new Customer { Name = "Contoso Ltd", Email = "contact@contoso.com", Plan = "Premium" },
+ new Customer { Name = "Fabrikam", Email = "info@fabrikam.com", Plan = "Standard" }
+ );
+ context.SaveChanges();
+ }
+
+ // Seed Tickets if none exist
+ if (!context.Tickets.Any())
+ {
+ context.Tickets.AddRange(
+ new Ticket { Title = "Sample ticket1", Customer = context.Customers.First().Name, Priority = "High", Status = "Open" },
+ new Ticket { Title = "Sample ticket2", Customer = context.Customers.Skip(1).FirstOrDefault()?.Name ?? "Fabrikam", Priority = "Low", Status = "Open" }
+ );
+ context.SaveChanges();
+ }
+ }
+ }
+}

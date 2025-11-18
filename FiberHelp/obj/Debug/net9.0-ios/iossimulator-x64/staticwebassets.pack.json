@@ -1,0 +1,57 @@
+{
+  "Files": [
+    {
+      "Id": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\obj\\Debug\\net9.0-ios\\iossimulator-x64\\scopedcss\\bundle\\FiberHelp.styles.css",
+      "PackagePath": "staticwebassets\\FiberHelp.styles.css"
+    },
+    {
+      "Id": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\wwwroot\\css\\app.css",
+      "PackagePath": "staticwebassets\\css\\app.css"
+    },
+    {
+      "Id": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\wwwroot\\css\\bootstrap\\Logo.png",
+      "PackagePath": "staticwebassets\\css\\bootstrap\\Logo.png"
+    },
+    {
+      "Id": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\wwwroot\\css\\bootstrap\\bootstrap.min.css",
+      "PackagePath": "staticwebassets\\css\\bootstrap\\bootstrap.min.css"
+    },
+    {
+      "Id": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\wwwroot\\css\\bootstrap\\bootstrap.min.css.map",
+      "PackagePath": "staticwebassets\\css\\bootstrap\\bootstrap.min.css.map"
+    },
+    {
+      "Id": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\wwwroot\\css\\home.css",
+      "PackagePath": "staticwebassets\\css\\home.css"
+    },
+    {
+      "Id": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\wwwroot\\css\\login.css",
+      "PackagePath": "staticwebassets\\css\\login.css"
+    },
+    {
+      "Id": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\wwwroot\\index.html",
+      "PackagePath": "staticwebassets\\index.html"
+    },
+    {
+      "Id": "obj\\Debug\\net9.0-ios\\iossimulator-x64\\staticwebassets\\msbuild.FiberHelp.Microsoft.AspNetCore.StaticWebAssetEndpoints.props",
+      "PackagePath": "build\\Microsoft.AspNetCore.StaticWebAssetEndpoints.props"
+    },
+    {
+      "Id": "obj\\Debug\\net9.0-ios\\iossimulator-x64\\staticwebassets\\msbuild.FiberHelp.Microsoft.AspNetCore.StaticWebAssets.props",
+      "PackagePath": "build\\Microsoft.AspNetCore.StaticWebAssets.props"
+    },
+    {
+      "Id": "obj\\Debug\\net9.0-ios\\iossimulator-x64\\staticwebassets\\msbuild.build.FiberHelp.props",
+      "PackagePath": "build\\FiberHelp.props"
+    },
+    {
+      "Id": "obj\\Debug\\net9.0-ios\\iossimulator-x64\\staticwebassets\\msbuild.buildMultiTargeting.FiberHelp.props",
+      "PackagePath": "buildMultiTargeting\\FiberHelp.props"
+    },
+    {
+      "Id": "obj\\Debug\\net9.0-ios\\iossimulator-x64\\staticwebassets\\msbuild.buildTransitive.FiberHelp.props",
+      "PackagePath": "buildTransitive\\FiberHelp.props"
+    }
+  ],
+  "ElementsToRemove": []
+}

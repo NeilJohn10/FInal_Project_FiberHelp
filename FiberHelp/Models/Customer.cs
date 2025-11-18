@@ -1,0 +1,14 @@
+using System;
+
+namespace FiberHelp.Models
+{
+ public class Customer
+ {
+ public string Id { get; set; } = Guid.NewGuid().ToString();
+ public string Name { get; set; } = string.Empty;
+ public string Email { get; set; } = string.Empty;
+ public string Plan { get; set; } = string.Empty;
+ public string Status { get; set; } = "Active";
+ public DateTime JoinDate { get; set; } = DateTime.UtcNow;
+ }
+}

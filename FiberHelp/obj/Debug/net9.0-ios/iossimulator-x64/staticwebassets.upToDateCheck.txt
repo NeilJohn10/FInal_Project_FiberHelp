@@ -1,0 +1,13 @@
+wwwroot\css\app.css
+wwwroot\css\bootstrap\bootstrap.min.css
+wwwroot\css\bootstrap\bootstrap.min.css.map
+wwwroot\css\bootstrap\Logo.png
+wwwroot\css\login.css
+wwwroot\index.html
+wwwroot\css\home.css
+C:\Users\Genita\source\repos\FiberHelp\FiberHelp\wwwroot\css\app.css
+C:\Users\Genita\source\repos\FiberHelp\FiberHelp\wwwroot\css\bootstrap\bootstrap.min.css
+C:\Users\Genita\source\repos\FiberHelp\FiberHelp\wwwroot\css\bootstrap\bootstrap.min.css.map
+C:\Users\Genita\source\repos\FiberHelp\FiberHelp\wwwroot\css\login.css
+C:\Users\Genita\source\repos\FiberHelp\FiberHelp\wwwroot\index.html
+C:\Users\Genita\source\repos\FiberHelp\FiberHelp\wwwroot\css\home.css

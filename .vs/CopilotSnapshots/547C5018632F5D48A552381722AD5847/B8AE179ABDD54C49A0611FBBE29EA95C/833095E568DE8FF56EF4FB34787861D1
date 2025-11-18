@@ -1,0 +1,51 @@
+﻿@inherits LayoutComponentBase
+@inject FiberHelp.Services.AuthService AuthService
+@inject NavigationManager Navigation
+
+<div class="main-layout">
+    @if (!AuthService.IsAuthenticated)
+    {
+        @* Redirect to login if not authenticated *@
+        @code { Navigation.NavigateTo("/login", true); }
+    }
+    else
+    {
+        <div class="top-bar">@* existing layout content *@</div>
+        <div class="body-content">
+            @Body
+        </div>
+    }
+</div>
+
+@code {
+    protected override void OnInitialized()
+    {
+        AuthService.AuthenticationStateChanged += OnAuthChanged;
+    }
+
+    private void OnAuthChanged()
+    {
+        InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        AuthService.AuthenticationStateChanged -= OnAuthChanged;
+    }
+}
+
+<style>
+    .page {
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+    }
+
+    main {
+        flex: 1;
+    }
+
+    .content {
+        padding: 0 !important;
+    }
+</style>

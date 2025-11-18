@@ -1,0 +1,29 @@
+﻿using System;
+
+namespace FiberHelp.Services
+{
+ public class AuthService
+ {
+ public bool IsAuthenticated { get; private set; }
+ public string? Email { get; private set; }
+ public string? Role { get; private set; }
+
+ public event Action? AuthenticationStateChanged;
+
+ public void SignIn(string email, string role)
+ {
+ IsAuthenticated = true;
+ Email = email;
+ Role = role;
+ AuthenticationStateChanged?.Invoke();
+ }
+
+ public void SignOut()
+ {
+ IsAuthenticated = false;
+ Email = null;
+ Role = null;
+ AuthenticationStateChanged?.Invoke();
+ }
+ }
+}

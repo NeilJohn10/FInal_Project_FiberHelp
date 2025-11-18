@@ -1,0 +1,389 @@
+﻿@* Login.razor *@
+@page "/login"
+@inject NavigationManager NavigationManager
+@inject FiberHelp.Services.AuthService AuthService
+
+<PageTitle>Login - FiberHelp</PageTitle>
+
+<link href="css/login.css" rel="stylesheet" />
+
+<div class="login-wrapper">
+ <div class="login-container">
+ <!-- Login Form -->
+ <div class="@LoginCardClass">
+ <div class="login-header">
+ <h1>FiberHelp</h1>
+ <p>Internet Service Provider Customer Support System</p>
+ </div>
+
+ @if (!string.IsNullOrEmpty(errorMessage))
+ {
+ <div class="error-message">
+ <span>⚠️ @errorMessage</span>
+ </div>
+ }
+
+ <div class="login-form">
+ <div class="form-group">
+ <label for="email">Email Address</label>
+ <input type="email"
+ id="email"
+ class="form-input"
+ placeholder="Enter your email"
+ @bind="email"
+ required />
+ </div>
+
+ <div class="form-group">
+ <label for="password">Password</label>
+ <input type="password"
+ id="password"
+ class="form-input"
+ placeholder="Enter your password"
+ @bind="password"
+ required />
+ </div>
+
+ <div class="form-options">
+ <label class="checkbox-label">
+ <input type="checkbox" @bind="rememberMe" />
+ <span>Remember me</span>
+ </label>
+ <a href="#" class="forgot-password">Forgot password?</a>
+ </div>
+
+ <button type="submit" class="btn-login" disabled="@isLoading" @onclick="HandleLogin">
+ @if (isLoading)
+ {
+ <span>Logging in...</span>
+ }
+ else
+ {
+ <span>Sign In</span>
+ }
+ </button>
+
+ <div class="register-link">
+ <p>Don't have an account? <a href="#" @onclick="ShowRegisterForm" @onclick:preventDefault>Register here</a></p>
+ </div>
+ </div>
+ </div>
+
+ <!-- Registration Form -->
+ <div class="@RegisterCardClass">
+ <div class="login-header">
+ <h1>Create Account</h1>
+ <p>Join FiberHelp and manage your services</p>
+ </div>
+
+ @if (!string.IsNullOrEmpty(registerErrorMessage))
+ {
+ <div class="error-message">
+ <span>⚠️ @registerErrorMessage</span>
+ </div>
+ }
+
+ @if (!string.IsNullOrEmpty(successMessage))
+ {
+ <div class="success-message">
+ <span>✅ @successMessage</span>
+ </div>
+ }
+
+ <div class="login-form">
+ <!-- Personal Information Section -->
+ <div class="form-group">
+ <label for="reg-fullname">Full Name</label>
+ <input type="text"
+ id="reg-fullname"
+ class="form-input"
+ placeholder="John Doe"
+ @bind="registerFullName"
+ required />
+ </div>
+
+ <div class="form-group">
+ <label for="reg-email">Email Address</label>
+ <input type="email"
+ id="reg-email"
+ class="form-input"
+ placeholder="john@example.com"
+ @bind="registerEmail"
+ required />
+ </div>
+
+ <div class="form-group">
+ <label for="reg-phone">Phone Number</label>
+ <input type="tel"
+ id="reg-phone"
+ class="form-input"
+ placeholder="+1 (555) 000-0000"
+ @bind="registerPhone"
+ required />
+ </div>
+
+ <div class="form-group">
+ <label for="reg-company">Company (Optional)</label>
+ <input type="text"
+ id="reg-company"
+ class="form-input"
+ placeholder="Your company name"
+ @bind="registerCompany" />
+ </div>
+
+ <!-- Role Section -->
+ <div class="form-group">
+ <label for="reg-role">Role</label>
+ <select id="reg-role"
+ class="form-input"
+ @bind="registerRole"
+ required>
+ <option value="">Select your role</option>
+ <option value="Agent">Support Agent</option>
+ <option value="Manager">Manager</option>
+ <option value="Administrator">Administrator</option>
+ </select>
+ </div>
+
+ <!-- Password Section -->
+ <div class="form-divider"></div>
+
+ <div class="form-group">
+ <label for="reg-password">Create Password</label>
+ <input type="password"
+ id="reg-password"
+ class="form-input"
+ placeholder="Min. 8 characters"
+ @bind="registerPassword"
+ @onchange="UpdatePasswordStrength"
+ required />
+ <div class="password-hint">Use uppercase, lowercase, numbers, and symbols for a strong password</div>
+ </div>
+
+ <div class="form-group">
+ <label for="reg-confirm-password">Confirm Password</label>
+ <input type="password"
+ id="reg-confirm-password"
+ class="form-input"
+ placeholder="Re-enter your password"
+ @bind="registerConfirmPassword"
+ required />
+ </div>
+
+ <!-- Agreement Section -->
+ <div class="agreement-box">
+ <label>
+ <input type="checkbox" @bind="agreeToTerms" required />
+ <span>I agree to the <a href="#" @onclick:preventDefault>Terms of Service</a> and <a href="#" @onclick:preventDefault>Privacy Policy</a></span>
+ </label>
+ </div>
+
+ <button type="submit" class="btn-login" disabled="@isRegistering" @onclick="HandleRegister">
+ @if (isRegistering)
+ {
+ <span>Creating Account...</span>
+ }
+ else
+ {
+ <span>Create Account</span>
+ }
+ </button>
+
+ <div class="register-link">
+ <p>Already have an account? <a href="#" @onclick="ShowLoginForm" @onclick:preventDefault>Sign in here</a></p>
+ </div>
+ </div>
+ </div>
+ </div>
+</div>
+
+@code {
+ private string email = "";
+ private string password = "";
+ private bool rememberMe = false;
+ private bool isLoading = false;
+ private string errorMessage = "";
+
+ // Registration fields
+ private bool showRegister = false;
+ private string registerFullName = "";
+ private string registerEmail = "";
+ private string registerPhone = "";
+ private string registerCompany = "";
+ private string registerRole = "";
+ private string registerPassword = "";
+ private string registerConfirmPassword = "";
+ private bool agreeToTerms = false;
+ private bool isRegistering = false;
+ private string registerErrorMessage = "";
+ private string successMessage = "";
+
+ // Sample user credentials (In production, use proper authentication service)
+ private Dictionary<string, UserCredential> validUsers = new()
+ {
+ { "admin@fiberhelp.com", new UserCredential { Password = "admin123", Role = "Administrator" } },
+ { "agent@fiberhelp.com", new UserCredential { Password = "agent123", Role = "Agent" } },
+ { "manager@fiberhelp.com", new UserCredential { Password = "manager123", Role = "Manager" } }
+ };
+
+ private string LoginCardClass => showRegister ? "login-card" : "login-card show";
+ private string RegisterCardClass => showRegister ? "login-card show" : "login-card";
+
+ private void ShowRegisterForm()
+ {
+ showRegister = true;
+ errorMessage = "";
+ }
+
+ private void ShowLoginForm()
+ {
+ showRegister = false;
+ registerErrorMessage = "";
+ successMessage = "";
+ }
+
+ private async Task HandleRegister()
+ {
+ isRegistering = true;
+ registerErrorMessage = "";
+ successMessage = "";
+ StateHasChanged();
+
+ // Validate form
+ if (string.IsNullOrWhiteSpace(registerFullName))
+ {
+ registerErrorMessage = "Full name is required.";
+ isRegistering = false;
+ return;
+ }
+
+ if (string.IsNullOrWhiteSpace(registerEmail))
+ {
+ registerErrorMessage = "Email is required.";
+ isRegistering = false;
+ return;
+ }
+
+ if (string.IsNullOrWhiteSpace(registerPhone))
+ {
+ registerErrorMessage = "Phone number is required.";
+ isRegistering = false;
+ return;
+ }
+
+ if (string.IsNullOrWhiteSpace(registerRole))
+ {
+ registerErrorMessage = "Please select a role.";
+ isRegistering = false;
+ return;
+ }
+
+ if (registerPassword.Length <8)
+ {
+ registerErrorMessage = "Password must be at least 8 characters long.";
+ isRegistering = false;
+ return;
+ }
+
+ if (registerPassword != registerConfirmPassword)
+ {
+ registerErrorMessage = "Passwords do not match.";
+ isRegistering = false;
+ return;
+ }
+
+ if (!agreeToTerms)
+ {
+ registerErrorMessage = "You must agree to the Terms of Service.";
+ isRegistering = false;
+ return;
+ }
+
+ // Check if email already exists
+ if (validUsers.ContainsKey(registerEmail.ToLower()))
+ {
+ registerErrorMessage = "An account with this email already exists.";
+ isRegistering = false;
+ return;
+ }
+
+ // Simulate API call delay
+ await Task.Delay(1500);
+
+ // Add new user to the dictionary (In production, save to database)
+ validUsers.Add(registerEmail.ToLower(), new UserCredential
+ {
+ Password = registerPassword,
+ Role = registerRole,
+ FullName = registerFullName,
+ Phone = registerPhone,
+ Company = registerCompany
+ });
+
+ // Show success message
+ successMessage = "Account created successfully! Redirecting to login...";
+ StateHasChanged();
+
+ // Wait a bit then switch to login form
+ await Task.Delay(2000);
+
+ // Clear registration fields
+ ClearRegisterForm();
+
+ // Show login form
+ showRegister = false;
+ successMessage = "";
+
+ isRegistering = false;
+ }
+
+ private void ClearRegisterForm()
+ {
+ registerFullName = "";
+ registerEmail = "";
+ registerPhone = "";
+ registerCompany = "";
+ registerRole = "";
+ registerPassword = "";
+ registerConfirmPassword = "";
+ agreeToTerms = false;
+ }
+
+ private async Task HandleLogin()
+ {
+ isLoading = true;
+ errorMessage = "";
+ StateHasChanged();
+
+ // Simulate API call delay
+ await Task.Delay(1000);
+
+ if (validUsers.TryGetValue(email.ToLower(), out var user))
+ {
+ if (user.Password == password)
+ {
+ // Successful login
+ // Call AuthService to set state
+ AuthService.SignIn(email.ToLower(), user.Role);
+
+ // Navigate to the home/dashboard
+ NavigationManager.NavigateTo("/", true);
+ return;
+ }
+ }
+
+ // Login failed
+ errorMessage = "Invalid email or password. Please try again.";
+ isLoading = false;
+ password = ""; // Clear password field
+ }
+
+ private class UserCredential
+ {
+ public string Password { get; set; } = "";
+ public string Role { get; set; } = "";
+ public string FullName { get; set; } = "";
+ public string Phone { get; set; } = "";
+ public string Company { get; set; } = "";
+ }
+}

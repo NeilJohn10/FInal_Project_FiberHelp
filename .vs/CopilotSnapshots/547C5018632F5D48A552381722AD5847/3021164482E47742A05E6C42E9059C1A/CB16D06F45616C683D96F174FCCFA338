@@ -1,0 +1,65 @@
+﻿<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300" width="300" height="300">
+  <defs>
+    <style>
+      .wifi-arc { stroke: #001f3f; stroke-width: 5; fill: none; stroke-linecap: round; }
+      .person-filled { fill: #001f3f; }
+      .person-outline { stroke: #001f3f; stroke-width: 3; fill: none; }
+      .dot { fill: #001f3f; }
+      .text { font-family: 'Arial', sans-serif; font-size: 48px; font-weight: 900; text-anchor: middle; fill: #001f3f; letter-spacing: 3px; }
+</style>
+  </defs>
+  
+  <!-- WiFi Signal - Top Arc (Largest) -->
+  <path class="wifi-arc" d="M 150 60 Q 195 60 225 90"/>
+  
+  <!-- WiFi Signal - Top Arc (Left) -->
+  <path class="wifi-arc" d="M 150 60 Q 105 60 75 90"/>
+  
+  <!-- WiFi Signal - Middle Arc (Largest) -->
+  <path class="wifi-arc" d="M 150 85 Q 190 85 210 105"/>
+  
+  <!-- WiFi Signal - Middle Arc (Left) -->
+  <path class="wifi-arc" d="M 150 85 Q 110 85 90 105"/>
+  
+  <!-- WiFi Signal - Inner Arc (Largest) -->
+  <path class="wifi-arc" d="M 150 110 Q 175 110 190 125"/>
+  
+  <!-- WiFi Signal - Inner Arc (Left) -->
+  <path class="wifi-arc" d="M 150 110 Q 125 110 110 125"/>
+  
+  <!-- WiFi Center Dot -->
+  <circle class="dot" cx="150" cy="135" r="7"/>
+  
+  <!-- Left Person (Filled - Represents Support Agent) -->
+  <g>
+    <!-- Head -->
+<circle class="person-filled" cx="115" cy="155" r="12"/>
+    <!-- Body -->
+ <rect class="person-filled" x="105" y="172" width="20" height="28" rx="3"/>
+  <!-- Left Arm -->
+    <rect class="person-filled" x="90" y="175" width="15" height="8" rx="4"/>
+    <!-- Right Arm -->
+    <rect class="person-filled" x="125" y="175" width="15" height="8" rx="4"/>
+    <!-- Legs -->
+    <rect class="person-filled" x="108" y="205" width="6" height="15" rx="3"/>
+  <rect class="person-filled" x="116" y="205" width="6" height="15" rx="3"/>
+  </g>
+  
+  <!-- Right Person (Outline - Represents Customer) -->
+  <g>
+    <!-- Head -->
+    <circle class="person-outline" cx="185" cy="155" r="12"/>
+    <!-- Body -->
+    <rect class="person-outline" x="175" y="172" width="20" height="28" rx="3"/>
+    <!-- Left Arm -->
+ <line class="person-outline" x1="165" y1="175" x2="150" y2="175" stroke-width="3" stroke-linecap="round"/>
+    <!-- Right Arm -->
+    <line class="person-outline" x1="195" y1="175" x2="210" y2="175" stroke-width="3" stroke-linecap="round"/>
+    <!-- Legs -->
+    <rect class="person-outline" x="178" y="205" width="6" height="15" rx="3"/>
+ <rect class="person-outline" x="186" y="205" width="6" height="15" rx="3"/>
+  </g>
+  
+  <!-- Text -->
+  <text class="text" x="150" y="270">FIBERHELP</text>
+</svg>

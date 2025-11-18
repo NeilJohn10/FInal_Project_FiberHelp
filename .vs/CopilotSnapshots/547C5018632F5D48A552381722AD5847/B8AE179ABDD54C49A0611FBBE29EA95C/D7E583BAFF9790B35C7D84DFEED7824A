@@ -1,0 +1,67 @@
+﻿@inherits LayoutComponentBase
+@implements IDisposable
+@inject FiberHelp.Services.AuthService AuthService
+@inject NavigationManager Navigation
+
+<div class="main-layout">
+    @if (AuthService.IsAuthenticated)
+    {
+        <div class="top-bar">@* existing layout content *@</div>
+        <div class="body-content">
+            @Body
+        </div>
+    }
+</div>
+
+@code {
+    protected override void OnInitialized()
+    {
+        AuthService.AuthenticationStateChanged += OnAuthChanged;
+
+        // If not authenticated, navigate to login
+        if (!AuthService.IsAuthenticated)
+        {
+            Navigation.NavigateTo("/login", true);
+        }
+    }
+
+    private void OnAuthChanged()
+    {
+        // When auth state changes, redirect appropriately
+        if (!AuthService.IsAuthenticated)
+        {
+            Navigation.NavigateTo("/login", true);
+        }
+        else
+        {
+            // If user became authenticated and we are on login page, go to home
+            if (Navigation.Uri.EndsWith("/login", StringComparison.OrdinalIgnoreCase))
+            {
+                Navigation.NavigateTo("/", true);
+            }
+        }
+
+        InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        AuthService.AuthenticationStateChanged -= OnAuthChanged;
+    }
+}
+
+<style>
+    .page {
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+    }
+
+    main {
+        flex: 1;
+    }
+
+    .content {
+        padding: 0 !important;
+    }
+</style>

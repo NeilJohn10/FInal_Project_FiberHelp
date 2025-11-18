@@ -1,0 +1,49 @@
+﻿using Microsoft.Extensions.Logging;
+using FiberHelp.Services;
+using Microsoft.EntityFrameworkCore;
+using FiberHelp.Data;
+
+namespace FiberHelp
+{
+    public static class MauiProgram
+    {
+        public static MauiApp CreateMauiApp()
+        {
+            var builder = MauiApp.CreateBuilder();
+            builder
+                .UseMauiApp<App>()
+                .ConfigureFonts(fonts =>
+                {
+                    fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
+                });
+
+            // Load optional appsettings.json if present
+            // (some platforms may not include it by default)
+            try
+            {
+                builder.Configuration.AddJsonFile("appsettings.json", optional: true, reloadOnChange: true);
+            }
+            catch
+            {
+                // ignore if AddJsonFile extension not available on some platforms
+            }
+
+            builder.Services.AddMauiBlazorWebView();
+            builder.Services.AddSingleton<AuthService>();
+            builder.Services.AddScoped<AdminService>();
+
+            // Get connection string from configuration or fallback to localdb
+            var connectionString = builder.Configuration["ConnectionStrings:DefaultConnection"]
+                ?? "Server=(localdb)\\mssqllocaldb;Database=FiberHelpDb;Trusted_Connection=True;MultipleActiveResultSets=true";
+
+            builder.Services.AddDbContext<AppDbContext>(options => options.UseSqlServer(connectionString));
+
+#if DEBUG
+            builder.Services.AddBlazorWebViewDeveloperTools();
+            builder.Logging.AddDebug();
+#endif
+
+            return builder.Build();
+        }
+    }
+}

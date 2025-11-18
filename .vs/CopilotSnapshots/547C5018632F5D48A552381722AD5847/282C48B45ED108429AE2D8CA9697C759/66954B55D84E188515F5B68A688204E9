@@ -1,0 +1,334 @@
+﻿@page "/"
+@using System.Linq
+@inject FiberHelp.Services.AuthService AuthService
+@inject NavigationManager Navigation
+
+<PageTitle>Dashboard - FiberHelp</PageTitle>
+
+<link href="css/home.css" rel="stylesheet" />
+
+<div class="app-shell">
+ <!-- LEFT SIDEBAR -->
+ <aside class="sidebar">
+ <div class="brand">
+ <span class="brand-dot"></span>
+ <span>FIBERHELP</span>
+ </div>
+
+ <div class="sidebar-group">
+ <button class="sidebar-btn @(currentPage == "dashboard" ? "active" : "")"
+ @onclick="ShowDashboard">
+ <span class="icon">🏠</span>
+ <span>Dashboard</span>
+ </button>
+ <button class="sidebar-btn @(currentPage == "tickets" ? "active" : "")"
+ @onclick="ShowTickets">
+ <span class="icon">🎫</span>
+ <span>Tickets</span>
+ </button>
+ <button class="sidebar-btn @(currentPage == "customers" ? "active" : "")"
+ @onclick="ShowCustomers">
+ <span class="icon">👥</span>
+ <span>Customers</span>
+ </button>
+ <button class="sidebar-btn @(currentPage == "billing" ? "active" : "")"
+ @onclick="ShowBilling">
+ <span class="icon">💳</span>
+ <span>Billing</span>
+ </button>
+ <button class="sidebar-btn @(currentPage == "reports" ? "active" : "")"
+ @onclick="ShowReports">
+ <span class="icon">📊</span>
+ <span>Reports</span>
+ </button>
+ </div>
+
+ <div class="sidebar-group muted">
+ <button class="sidebar-btn @(currentPage == "settings" ? "active" : "")"
+ @onclick="ShowSettings">
+ <span class="icon">⚙️</span>
+ <span>Settings</span>
+ </button>
+ <button class="sidebar-btn danger" @onclick="HandleLogout">
+ <span class="icon">↩️</span>
+ <span>Logout</span>
+ </button>
+ </div>
+ </aside>
+
+ <!-- MAIN CONTENT -->
+ <main class="main">
+ <div class="main-inner">
+ @if (currentPage == "dashboard")
+ {
+ <header class="topbar">
+ <div>
+ <p class="eyebrow">FIBERHELP · ADMIN VIEW</p>
+ <h1 class="page-title">Dashboard</h1>
+ </div>
+ <div class="top-actions">
+ <button class="btn subtle">Export</button>
+ <button class="btn primary">+ New Ticket</button>
+ <div class="user-pill">
+ <div class="avatar">FH</div>
+ <div class="user-meta">
+ <p class="user-email">neiljohnadlawan@gmail.com</p>
+ <p class="user-role">Admin</p>
+ </div>
+ </div>
+ </div>
+ </header>
+
+ <section class="kpi-grid">
+ <article class="kpi-card">
+ <div class="kpi-header">
+ <span>Total Customers</span>
+ <span class="badge success">+4.5%</span>
+ </div>
+ <h2>128</h2>
+ <p class="kpi-sub">sample trend only</p>
+ </article>
+ <article class="kpi-card">
+ <div class="kpi-header">
+ <span>Active Subscriptions</span>
+ <span class="badge success">+2.1%</span>
+ </div>
+ <h2>94</h2>
+ <p class="kpi-sub">active this month</p>
+ </article>
+ <article class="kpi-card">
+ <div class="kpi-header">
+ <span>Open Tickets</span>
+ <span class="badge warning">3 high</span>
+ </div>
+ <h2>7</h2>
+ <p class="kpi-sub">need agent response</p>
+ </article>
+ <article class="kpi-card">
+ <div class="kpi-header">
+ <span>Pending Invoices</span>
+ <span class="badge danger">follow up</span>
+ </div>
+ <h2>₱30,000</h2>
+ <p class="kpi-sub">unpaid amount</p>
+ </article>
+ </section>
+
+ <section class="body-grid">
+ <div class="panel">
+ <div class="panel-head">
+ <div>
+ <h2>Latest Tickets</h2>
+ <p class="muted-text">Most recent customer issues</p>
+ </div>
+ <div class="filter-pill">This week</div>
+ </div>
+ <table class="data-table">
+ <thead>
+ <tr>
+ <th>Ticket #</th>
+ <th>Account</th>
+ <th>Subject</th>
+ <th>Status</th>
+ <th>Created</th>
+ </tr>
+ </thead>
+ <tbody>
+ @foreach (var t in tickets.Take(4))
+ {
+ <tr>
+ <td>@t.Id</td>
+ <td>@t.Customer</td>
+ <td>@t.Title</td>
+ <td>
+ <span class="status-pill @t.Status.ToLower().Replace(" ", "")">
+ @t.Status
+ </span>
+ </td>
+ <td>@GetTimeAgo(t.Created)</td>
+ </tr>
+ }
+ </tbody>
+ </table>
+ </div>
+
+ <div class="panel">
+ <div class="panel-head">
+ <h2>Today's Activity</h2>
+ <p class="muted-text">Recent actions</p>
+ </div>
+ <ul class="activity-list">
+ <li class="activity success">
+ <span class="dot"></span>
+ Ticket #7004 assigned to <strong>CSR-01</strong>
+ <span class="time">10 mins ago</span>
+ </li>
+ <li class="activity warning">
+ <span class="dot"></span>
+ New customer registered: <strong>Kisha Tan</strong>
+ <span class="time">25 mins ago</span>
+ </li>
+ <li class="activity">
+ <span class="dot"></span>
+ Invoice reminder sent to <strong>Fiber Corp</strong>
+ <span class="time">35 mins ago</span>
+ </li>
+ <li class="activity">
+ <span class="dot"></span>
+2 tickets waiting for update
+ <span class="time">1 hr ago</span>
+ </li>
+ </ul>
+ </div>
+ </section>
+ }
+ else if (currentPage == "tickets")
+ {
+ <header class="topbar">
+ <div>
+ <p class="eyebrow">FIBERHELP · ADMIN VIEW</p>
+ <h1 class="page-title">Tickets</h1>
+ </div>
+ <div class="top-actions">
+ <button class="btn primary">+ New Ticket</button>
+ </div>
+ </header>
+ <section class="panel">
+ <table class="data-table">
+ <thead>
+ <tr>
+ <th>Ticket ID</th>
+ <th>Title</th>
+ <th>Customer</th>
+ <th>Priority</th>
+ <th>Status</th>
+ <th>Created</th>
+ </tr>
+ </thead>
+ <tbody>
+ @foreach (var ticket in tickets)
+ {
+ <tr>
+ <td>@ticket.Id</td>
+ <td>@ticket.Title</td>
+ <td>@ticket.Customer</td>
+ <td><span class="status-pill priority">@ticket.Priority</span></td>
+ <td><span class="status-pill @ticket.Status.ToLower().Replace(" ", "")">@ticket.Status</span></td>
+ <td>@GetTimeAgo(ticket.Created)</td>
+ </tr>
+ }
+ </tbody>
+ </table>
+ </section>
+ }
+ else if (currentPage == "customers")
+ {
+ <header class="topbar">
+ <div>
+ <p class="eyebrow">FIBERHELP · ADMIN VIEW</p>
+ <h1 class="page-title">Customers</h1>
+ </div>
+ <div class="top-actions">
+ <button class="btn primary">+ Add Customer</button>
+ </div>
+ </header>
+ <section class="panel">
+ <table class="data-table">
+ <thead>
+ <tr>
+ <th>Customer ID</th>
+ <th>Name</th>
+ <th>Email</th>
+ <th>Plan</th>
+ <th>Status</th>
+ <th>Join Date</th>
+ </tr>
+ </thead>
+ <tbody>
+ @foreach (var customer in customers)
+ {
+ <tr>
+ <td>@customer.Id</td>
+ <td>@customer.Name</td>
+ <td>@customer.Email</td>
+ <td>@customer.Plan</td>
+ <td><span class="status-pill @customer.Status.ToLower()">@customer.Status</span></td>
+ <td>@customer.JoinDate.ToString("MMM dd, yyyy")</td>
+ </tr>
+ }
+ </tbody>
+ </table>
+ </section>
+ }
+ else
+ {
+ <header class="topbar">
+ <h1 class="page-title">@currentPage</h1>
+ </header>
+ <section class="panel">
+ <p>Placeholder for @currentPage page.</p>
+ </section>
+ }
+ </div>
+ </main>
+</div>
+
+@code {
+ private string currentPage = "dashboard";
+
+ private void ShowDashboard() => currentPage = "dashboard";
+ private void ShowTickets() => currentPage = "tickets";
+ private void ShowCustomers() => currentPage = "customers";
+ private void ShowBilling() => currentPage = "billing";
+ private void ShowReports() => currentPage = "reports";
+ private void ShowSettings() => currentPage = "settings";
+
+ private void HandleLogout()
+ {
+ AuthService.SignOut();
+ Navigation.NavigateTo("/login", true);
+ }
+
+ private List<Ticket> tickets = new()
+ {
+ new Ticket { Id = "7001", Title = "Slow internet", Customer = "Neil Adlawan", Priority = "High", Status = "Open", Created = DateTime.Now.AddMinutes(-10) },
+ new Ticket { Id = "7002", Title = "Billing inquiry", Customer = "Jaspher Ondangan", Priority = "Low", Status = "Resolved", Created = DateTime.Now.AddMinutes(-35) },
+ new Ticket { Id = "7003", Title = "No connection", Customer = "Fiber Corp", Priority = "Medium", Status = "In-Progress", Created = DateTime.Now.AddHours(-1) },
+ new Ticket { Id = "7004", Title = "Account locked", Customer = "Kisha Tan", Priority = "High", Status = "Open", Created = DateTime.Now.AddHours(-2) },
+ };
+
+ private List<Customer> customers = new()
+ {
+ new Customer { Id = "CUST-001", Name = "Neil Adlawan", Email = "neil@email.com", Plan = "Fiber100Mbps", Status = "Active", JoinDate = DateTime.Now.AddMonths(-4) },
+ new Customer { Id = "CUST-002", Name = "Jaspher Ondangan", Email = "jaspher@email.com", Plan = "Fiber50Mbps", Status = "Active", JoinDate = DateTime.Now.AddMonths(-7) },
+ new Customer { Id = "CUST-003", Name = "Fiber Corp", Email = "support@fibercorp.com", Plan = "Fiber Biz200Mbps", Status = "Active", JoinDate = DateTime.Now.AddMonths(-12) },
+ };
+
+ private string GetTimeAgo(DateTime date)
+ {
+ var span = DateTime.Now - date;
+ if (span.TotalMinutes <60) return $"{(int)span.TotalMinutes} mins ago";
+ if (span.TotalHours <24) return $"{(int)span.TotalHours} hrs ago";
+ return $"{(int)span.TotalDays} days ago";
+ }
+
+ private class Ticket
+ {
+ public string Id { get; set; } = "";
+ public string Title { get; set; } = "";
+ public string Customer { get; set; } = "";
+ public string Priority { get; set; } = "";
+ public string Status { get; set; } = "";
+ public DateTime Created { get; set; }
+ }
+
+ private class Customer
+ {
+ public string Id { get; set; } = "";
+ public string Name { get; set; } = "";
+ public string Email { get; set; } = "";
+ public string Plan { get; set; } = "";
+ public string Status { get; set; } = "";
+ public DateTime JoinDate { get; set; }
+ }
+}

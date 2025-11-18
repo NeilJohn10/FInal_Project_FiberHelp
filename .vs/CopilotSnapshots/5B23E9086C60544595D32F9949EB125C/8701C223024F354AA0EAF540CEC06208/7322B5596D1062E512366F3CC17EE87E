@@ -1,0 +1,47 @@
+﻿using System.Collections.Generic;
+using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
+using FiberHelp.Data;
+using FiberHelp.Models;
+using System;
+
+namespace FiberHelp.Services
+{
+public class AdminService
+{
+private readonly AppDbContext _db;
+public AdminService(AppDbContext db) { _db = db; }
+
+public async Task<List<Ticket>> GetTicketsAsync()
+{
+try
+{
+return await _db.Tickets.OrderByDescending(t => t.Created).ToListAsync();
+}
+catch (Exception ex)
+{
+System.Diagnostics.Debug.WriteLine($"AdminService.GetTicketsAsync error: {ex}");
+return new List<Ticket>();
+}
+}
+
+public async Task<Ticket?> GetTicketAsync(string id)
+{
+try { return await _db.Tickets.FindAsync(id); }
+catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"AdminService.GetTicketAsync error: {ex}"); return null; }
+}
+public async Task CreateTicketAsync(Ticket t) { try { _db.Tickets.Add(t); await _db.SaveChangesAsync(); } catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"AdminService.CreateTicketAsync error: {ex}"); } }
+public async Task UpdateTicketAsync(Ticket t) { try { _db.Tickets.Update(t); await _db.SaveChangesAsync(); } catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"AdminService.UpdateTicketAsync error: {ex}"); } }
+public async Task DeleteTicketAsync(string id) { try { var t = await _db.Tickets.FindAsync(id); if (t != null) { _db.Tickets.Remove(t); await _db.SaveChangesAsync(); } } catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"AdminService.DeleteTicketAsync error: {ex}"); } }
+
+public async Task<List<Customer>> GetCustomersAsync()
+{
+try { return await _db.Customers.OrderByDescending(c => c.JoinDate).ToListAsync(); }
+catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"AdminService.GetCustomersAsync error: {ex}"); return new List<Customer>(); }
+}
+public async Task<Customer?> GetCustomerAsync(string id) { try { return await _db.Customers.FindAsync(id); } catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"AdminService.GetCustomerAsync error: {ex}"); return null; } }
+public async Task CreateCustomerAsync(Customer c) { try { _db.Customers.Add(c); await _db.SaveChangesAsync(); } catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"AdminService.CreateCustomerAsync error: {ex}"); } }
+public async Task UpdateCustomerAsync(Customer c) { try { _db.Customers.Update(c); await _db.SaveChangesAsync(); } catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"AdminService.UpdateCustomerAsync error: {ex}"); } }
+public async Task DeleteCustomerAsync(string id) { try { var c = await _db.Customers.FindAsync(id); if (c != null) { _db.Customers.Remove(c); await _db.SaveChangesAsync(); } } catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"AdminService.DeleteCustomerAsync error: {ex}"); } }
+}
+}

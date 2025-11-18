@@ -1,0 +1,61 @@
+-- Run these statements on your SQL Server (e.g. SSMS) to create the database and tables used by the app
+-- Create database (if it doesn't exist)
+IF NOT EXISTS (SELECT name FROM sys.databases WHERE name = N'FiberhelpDB')
+BEGIN
+ CREATE DATABASE [FiberhelpDB];
+END
+GO
+
+USE [FiberhelpDB];
+GO
+
+-- Users table
+IF OBJECT_ID('dbo.Users', 'U') IS NOT NULL
+ DROP TABLE dbo.Users;
+GO
+
+CREATE TABLE dbo.Users (
+ Id NVARCHAR(50) NOT NULL PRIMARY KEY,
+ Email NVARCHAR(256) NOT NULL UNIQUE,
+ PasswordHash NVARCHAR(256) NOT NULL,
+ Role NVARCHAR(50) NOT NULL,
+ FullName NVARCHAR(256) NULL,
+ IsActive BIT NOT NULL DEFAULT(1)
+);
+GO
+
+-- Customers table
+IF OBJECT_ID('dbo.Customers', 'U') IS NOT NULL
+ DROP TABLE dbo.Customers;
+GO
+
+CREATE TABLE dbo.Customers (
+ Id NVARCHAR(50) NOT NULL PRIMARY KEY,
+ Name NVARCHAR(256) NOT NULL,
+ Email NVARCHAR(256) NULL,
+ Plan NVARCHAR(100) NULL,
+ Status NVARCHAR(50) NULL,
+ JoinDate DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME()
+);
+GO
+
+-- Tickets table
+IF OBJECT_ID('dbo.Tickets', 'U') IS NOT NULL
+ DROP TABLE dbo.Tickets;
+GO
+
+CREATE TABLE dbo.Tickets (
+ Id NVARCHAR(50) NOT NULL PRIMARY KEY,
+ Title NVARCHAR(500) NOT NULL,
+ Customer NVARCHAR(256) NOT NULL,
+ Priority NVARCHAR(50) NULL,
+ Status NVARCHAR(50) NULL,
+ Created DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME()
+);
+GO
+
+-- Optionally insert a default admin user (password is SHA256 hash of 'Admin123!')
+-- Replace the Id and PasswordHash values if you want a different seed user
+INSERT INTO dbo.Users (Id, Email, PasswordHash, Role, FullName, IsActive)
+VALUES ('user-1', 'admin@fiberhelp.local', '7C4A8D09CA3762AF61E59520943DC26494F8941B', 'Administrator', 'Admin User',1);
+GO

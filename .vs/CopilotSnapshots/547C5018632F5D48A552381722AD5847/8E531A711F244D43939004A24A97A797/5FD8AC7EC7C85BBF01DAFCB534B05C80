@@ -1,0 +1,511 @@
+﻿@page "/"
+@using System.Linq
+
+<PageTitle>Dashboard - FiberHelp</PageTitle>
+
+<div class="app-shell">
+ <!-- LEFT SIDEBAR -->
+ <aside class="sidebar">
+ <div class="brand">
+ <span class="brand-dot"></span>
+ <span>FIBERHELP</span>
+ </div>
+
+ <div class="sidebar-group">
+ <button class="sidebar-btn @(currentPage == "dashboard" ? "active" : "")"
+ @onclick="ShowDashboard">
+ <span class="icon">🏠</span>
+ <span>Dashboard</span>
+ </button>
+ <button class="sidebar-btn @(currentPage == "tickets" ? "active" : "")"
+ @onclick="ShowTickets">
+ <span class="icon">🎫</span>
+ <span>Tickets</span>
+ </button>
+ <button class="sidebar-btn @(currentPage == "customers" ? "active" : "")"
+ @onclick="ShowCustomers">
+ <span class="icon">👥</span>
+ <span>Customers</span>
+ </button>
+ <button class="sidebar-btn @(currentPage == "billing" ? "active" : "")"
+ @onclick="ShowBilling">
+ <span class="icon">💳</span>
+ <span>Billing</span>
+ </button>
+ <button class="sidebar-btn @(currentPage == "reports" ? "active" : "")"
+ @onclick="ShowReports">
+ <span class="icon">📊</span>
+ <span>Reports</span>
+ </button>
+ </div>
+
+ <div class="sidebar-group muted">
+ <button class="sidebar-btn @(currentPage == "settings" ? "active" : "")"
+ @onclick="ShowSettings">
+ <span class="icon">⚙️</span>
+ <span>Settings</span>
+ </button>
+ <button class="sidebar-btn danger">
+ <span class="icon">↩</span>
+ <span>Logout</span>
+ </button>
+ </div>
+ </aside>
+
+ <!-- MAIN CONTENT -->
+ <main class="main">
+ <div class="main-inner">
+ @if (currentPage == "dashboard")
+ {
+ <header class="topbar">
+ <div>
+ <p class="eyebrow">FIBERHELP · ADMIN VIEW</p>
+ <h1 class="page-title">Dashboard</h1>
+ </div>
+ <div class="top-actions">
+ <button class="btn subtle">Export</button>
+ <button class="btn primary">+ New Ticket</button>
+ <div class="user-pill">
+ <div class="avatar">FH</div>
+ <div class="user-meta">
+ <p class="user-email">neiljohnadlawan@gmail.com</p>
+ <p class="user-role">Admin</p>
+ </div>
+ </div>
+ </div>
+ </header>
+
+ <section class="kpi-grid">
+ <article class="kpi-card">
+ <div class="kpi-header">
+ <span>Total Customers</span>
+ <span class="badge success">+4.5%</span>
+ </div>
+ <h2>128</h2>
+ <p class="kpi-sub">sample trend only</p>
+ </article>
+ <article class="kpi-card">
+ <div class="kpi-header">
+ <span>Active Subscriptions</span>
+ <span class="badge success">+2.1%</span>
+ </div>
+ <h2>94</h2>
+ <p class="kpi-sub">active this month</p>
+ </article>
+ <article class="kpi-card">
+ <div class="kpi-header">
+ <span>Open Tickets</span>
+ <span class="badge warning">3 high</span>
+ </div>
+ <h2>7</h2>
+ <p class="kpi-sub">need agent response</p>
+ </article>
+ <article class="kpi-card">
+ <div class="kpi-header">
+ <span>Pending Invoices</span>
+ <span class="badge danger">follow up</span>
+ </div>
+ <h2>₱30,000</h2>
+ <p class="kpi-sub">unpaid amount</p>
+ </article>
+ </section>
+
+ <section class="body-grid">
+ <div class="panel">
+ <div class="panel-head">
+ <div>
+ <h2>Latest Tickets</h2>
+ <p class="muted-text">Most recent customer issues</p>
+ </div>
+ <div class="filter-pill">This week</div>
+ </div>
+ <table class="data-table">
+ <thead>
+ <tr>
+ <th>Ticket #</th>
+ <th>Account</th>
+ <th>Subject</th>
+ <th>Status</th>
+ <th>Created</th>
+ </tr>
+ </thead>
+ <tbody>
+ @foreach (var t in tickets.Take(4))
+ {
+ <tr>
+ <td>@t.Id</td>
+ <td>@t.Customer</td>
+ <td>@t.Title</td>
+ <td>
+ <span class="status-pill @t.Status.ToLower().Replace(" ", "")">
+ @t.Status
+ </span>
+ </td>
+ <td>@GetTimeAgo(t.Created)</td>
+ </tr>
+ }
+ </tbody>
+ </table>
+ </div>
+
+ <div class="panel">
+ <div class="panel-head">
+ <h2>Today’s Activity</h2>
+ <p class="muted-text">Recent actions</p>
+ </div>
+ <ul class="activity-list">
+ <li class="activity success">
+ <span class="dot"></span>
+ Ticket #7004 assigned to <strong>CSR-01</strong>
+ <span class="time">10 mins ago</span>
+ </li>
+ <li class="activity warning">
+ <span class="dot"></span>
+ New customer registered: <strong>Kisha Tan</strong>
+ <span class="time">25 mins ago</span>
+ </li>
+ <li class="activity">
+ <span class="dot"></span>
+ Invoice reminder sent to <strong>Fiber Corp</strong>
+ <span class="time">35 mins ago</span>
+ </li>
+ <li class="activity">
+ <span class="dot"></span>
+2 tickets waiting for update
+ <span class="time">1 hr ago</span>
+ </li>
+ </ul>
+ </div>
+ </section>
+ }
+ else if (currentPage == "tickets")
+ {
+ <header class="topbar">
+ <div>
+ <p class="eyebrow">FIBERHELP · ADMIN VIEW</p>
+ <h1 class="page-title">Tickets</h1>
+ </div>
+ <div class="top-actions">
+ <button class="btn primary">+ New Ticket</button>
+ </div>
+ </header>
+ <section class="panel">
+ <table class="data-table">
+ <thead>
+ <tr>
+ <th>Ticket ID</th>
+ <th>Title</th>
+ <th>Customer</th>
+ <th>Priority</th>
+ <th>Status</th>
+ <th>Created</th>
+ </tr>
+ </thead>
+ <tbody>
+ @foreach (var ticket in tickets)
+ {
+ <tr>
+ <td>@ticket.Id</td>
+ <td>@ticket.Title</td>
+ <td>@ticket.Customer</td>
+ <td><span class="status-pill priority">@ticket.Priority</span></td>
+ <td><span class="status-pill @ticket.Status.ToLower().Replace(" ", "")">@ticket.Status</span></td>
+ <td>@GetTimeAgo(ticket.Created)</td>
+ </tr>
+ }
+ </tbody>
+ </table>
+ </section>
+ }
+ else if (currentPage == "customers")
+ {
+ <header class="topbar">
+ <div>
+ <p class="eyebrow">FIBERHELP · ADMIN VIEW</p>
+ <h1 class="page-title">Customers</h1>
+ </div>
+ <div class="top-actions">
+ <button class="btn primary">+ Add Customer</button>
+ </div>
+ </header>
+ <section class="panel">
+ <table class="data-table">
+ <thead>
+ <tr>
+ <th>Customer ID</th>
+ <th>Name</th>
+ <th>Email</th>
+ <th>Plan</th>
+ <th>Status</th>
+ <th>Join Date</th>
+ </tr>
+ </thead>
+ <tbody>
+ @foreach (var customer in customers)
+ {
+ <tr>
+ <td>@customer.Id</td>
+ <td>@customer.Name</td>
+ <td>@customer.Email</td>
+ <td>@customer.Plan</td>
+ <td><span class="status-pill @customer.Status.ToLower()">@customer.Status</span></td>
+ <td>@customer.JoinDate.ToString("MMM dd, yyyy")</td>
+ </tr>
+ }
+ </tbody>
+ </table>
+ </section>
+ }
+ else
+ {
+ <header class="topbar">
+ <h1 class="page-title">@currentPage</h1>
+ </header>
+ <section class="panel">
+ <p>Placeholder for @currentPage page.</p>
+ </section>
+ }
+ </div>
+ </main>
+</div>
+
+@code {
+ private string currentPage = "dashboard";
+
+ private void ShowDashboard() => currentPage = "dashboard";
+ private void ShowTickets() => currentPage = "tickets";
+ private void ShowCustomers() => currentPage = "customers";
+ private void ShowBilling() => currentPage = "billing";
+ private void ShowReports() => currentPage = "reports";
+ private void ShowSettings() => currentPage = "settings";
+
+ private List<Ticket> tickets = new()
+ {
+ new Ticket { Id = "7001", Title = "Slow internet", Customer = "Neil Adlawan", Priority = "High", Status = "Open", Created = DateTime.Now.AddMinutes(-10) },
+ new Ticket { Id = "7002", Title = "Billing inquiry", Customer = "Jaspher Ondangan", Priority = "Low", Status = "Resolved", Created = DateTime.Now.AddMinutes(-35) },
+ new Ticket { Id = "7003", Title = "No connection", Customer = "Fiber Corp", Priority = "Medium", Status = "In-Progress", Created = DateTime.Now.AddHours(-1) },
+ new Ticket { Id = "7004", Title = "Account locked", Customer = "Kisha Tan", Priority = "High", Status = "Open", Created = DateTime.Now.AddHours(-2) },
+ };
+
+ private List<Customer> customers = new()
+ {
+ new Customer { Id = "CUST-001", Name = "Neil Adlawan", Email = "neil@email.com", Plan = "Fiber100Mbps", Status = "Active", JoinDate = DateTime.Now.AddMonths(-4) },
+ new Customer { Id = "CUST-002", Name = "Jaspher Ondangan", Email = "jaspher@email.com", Plan = "Fiber50Mbps", Status = "Active", JoinDate = DateTime.Now.AddMonths(-7) },
+ new Customer { Id = "CUST-003", Name = "Fiber Corp", Email = "support@fibercorp.com", Plan = "Fiber Biz200Mbps", Status = "Active", JoinDate = DateTime.Now.AddMonths(-12) },
+ };
+
+ private string GetTimeAgo(DateTime date)
+ {
+ var span = DateTime.Now - date;
+ if (span.TotalMinutes <60) return $"{(int)span.TotalMinutes} mins ago";
+ if (span.TotalHours <24) return $"{(int)span.TotalHours} hrs ago";
+ return $"{(int)span.TotalDays} days ago";
+ }
+
+ private class Ticket
+ {
+ public string Id { get; set; } = "";
+ public string Title { get; set; } = "";
+ public string Customer { get; set; } = "";
+ public string Priority { get; set; } = "";
+ public string Status { get; set; } = "";
+ public DateTime Created { get; set; }
+ }
+
+ private class Customer
+ {
+ public string Id { get; set; } = "";
+ public string Name { get; set; } = "";
+ public string Email { get; set; } = "";
+ public string Plan { get; set; } = "";
+ public string Status { get; set; } = "";
+ public DateTime JoinDate { get; set; }
+ }
+}
+
+<style>
+ :root{
+ --bg: #f6f9fb;
+ --panel: #ffffff;
+ --muted: #6b7280;
+ --text: #0f172a;
+ --primary: #0ea5a4; /* teal */
+ --primary-600: #0b9b98;
+ --accent: #60a5fa; /* soft blue */
+ --success: #10b981;
+ --warning: #f59e0b;
+ --danger: #ef4444;
+ --card-shadow:010px30px rgba(15,23,42,0.06);
+ }
+
+ .app-shell {
+ display: flex;
+ min-height:100vh;
+ background: var(--bg);
+ color: var(--text);
+ }
+
+ /* LEFT SIDEBAR */
+ .sidebar {
+ width:220px;
+ background: linear-gradient(180deg, rgba(14,165,164,0.08), rgba(96,165,250,0.06));
+ color: #0f172a;
+ padding:2rem1rem;
+ display: flex;
+ flex-direction: column;
+ gap:1.25rem;
+ border-right:1px solid rgba(15,23,42,0.04);
+ }
+
+ .brand {
+ display: flex;
+ align-items: center;
+ gap: .5rem;
+ font-weight:700;
+ letter-spacing: .08em;
+ margin-bottom: .5rem;
+ text-transform: uppercase;
+ color: var(--primary-600);
+ }
+
+ .brand-dot {
+ width: .65rem;
+ height: .65rem;
+ border-radius:999px;
+ background: var(--primary);
+ }
+
+ .sidebar-group {
+ display: flex;
+ flex-direction: column;
+ gap: .35rem;
+ }
+
+ .sidebar-group.muted { margin-top: auto; }
+
+ .sidebar-btn {
+ background: transparent;
+ border: none;
+ color: rgba(15,23,42,0.75);
+ padding: .4rem .25rem;
+ display: flex;
+ align-items: center;
+ gap: .55rem;
+ cursor: pointer;
+ font-weight:600;
+ font-size: .95rem;
+ text-align: left;
+ border-radius: .5rem;
+ }
+
+ .sidebar-btn .icon { width:1.4rem; text-align: center; opacity: .95; }
+
+ .sidebar-btn:hover { background: rgba(14,165,164,0.06); color: var(--primary-600); transform: translateX(4px); }
+
+ .sidebar-btn.active { color: var(--primary); font-weight:700; background: rgba(14,165,164,0.08); }
+
+ .sidebar-btn.danger { color: var(--danger); }
+
+ /* MAIN area: constrain width and center like the screenshot */
+ .main { flex:1; display: flex; flex-direction: column; gap:1.5rem; padding-bottom:1.5rem; }
+
+ .main-inner {
+ max-width:1150px;
+ margin:1.5rem auto;
+ width:100%;
+ padding:1.25rem;
+ }
+
+ .topbar {
+ background: transparent;
+ padding:0.25rem00.5rem0;
+ display: flex;
+ justify-content: space-between;
+ align-items: center;
+ border-bottom: none;
+ }
+
+ .eyebrow {
+ text-transform: uppercase;
+ font-size: .65rem;
+ letter-spacing: .1em;
+ color: var(--muted);
+ margin-bottom: .25rem;
+ }
+
+ .page-title { font-size:1.8rem; font-weight:800; color: var(--text); }
+
+ .top-actions { display: flex; align-items: center; gap: .75rem; }
+
+ .btn { border: none; padding: .45rem .85rem; border-radius: .7rem; font-size: .85rem; cursor: pointer; font-weight:500; }
+
+ .btn.subtle {
+ background: var(--panel);
+ border:1px solid rgba(15,23,42,0.04);
+ color: var(--text);
+ box-shadow:04px14px rgba(15,23,42,0.04);
+ }
+
+ .btn.primary { background: var(--primary); color: #fff; box-shadow:08px22px rgba(14,165,164,0.12); }
+
+ .user-pill {
+ display: flex; gap: .6rem; align-items: center; background: var(--panel); border-radius:999px; padding: .25rem .7rem .25rem .25rem; box-shadow: var(--card-shadow);
+ }
+
+ .avatar { width:2rem; height:2rem; background: var(--primary); color: #fff; border-radius:999px; display: grid; place-items: center; font-weight:700; }
+
+ /* KPI grid cards */
+ .kpi-grid { display: grid; grid-template-columns: repeat(4,1fr); gap:1rem; padding:0; margin-top:0.8rem; }
+
+ .kpi-card {
+ background: var(--panel);
+ border-radius:1rem;
+ padding:1.1rem1rem;
+ border:1px solid rgba(15,23,42,0.04);
+ box-shadow: var(--card-shadow);
+ }
+
+ .kpi-header { display:flex; justify-content: space-between; align-items:center; font-size:.75rem; color:var(--muted); }
+
+ .kpi-card h2 { font-size:1.6rem; margin-top:.6rem; color: var(--text); }
+ .kpi-sub { font-size:.75rem; color: #8b95a1; margin-top:.15rem; }
+
+ .badge { padding: .2rem .5rem; border-radius:999px; font-size:.65rem; font-weight:600; }
+ .badge.success { background: rgba(16,185,129,0.12); color: var(--success); }
+ .badge.warning { background: rgba(245,158,11,0.08); color: var(--warning); }
+ .badge.danger { background: rgba(239,68,68,0.08); color: var(--danger); }
+
+ .body-grid { padding:1rem000; display: grid; grid-template-columns:1.1fr .55fr; gap:1rem; align-items: flex-start; }
+
+ .panel { background: var(--panel); border-radius:1rem; border:1px solid rgba(15,23,42,0.04); padding:1rem; box-shadow: var(--card-shadow); }
+
+ .panel-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: .75rem; }
+ .panel-head h2 { font-size:1rem; font-weight:600; }
+
+ .muted-text { font-size: .8rem; color: var(--muted); }
+
+ .filter-pill { background: var(--panel); border:1px solid rgba(15,23,42,0.04); border-radius: .75rem; font-size: .8rem; padding: .35rem .6rem; }
+
+ .data-table { width:100%; border-collapse: collapse; font-size: .9rem; }
+ .data-table th { text-align: left; padding: .65rem .6rem; color: var(--muted); font-weight:700; border-bottom:1px solid rgba(15,23,42,0.04); }
+ .data-table td { padding: .65rem .6rem; border-bottom:1px solid rgba(15,23,42,0.03); color: rgba(15,23,42,0.9); }
+
+ .status-pill { display:inline-block; padding: .28rem .65rem; border-radius:999px; font-size:.75rem; font-weight:700; background: rgba(96,165,250,0.06); color: var(--accent); }
+ .status-pill.open { background: rgba(239,68,68,0.06); color: var(--danger); }
+ .status-pill.resolved { background: rgba(16,185,129,0.08); color: var(--success); }
+ .status-pill.in-progress, .status-pill.inprogress { background: rgba(245,158,11,0.06); color: var(--warning); }
+
+ .activity-list { list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:.75rem; }
+ .activity { background: var(--panel); border:1px solid rgba(15,23,42,0.04); border-radius:.75rem; padding:.8rem .9rem; position:relative; font-size:.9rem; }
+ .activity .dot { width:.5rem; height:.5rem; border-radius:999px; background: var(--primary); position:absolute; left:-1rem; top:1rem; }
+ .activity.success .dot { background: var(--success); }
+ .activity.warning .dot { background: var(--warning); }
+ .activity .time { display:block; font-size:.75rem; color: var(--muted); margin-top:.25rem; }
+
+ @@media (max-width:1080px) {
+ .body-grid { grid-template-columns:1fr; }
+ .sidebar { display: none; }
+ .kpi-grid { grid-template-columns: repeat(2,1fr); }
+ .main-inner { padding:0.6rem; }
+ }
+</style>

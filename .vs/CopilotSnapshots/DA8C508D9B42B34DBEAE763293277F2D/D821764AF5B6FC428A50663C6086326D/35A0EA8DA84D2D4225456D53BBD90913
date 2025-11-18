@@ -1,0 +1,18 @@
+﻿{
+  "profiles": {
+    "FiberHelp": {
+      "commandName": "Project",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      }
+    },
+    "FiberHelp (Windows)": {
+      "commandName": "Project",
+      "nativeDebugging": true,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      }
+    }
+  },
+  "defaultProfile": "FiberHelp"
+}
