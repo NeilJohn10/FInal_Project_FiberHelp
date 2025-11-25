@@ -151,10 +151,6 @@
       "RelativeMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|solutionrelative:fiberhelp\\components\\layout\\emptylayout.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|c:\\users\\genita\\source\\repos\\fiberhelp\\fiberhelp\\database\\create_tables.sql||{CC5D8DF0-88F4-4BB2-9DBB-B48CEE65C30A}|CodeFrame",
-      "RelativeMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|solutionrelative:fiberhelp\\database\\create_tables.sql||{CC5D8DF0-88F4-4BB2-9DBB-B48CEE65C30A}|CodeFrame"
-    },
-    {
       "AbsoluteMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|c:\\users\\genita\\source\\repos\\fiberhelp\\fiberhelp\\models\\invoice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|solutionrelative:fiberhelp\\models\\invoice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
@@ -165,14 +161,6 @@
     {
       "AbsoluteMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|c:\\users\\genita\\source\\repos\\fiberhelp\\fiberhelp\\components\\common\\userpill.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}",
       "RelativeMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|solutionrelative:fiberhelp\\components\\common\\userpill.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|c:\\users\\genita\\source\\repos\\fiberhelp\\fiberhelp\\database\\create_agents.sql||{CC5D8DF0-88F4-4BB2-9DBB-B48CEE65C30A}|CodeFrame",
-      "RelativeMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|solutionrelative:fiberhelp\\database\\create_agents.sql||{CC5D8DF0-88F4-4BB2-9DBB-B48CEE65C30A}|CodeFrame"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|c:\\users\\genita\\source\\repos\\fiberhelp\\fiberhelp\\database\\create_customers.sql||{CC5D8DF0-88F4-4BB2-9DBB-B48CEE65C30A}|CodeFrame",
-      "RelativeMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|solutionrelative:fiberhelp\\database\\create_customers.sql||{CC5D8DF0-88F4-4BB2-9DBB-B48CEE65C30A}|CodeFrame"
     },
     {
       "AbsoluteMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|c:\\users\\genita\\source\\repos\\fiberhelp\\fiberhelp\\models\\agent.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
@@ -190,7 +178,7 @@
       "DocumentGroups": [
         {
           "DockedHeight": 305,
-          "SelectedChildIndex": 7,
+          "SelectedChildIndex": 6,
           "Children": [
             {
               "$type": "Bookmark",
@@ -205,10 +193,6 @@
               "Name": "ST:0:0:{1c64b9c2-e352-428e-a56d-0ace190b99a6}"
             },
             {
-              "$type": "Bookmark",
-              "Name": "ST:0:0:{1c4feeaa-4718-4aa9-859d-94ce25d182ba}"
-            },
-            {
               "$type": "Document",
               "DocumentIndex": 5,
               "Title": "FiberHelp.csproj",
@@ -218,8 +202,7 @@
               "RelativeToolTip": "FiberHelp\\FiberHelp.csproj",
               "ViewState": "AgIAACEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000758|",
-              "WhenOpened": "2025-11-11T18:01:01.538Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-11-11T18:01:01.538Z"
             },
             {
               "$type": "Document",
@@ -231,8 +214,7 @@
               "RelativeToolTip": "FiberHelp\\appsettings.json",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAAUAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
-              "WhenOpened": "2025-11-17T17:26:27.278Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-11-17T17:26:27.278Z"
             },
             {
               "$type": "Document",
@@ -244,8 +226,7 @@
               "RelativeToolTip": "FiberHelp\\wwwroot\\css\\mainlayout.css",
               "ViewState": "AgIAAJYAAAAAAAAAAAAIwKIAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003000|",
-              "WhenOpened": "2025-11-18T06:30:07.904Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-11-18T06:30:07.904Z"
             },
             {
               "$type": "Document",
@@ -270,8 +251,7 @@
               "RelativeToolTip": "FiberHelp\\Components\\Pages\\Customers.razor",
               "ViewState": "AgIAAA0BAAAAAAAAAAAAAA0BAAABAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
-              "WhenOpened": "2025-11-18T05:55:54.744Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-11-18T05:55:54.744Z"
             },
             {
               "$type": "Document",
@@ -283,12 +263,11 @@
               "RelativeToolTip": "FiberHelp\\Components\\Layout\\Login.razor",
               "ViewState": "AgIAAK8AAAAAAAAAAAAowCgAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
-              "WhenOpened": "2025-11-11T23:18:08.028Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-11-11T23:18:08.028Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 44,
+              "DocumentIndex": 41,
               "Title": "agents.css",
               "DocumentMoniker": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\wwwroot\\css\\agents.css",
               "RelativeDocumentMoniker": "FiberHelp\\wwwroot\\css\\agents.css",
@@ -296,24 +275,22 @@
               "RelativeToolTip": "FiberHelp\\wwwroot\\css\\agents.css",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAABsBAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003000|",
-              "WhenOpened": "2025-11-20T05:33:45.956Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-11-20T05:33:45.956Z"
             },
             {
               "$type": "Document",
               "DocumentIndex": 6,
-              "Title": "create_agents.sql ",
+              "Title": "create_agents.sql",
               "DocumentMoniker": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Database\\create_agents.sql",
               "RelativeDocumentMoniker": "FiberHelp\\Database\\create_agents.sql",
               "ToolTip": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Database\\create_agents.sql",
               "RelativeToolTip": "FiberHelp\\Database\\create_agents.sql",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000826|",
-              "WhenOpened": "2025-11-19T20:36:46.91Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-11-19T20:36:46.91Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 43,
+              "DocumentIndex": 40,
               "Title": "Agent.cs",
               "DocumentMoniker": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Models\\Agent.cs",
               "RelativeDocumentMoniker": "FiberHelp\\Models\\Agent.cs",
@@ -321,20 +298,18 @@
               "RelativeToolTip": "FiberHelp\\Models\\Agent.cs",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAABUAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-11-20T04:36:53.165Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-11-20T04:36:53.165Z"
             },
             {
               "$type": "Document",
               "DocumentIndex": 7,
-              "Title": "create_customers.sql ",
+              "Title": "create_customers.sql",
               "DocumentMoniker": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Database\\create_customers.sql",
               "RelativeDocumentMoniker": "FiberHelp\\Database\\create_customers.sql",
               "ToolTip": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Database\\create_customers.sql",
               "RelativeToolTip": "FiberHelp\\Database\\create_customers.sql",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000826|",
-              "WhenOpened": "2025-11-18T15:53:25.566Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-11-18T15:53:25.566Z"
             },
             {
               "$type": "Document",
@@ -346,8 +321,7 @@
               "RelativeToolTip": "FiberHelp\\Components\\Pages\\Agents.razor",
               "ViewState": "AgIAAMEAAAAAAAAAAAAtwM0AAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
-              "WhenOpened": "2025-11-20T03:37:45.349Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-11-20T03:37:45.349Z"
             },
             {
               "$type": "Document",
@@ -359,8 +333,7 @@
               "RelativeToolTip": "FiberHelp\\Components\\Pages\\Billing.razor",
               "ViewState": "AgIAAHEAAAAAAAAAAAAAAHEAAAABAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
-              "WhenOpened": "2025-11-18T05:56:00.133Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-11-18T05:56:00.133Z"
             },
             {
               "$type": "Document",
@@ -372,8 +345,7 @@
               "RelativeToolTip": "FiberHelp\\Components\\Pages\\Reports.razor",
               "ViewState": "AgIAAF4AAAAAAAAAAAAAAF4AAAABAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
-              "WhenOpened": "2025-11-18T05:56:05.127Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-11-18T05:56:05.127Z"
             },
             {
               "$type": "Document",
@@ -385,8 +357,7 @@
               "RelativeToolTip": "FiberHelp\\Components\\Pages\\Tickets.razor",
               "ViewState": "AgIAALgBAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
-              "WhenOpened": "2025-11-18T07:26:55.214Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-11-18T07:26:55.214Z"
             },
             {
               "$type": "Document",
@@ -398,8 +369,7 @@
               "RelativeToolTip": "FiberHelp\\Services\\AuthService.cs",
               "ViewState": "AgIAAJIAAAAAAAAAAAAtwKAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-11-11T23:22:34.369Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-11-11T23:22:34.369Z"
             },
             {
               "$type": "Document",
@@ -411,20 +381,18 @@
               "RelativeToolTip": "FiberHelp\\Services\\AdminService.cs",
               "ViewState": "AgIAAP4AAAAAAAAAAAAtwAYBAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-11-17T17:27:03.162Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-11-17T17:27:03.162Z"
             },
             {
               "$type": "Document",
               "DocumentIndex": 14,
-              "Title": "create_tables.sql ",
+              "Title": "create_tables.sql",
               "DocumentMoniker": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Database\\create_tables.sql",
               "RelativeDocumentMoniker": "FiberHelp\\Database\\create_tables.sql",
               "ToolTip": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Database\\create_tables.sql",
               "RelativeToolTip": "FiberHelp\\Database\\create_tables.sql",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000826|",
-              "WhenOpened": "2025-11-18T04:36:44.713Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-11-18T04:36:44.713Z"
             },
             {
               "$type": "Document",
@@ -436,12 +404,11 @@
               "RelativeToolTip": "FiberHelp\\Components\\Pages\\Dashboard.razor",
               "ViewState": "AgIAAKABAAAAAAAAAAAtwAAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
-              "WhenOpened": "2025-11-18T05:55:25.676Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-11-18T05:55:25.676Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 40,
+              "DocumentIndex": 39,
               "Title": "UserPill.razor",
               "DocumentMoniker": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Components\\Common\\UserPill.razor",
               "RelativeDocumentMoniker": "FiberHelp\\Components\\Common\\UserPill.razor",
@@ -449,8 +416,7 @@
               "RelativeToolTip": "FiberHelp\\Components\\Common\\UserPill.razor",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAABUAAAABAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
-              "WhenOpened": "2025-11-19T19:14:30.593Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-11-19T19:14:30.593Z"
             },
             {
               "$type": "Document",
@@ -462,8 +428,7 @@
               "RelativeToolTip": "FiberHelp\\Data\\AppDbContext.cs",
               "ViewState": "AgIAAEAAAAAAAAAAAAAtwEgAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-11-17T17:25:14.382Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-11-17T17:25:14.382Z"
             },
             {
               "$type": "Document",
@@ -475,12 +440,11 @@
               "RelativeToolTip": "FiberHelp\\Data\\DbInitializer.cs",
               "ViewState": "AgIAAFQAAAAAAAAAAAAtwFwAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-11-17T17:48:07.67Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-11-17T17:48:07.67Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 38,
+              "DocumentIndex": 37,
               "Title": "Invoice.cs",
               "DocumentMoniker": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Models\\Invoice.cs",
               "RelativeDocumentMoniker": "FiberHelp\\Models\\Invoice.cs",
@@ -488,12 +452,11 @@
               "RelativeToolTip": "FiberHelp\\Models\\Invoice.cs",
               "ViewState": "AgIAABIAAAAAAAAAAMBUwBUAAAABAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-11-19T18:22:17.958Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-11-19T18:22:17.958Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 39,
+              "DocumentIndex": 38,
               "Title": "BillingService.cs",
               "DocumentMoniker": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Services\\BillingService.cs",
               "RelativeDocumentMoniker": "FiberHelp\\Services\\BillingService.cs",
@@ -501,8 +464,7 @@
               "RelativeToolTip": "FiberHelp\\Services\\BillingService.cs",
               "ViewState": "AgIAADkAAAAAAAAAAABBwDoAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-11-19T18:23:05.003Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-11-19T18:23:05.003Z"
             },
             {
               "$type": "Document",
@@ -526,8 +488,7 @@
               "RelativeToolTip": "FiberHelp\\Components\\Layout\\MainLayout.razor",
               "ViewState": "AgIAAE4AAAAAAAAAAIBJwFAAAAABAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
-              "WhenOpened": "2025-11-11T18:05:29.863Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-11-11T18:05:29.863Z"
             },
             {
               "$type": "Document",
@@ -587,8 +548,7 @@
               "RelativeToolTip": "FiberHelp\\wwwroot\\css\\billing.css",
               "ViewState": "AgIAAHoAAAAAAAAAAIBJwHwAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003000|",
-              "WhenOpened": "2025-11-18T06:31:59.74Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-11-18T06:31:59.74Z"
             },
             {
               "$type": "Document",
@@ -612,8 +572,7 @@
               "RelativeToolTip": "FiberHelp\\wwwroot\\css\\reports.css",
               "ViewState": "AgIAAFQAAAAAAAAAAIBJwFYAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003000|",
-              "WhenOpened": "2025-11-18T06:32:10.254Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-11-18T06:32:10.254Z"
             },
             {
               "$type": "Document",
@@ -625,8 +584,7 @@
               "RelativeToolTip": "FiberHelp\\wwwroot\\css\\dashboard.css",
               "ViewState": "AgIAAAADAAAAAAAAAIBJwAIDAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003000|",
-              "WhenOpened": "2025-11-18T06:30:47.992Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-11-18T06:30:47.992Z"
             },
             {
               "$type": "Document",
@@ -662,8 +620,7 @@
               "RelativeToolTip": "FiberHelp\\Models\\Ticket.cs",
               "ViewState": "AgIAABwAAAAAAAAAAMBUwB8AAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-11-17T17:25:33.592Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-11-17T17:25:33.592Z"
             },
             {
               "$type": "Document",
@@ -711,8 +668,7 @@
               "RelativeToolTip": "FiberHelp\\MauiProgram.cs",
               "ViewState": "AgIAADcAAAAAAAAAAABRwDoAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-11-11T18:04:40.146Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-11-11T18:04:40.146Z"
             },
             {
               "$type": "Document",
