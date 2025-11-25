@@ -1,0 +1,34 @@
+﻿-- Create Customers table if it doesn't exist (adjust database name if needed)
+USE [FiberhelpDB];
+GO
+
+IF OBJECT_ID('dbo.Customers','U') IS NULL
+BEGIN
+ CREATE TABLE dbo.Customers (
+ Id NVARCHAR(50) NOT NULL PRIMARY KEY,
+ Name NVARCHAR(256) NOT NULL,
+ Email NVARCHAR(256) NULL,
+ Plan NVARCHAR(100) NULL,
+ Status NVARCHAR(50) NULL,
+ JoinDate DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME()
+ );
+END
+ELSE
+BEGIN
+ PRINT 'Table dbo.Customers already exists';
+END
+GO
+
+-- Example inserts
+INSERT INTO dbo.Customers (Id, Name, Email, Plan, Status, JoinDate)
+VALUES (CONVERT(NVARCHAR(50), NEWID()), 'Juan Dela Cruz', 'juan@example.com', 'Standard', 'Active', SYSUTCDATETIME());
+
+INSERT INTO dbo.Customers (Id, Name, Email, Plan, Status, JoinDate)
+VALUES (CONVERT(NVARCHAR(50), NEWID()), 'Kisha Tan', 'kisha@example.com', 'Premium', 'Active', SYSUTCDATETIME());
+GO
+
+-- Verify rows
+SELECT Id, Name, Email, Plan, Status, JoinDate
+FROM dbo.Customers
+ORDER BY JoinDate DESC;
+GO

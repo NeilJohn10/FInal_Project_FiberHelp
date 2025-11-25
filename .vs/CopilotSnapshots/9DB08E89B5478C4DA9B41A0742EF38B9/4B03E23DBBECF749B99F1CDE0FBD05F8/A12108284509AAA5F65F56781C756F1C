@@ -1,0 +1,29 @@
+﻿@page "/reports"
+@inject FiberHelp.Services.AuthService AuthService
+@inject NavigationManager Navigation
+
+<link href="css/reports.css" rel="stylesheet" />
+
+<div>
+ <header class="topbar">
+ <div>
+ <p class="eyebrow">FIBERHELP · ADMIN VIEW</p>
+ <h1 class="page-title">Reports</h1>
+ </div>
+ </header>
+ <section class="panel">
+ <p>Reports debug page - implement reporting features here.</p>
+ </section>
+</div>
+
+@code {
+ protected override void OnInitialized()
+ {
+ // Check if user is authenticated
+ if (!AuthService.IsAuthenticated)
+ {
+ Navigation.NavigateTo("/login", true);
+ return;
+ }
+ }
+}

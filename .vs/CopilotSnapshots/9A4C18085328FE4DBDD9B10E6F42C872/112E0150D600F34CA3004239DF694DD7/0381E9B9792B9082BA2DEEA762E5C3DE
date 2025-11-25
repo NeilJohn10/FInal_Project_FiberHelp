@@ -1,0 +1,105 @@
+﻿@* Login.razor *@
+@page "/login"
+@layout FiberHelp.Components.Layout.EmptyLayout
+@inject NavigationManager NavigationManager
+@inject FiberHelp.Services.AuthService AuthService
+
+<PageTitle>Login - FiberHelp</PageTitle>
+
+<link href="css/login.css" rel="stylesheet" />
+
+<div class="login-wrapper">
+ <div class="login-container">
+ <div class="login-card show">
+ <div class="login-header">
+ <img src="css/bootstrap/Logo.png" alt="FiberHelp" class="login-logo-centered" />
+ <p>Internet Service Provider Customer Support System</p>
+ </div>
+
+ @if (!string.IsNullOrEmpty(errorMessage))
+ {
+ <div class="error-message">
+ <span>⚠️ @errorMessage</span>
+ </div>
+ }
+
+ <div class="login-form">
+ <div class="form-group">
+ <label for="email">Email Address</label>
+ <input type="email"
+ id="email"
+ class="form-input"
+ placeholder="Enter your email"
+ @bind="email"
+ required />
+ </div>
+
+ <div class="form-group">
+ <label for="password">Password</label>
+ <input type="password"
+ id="password"
+ class="form-input"
+ placeholder="Enter your password"
+ @bind="password"
+ required />
+ </div>
+
+ <div class="form-options">
+ <label class="checkbox-label">
+ <input type="checkbox" @bind="rememberMe" />
+ <span>Remember me</span>
+ </label>
+ <a href="#" class="forgot-password">Forgot password?</a>
+ </div>
+
+ <button type="button" class="btn-login" disabled="@isLoading" @onclick="HandleLogin">
+ @if (isLoading)
+ {
+ <span>Logging in...</span>
+ }
+ else
+ {
+ <span>Sign In</span>
+ }
+ </button>
+ </div>
+ </div>
+ </div>
+</div>
+
+@code {
+ private string email = "";
+ private string password = "";
+ private bool rememberMe = false;
+ private bool isLoading = false;
+ private string errorMessage = "";
+
+ private async Task HandleLogin()
+ {
+ isLoading = true;
+ errorMessage = string.Empty;
+ StateHasChanged();
+
+ var ok = await AuthService.SignInAsync(email?.Trim() ?? string.Empty, password ?? string.Empty);
+ if (ok)
+ {
+ // role-based redirect
+ var role = AuthService.Role ?? string.Empty;
+ if (role.Equals("Agent", StringComparison.OrdinalIgnoreCase))
+ {
+ NavigationManager.NavigateTo("/agent-dashboard");
+ }
+ else
+ {
+ NavigationManager.NavigateTo("/");
+ }
+ return;
+ }
+
+ // Login failed
+ errorMessage = "Invalid email or password. Please try again.";
+ isLoading = false;
+ password = string.Empty;
+ StateHasChanged();
+ }
+}

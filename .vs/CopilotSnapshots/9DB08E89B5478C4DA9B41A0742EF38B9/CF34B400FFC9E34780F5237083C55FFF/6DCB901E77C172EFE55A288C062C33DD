@@ -1,0 +1,32 @@
+﻿using System.Collections.Generic;
+using System.Threading.Tasks;
+using FiberHelp.Data;
+using FiberHelp.Models;
+using Microsoft.EntityFrameworkCore;
+using System.Linq;
+
+namespace FiberHelp.Services
+{
+ public class BillingService
+ {
+ private readonly AppDbContext _db;
+ public BillingService(AppDbContext db) { _db = db; }
+
+ public async Task<List<Invoice>> GetInvoicesAsync()
+ {
+ return await _db.Invoices.OrderByDescending(i => i.Created).ToListAsync();
+ }
+
+ public async Task<Invoice?> GetInvoiceAsync(int id) => await _db.Invoices.FindAsync(id);
+
+ public async Task<bool> MarkPaidAsync(int id)
+ {
+ var inv = await _db.Invoices.FindAsync(id);
+ if (inv == null) return false;
+ inv.Paid = true;
+ _db.Invoices.Update(inv);
+ await _db.SaveChangesAsync();
+ return true;
+ }
+ }
+}

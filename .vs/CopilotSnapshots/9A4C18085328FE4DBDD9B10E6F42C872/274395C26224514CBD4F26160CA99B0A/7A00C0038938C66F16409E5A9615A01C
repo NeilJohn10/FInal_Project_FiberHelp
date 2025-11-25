@@ -1,0 +1,358 @@
+﻿@page "/tickets"
+@using FiberHelp.Models
+@inject FiberHelp.Services.AuthService AuthService
+@inject FiberHelp.Services.AdminService AdminService
+@inject NavigationManager Navigation
+
+<link href="css/tickets.css" rel="stylesheet" />
+
+<style>
+/* Override/adjust header layout so button is visible and aligned like dashboard */
+.topbar { display: flex; align-items: center; justify-content: space-between; padding-bottom:16px; border-bottom:1px solid #e2e8f0; margin-bottom:16px; }
+.topbar > div:first-child { display: flex; flex-direction: column; }
+.top-actions { display: flex; gap:12px; align-items: center; }
+/* Dropdown tweaks */
+.dropdown-list { list-style: none; margin:4px000; padding:0; border:1px solid #ddd; max-height:180px; overflow: auto; background: #fff; box-shadow:06px12px rgba(0,0,0,0.06); border-radius:6px; }
+.dropdown-list li { padding:8px12px; cursor: pointer; }
+.dropdown-list li:hover { background: #f6f6f6; }
+.selected-customer { margin-top:8px; font-size:0.95em; color: #333; }
+</style>
+
+<div>
+ <header class="topbar">
+ <div>
+ <p class="eyebrow">FIBERHELP · ADMIN VIEW</p>
+ <h1 class="page-title">Tickets</h1>
+ </div>
+ <div class="top-actions">
+ <button class="btn primary" @onclick="ShowNewTicketModal">+ New Ticket</button>
+ </div>
+ </header>
+ <section class="panel">
+ <table class="data-table">
+ <thead>
+ <tr>
+ <th>Ticket ID</th>
+ <th>Title</th>
+ <th>Customer</th>
+ <th>Priority</th>
+ <th>Status</th>
+ <th>Created</th>
+ <th></th>
+ </tr>
+ </thead>
+ <tbody>
+ @if (tickets != null)
+ {
+ foreach (var ticket in tickets)
+ {
+ <tr>
+ <td>@ticket.Id</td>
+ <td>@ticket.Title</td>
+ <td>@ticket.Customer</td>
+ <td><span class="status-pill priority">@ticket.Priority</span></td>
+ <td><span class="status-pill @ticket.Status.ToLower().Replace(" ", "")">@ticket.Status</span></td>
+ <td>@GetTimeAgo(ticket.Created)</td>
+ <td>
+ <button class="btn subtle" @onclick="() => ShowEditTicketModal(ticket)">Edit</button>
+ <button class="btn danger" @onclick="() => DeleteTicketAsync(ticket.Id)">Delete</button>
+ </td>
+ </tr>
+ }
+ }
+ </tbody>
+ </table>
+ </section>
+
+ <!-- Modal for new ticket -->
+ @if (showNewTicketModal)
+ {
+ <div class="modal-backdrop" style="position:fixed;top:0;left:0;width:100vw;height:100vh;" @onclick="CloseNewTicketModal">
+ <div class="modal" @onclick:stopPropagation>
+ <h3>New Ticket</h3>
+ <!-- Customer first -->
+ <div class="form-group">
+ <label>Customer</label>
+ <!-- Searchable customer input -->
+ <input class="form-input" @bind="newCustomerSearch" @oninput="OnNewCustomerSearch" placeholder="Search customer..." autofocus />
+ @if (showCustomerDropdown && filteredCustomers != null && filteredCustomers.Any())
+ {
+ <ul class="dropdown-list">
+ @foreach (var c in filteredCustomers)
+ {
+ <li @onclick="() => SelectNewCustomer(c.Name)">@c.Name</li>
+ }
+ </ul>
+ }
+ @if (!string.IsNullOrEmpty(newTicketCustomer))
+ {
+ <div class="selected-customer">Selected: @newTicketCustomer</div>
+ }
+ </div>
+
+ <div class="form-group">
+ <label>Title</label>
+ <input class="form-input" @bind="newTicketTitle" placeholder="Enter ticket title" />
+ </div>
+ <div class="form-group">
+ <label>Priority</label>
+ <select class="form-input" @bind="newTicketPriority">
+ <option value="Low">Low</option>
+ <option value="Medium">Medium</option>
+ <option value="High">High</option>
+ <option value="Critical">Critical</option>
+ </select>
+ </div>
+ <div class="form-group">
+ <label>Status</label>
+ <select class="form-input" @bind="newTicketStatus">
+ <option value="Open">Open</option>
+ <option value="In Progress">In Progress</option>
+ <option value="Resolved">Resolved</option>
+ <option value="Closed">Closed</option>
+ </select>
+ </div>
+ <div class="modal-actions">
+ <button class="btn" @onclick="CloseNewTicketModal">Cancel</button>
+ <button class="btn primary" @onclick="CreateNewTicketAsync">Create</button>
+ </div>
+ </div>
+ </div>
+ }
+
+ <!-- Modal for edit ticket -->
+ @if (showEditTicketModal && editingTicket != null)
+ {
+ <div class="modal-backdrop" @onclick="CloseEditTicketModal">
+ <div class="modal" @onclick:stopPropagation>
+ <h3>Edit Ticket</h3>
+ <div class="form-group">
+ <label>Ticket ID</label>
+ <input class="form-input" value="@editingTicket.Id" disabled />
+ </div>
+ <div class="form-group">
+ <label>Title</label>
+ <input class="form-input" @bind="editingTicket.Title" placeholder="Enter ticket title" />
+ </div>
+ <div class="form-group">
+ <label>Customer</label>
+ <select class="form-input" @bind="editingTicket.Customer">
+ <option value="">Select customer</option>
+ @if (customers != null)
+ {
+ foreach (var c in customers)
+ {
+ <option value="@c.Name">@c.Name</option>
+ }
+ }
+ </select>
+ </div>
+ <div class="form-group">
+ <label>Priority</label>
+ <select class="form-input" @bind="editingTicket.Priority">
+ <option value="Low">Low</option>
+ <option value="Medium">Medium</option>
+ <option value="High">High</option>
+ <option value="Critical">Critical</option>
+ </select>
+ </div>
+ <div class="form-group">
+ <label>Status</label>
+ <select class="form-input" @bind="editingTicket.Status">
+ <option value="Open">Open</option>
+ <option value="In Progress">In Progress</option>
+ <option value="Resolved">Resolved</option>
+ <option value="Closed">Closed</option>
+ </select>
+ </div>
+ <div class="form-group">
+ <label>Created</label>
+ <input class="form-input" value="@editingTicket.Created.ToString("yyyy-MM-dd HH:mm")" disabled />
+ </div>
+ <div class="modal-actions">
+ <button class="btn" @onclick="CloseEditTicketModal">Cancel</button>
+ <button class="btn primary" @onclick="UpdateTicketAsync">Update</button>
+ </div>
+ </div>
+ </div>
+ }
+</div>
+
+@code {
+ private List<Ticket>? tickets;
+ private List<Customer>? customers;
+ 
+ // New Ticket Modal
+ private bool showNewTicketModal = false;
+ private string newTicketTitle = "";
+ private string newTicketCustomer = "";
+ private string newTicketPriority = "Medium";
+ private string newTicketStatus = "Open";
+ 
+ // Search helpers for customer selection
+ private string newCustomerSearch = string.Empty;
+ private bool showCustomerDropdown = false;
+ private List<Customer>? filteredCustomers;
+ 
+ // Edit Ticket Modal
+ private bool showEditTicketModal = false;
+ private Ticket? editingTicket = null;
+
+ protected override async Task OnInitializedAsync()
+ {
+ // Check if user is authenticated
+ if (!AuthService.IsAuthenticated)
+ {
+ Navigation.NavigateTo("/login", true);
+ return;
+ }
+
+ await LoadDataAsync();
+ }
+
+ private async Task LoadDataAsync()
+ {
+ tickets = await AdminService.GetTicketsAsync();
+ customers = await AdminService.GetCustomersAsync();
+ // initialize filtered list
+ filteredCustomers = customers;
+ StateHasChanged();
+ }
+
+ // New Ticket Methods
+ private void ShowNewTicketModal()
+ {
+ System.Diagnostics.Debug.WriteLine("ShowNewTicketModal clicked");
+ newTicketTitle = "";
+ newTicketCustomer = "";
+ newTicketPriority = "Medium";
+ newTicketStatus = "Open";
+ newCustomerSearch = string.Empty;
+ showCustomerDropdown = true;
+ filteredCustomers = customers;
+ showNewTicketModal = true;
+ StateHasChanged();
+ }
+
+ private void CloseNewTicketModal()
+ {
+ System.Diagnostics.Debug.WriteLine("CloseNewTicketModal called");
+ showNewTicketModal = false;
+ StateHasChanged();
+ }
+
+ private async Task CreateNewTicketAsync()
+ {
+ System.Diagnostics.Debug.WriteLine($"CreateNewTicketAsync called, customer='{newTicketCustomer}', title='{newTicketTitle}'");
+ if (string.IsNullOrWhiteSpace(newTicketTitle) || string.IsNullOrWhiteSpace(newTicketCustomer))
+ {
+ return;
+ }
+
+ var ticket = new Ticket 
+ { 
+ Title = newTicketTitle, 
+ Customer = newTicketCustomer, 
+ Priority = newTicketPriority, 
+ Status = newTicketStatus, 
+ Created = DateTime.UtcNow 
+ };
+
+ await AdminService.CreateTicketAsync(ticket);
+ await LoadDataAsync();
+ CloseNewTicketModal();
+ }
+
+ // Handlers for searchable customer input
+ private void OnNewCustomerSearch(ChangeEventArgs e)
+ {
+ newCustomerSearch = e.Value?.ToString() ?? string.Empty;
+ FilterNewCustomers();
+ }
+
+ private void FilterNewCustomers()
+ {
+ if (customers == null)
+ {
+ filteredCustomers = new List<Customer>();
+ showCustomerDropdown = false;
+ return;
+ }
+
+ if (string.IsNullOrWhiteSpace(newCustomerSearch))
+ {
+ filteredCustomers = customers;
+ showCustomerDropdown = filteredCustomers.Any();
+ }
+ else
+ {
+ filteredCustomers = customers.Where(c => c.Name != null && c.Name.Contains(newCustomerSearch, StringComparison.OrdinalIgnoreCase)).ToList();
+ showCustomerDropdown = filteredCustomers.Any();
+ }
+ }
+
+ private void SelectNewCustomer(string name)
+ {
+ newTicketCustomer = name;
+ newCustomerSearch = name;
+ showCustomerDropdown = false;
+ StateHasChanged();
+ }
+
+ // Edit Ticket Methods
+ private void ShowEditTicketModal(Ticket ticket)
+ {
+ // Create a copy to avoid modifying the original until save
+ editingTicket = new Ticket
+ {
+ Id = ticket.Id,
+ Title = ticket.Title,
+ Customer = ticket.Customer,
+ Priority = ticket.Priority,
+ Status = ticket.Status,
+ Created = ticket.Created
+ };
+ showEditTicketModal = true;
+ StateHasChanged();
+ }
+
+ private void CloseEditTicketModal()
+ {
+ showEditTicketModal = false;
+ editingTicket = null;
+ StateHasChanged();
+ }
+
+ private async Task UpdateTicketAsync()
+ {
+ if (editingTicket == null || string.IsNullOrWhiteSpace(editingTicket.Title) || string.IsNullOrWhiteSpace(editingTicket.Customer))
+ {
+ return;
+ }
+
+ await AdminService.UpdateTicketAsync(editingTicket);
+ await LoadDataAsync();
+ CloseEditTicketModal();
+ }
+
+ // Delete Ticket Method
+ private async Task DeleteTicketAsync(string id)
+ {
+ if (string.IsNullOrEmpty(id))
+ {
+ return;
+ }
+
+ await AdminService.DeleteTicketAsync(id);
+ await LoadDataAsync();
+ }
+
+ // Helper Methods
+ private string GetTimeAgo(DateTime date)
+ {
+ var span = DateTime.Now - date;
+ if (span.TotalMinutes <60) return $"{(int)span.TotalMinutes} mins ago";
+ if (span.TotalHours <24) return $"{(int)span.TotalHours} hrs ago";
+ return $"{(int)span.TotalDays} days ago";
+ }
+}

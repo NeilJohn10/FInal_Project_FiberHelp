@@ -1,0 +1,88 @@
+﻿@page "/billing"
+@inject FiberHelp.Services.AuthService AuthService
+@inject NavigationManager Navigation
+@inject FiberHelp.Services.BillingService BillingService
+
+<link href="css/billing.css" rel="stylesheet" />
+
+<div>
+ <header class="topbar">
+ <div>
+ <p class="eyebrow">FIBERHELP · ADMIN VIEW</p>
+ <h1 class="page-title">Billing</h1>
+ </div>
+ </header>
+ <section class="panel">
+ <h3>Invoices</h3>
+ @if (!string.IsNullOrEmpty(pageError))
+ {
+ <div class="error-message" style="color:#b91c1c;margin-bottom:12px;">Error: @pageError</div>
+ }
+ <table class="data-table">
+ <thead>
+ <tr><th>Invoice #</th><th>Customer</th><th>Amount</th><th>Due</th><th>Paid</th><th></th></tr>
+ </thead>
+ <tbody>
+ @if (invoices != null && invoices.Any())
+ {
+ foreach (var inv in invoices)
+ {
+ <tr>
+ <td>@inv.Id</td>
+ <td>@inv.CustomerName</td>
+ <td>@inv.Amount.ToString("C")</td>
+ <td>@inv.DueDate.ToLocalTime().ToString("yyyy-MM-dd")</td>
+ <td>@(inv.Paid ? "Yes" : "No")</td>
+ <td>
+ @if (!inv.Paid)
+ {
+ <button class="btn" @onclick="() => MarkPaid(inv.Id)">Mark Paid</button>
+ }
+ </td>
+ </tr>
+ }
+ }
+ else
+ {
+ <tr><td colspan="6" class="muted-text">No invoices available.</td></tr>
+ }
+ </tbody>
+ </table>
+ </section>
+</div>
+
+@code {
+ private List<FiberHelp.Models.Invoice>? invoices;
+ private string pageError = string.Empty;
+
+ protected override async Task OnInitializedAsync()
+ {
+ try
+ {
+ if (!AuthService.IsAuthenticated) { Navigation.NavigateTo("/login", true); return; }
+ invoices = await BillingService.GetInvoicesAsync();
+ if (!string.IsNullOrEmpty(BillingService.LastError)) pageError = BillingService.LastError!;
+ }
+ catch (Exception ex)
+ {
+ pageError = ex.Message;
+ System.Diagnostics.Debug.WriteLine($"Billing page initialization error: {ex}");
+ }
+ }
+
+ private async Task MarkPaid(int id)
+ {
+ try
+ {
+ var ok = await BillingService.MarkPaidAsync(id);
+ if (!ok) pageError = BillingService.LastError ?? "Failed to mark invoice paid";
+ invoices = await BillingService.GetInvoicesAsync();
+ }
+ catch (Exception ex)
+ {
+ pageError = ex.Message;
+ System.Diagnostics.Debug.WriteLine($"Billing.MarkPaid error: {ex}");
+ }
+ StateHasChanged();
+ }
+}

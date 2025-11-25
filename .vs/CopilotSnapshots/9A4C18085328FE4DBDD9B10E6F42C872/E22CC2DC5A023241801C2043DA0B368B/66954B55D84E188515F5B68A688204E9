@@ -1,0 +1,229 @@
+﻿@page "/home"
+@using FiberHelp.Models
+@inject FiberHelp.Services.AuthService AuthService
+@inject FiberHelp.Services.AdminService AdminService
+@inject NavigationManager Navigation
+
+<PageTitle>Dashboard - FiberHelp</PageTitle>
+
+<link href="css/home.css" rel="stylesheet" />
+
+<div class="app-shell">
+ <!-- LEFT SIDEBAR -->
+ <aside class="sidebar">
+ <div class="brand">
+ <img src="css/bootstrap/Logo.png" alt="FiberHelp" class="brand-logo" />
+ <span>FIBERHELP</span>
+ </div>
+
+ <div class="sidebar-group">
+ <button class="sidebar-btn" @onclick="() => Navigation.NavigateTo(\"/home\")">
+ <span class="icon">🏠</span>
+ <span>Dashboard</span>
+ </button>
+ <button class="sidebar-btn" @onclick="() => Navigation.NavigateTo(\"/tickets\")">
+ <span class="icon">🎫</span>
+ <span>Tickets</span>
+ </button>
+ <button class="sidebar-btn" @onclick="() => Navigation.NavigateTo(\"/customers\")">
+ <span class="icon">👥</span>
+ <span>Customers</span>
+ </button>
+ <button class="sidebar-btn" @onclick="() => Navigation.NavigateTo(\"/billing\")">
+ <span class="icon">💳</span>
+ <span>Billing</span>
+ </button>
+ <button class="sidebar-btn" @onclick="() => Navigation.NavigateTo(\"/reports\")">
+ <span class="icon">📊</span>
+ <span>Reports</span>
+ </button>
+ </div>
+
+ <div class="sidebar-group muted">
+ <button class="sidebar-btn" @onclick="() => Navigation.NavigateTo(\"/settings\")">
+ <span class="icon">⚙️</span>
+ <span>Settings</span>
+ </button>
+ <button class="sidebar-btn danger" @onclick="HandleLogout">
+ <span class="icon">↩️</span>
+ <span>Logout</span>
+ </button>
+ </div>
+ </aside>
+
+ <!-- MAIN CONTENT -->
+ <main class="main">
+ <div class="main-inner">
+ <header class="topbar">
+ <div>
+ <p class="eyebrow">FIBERHELP · ADMIN VIEW</p>
+ <h1 class="page-title">Dashboard</h1>
+ </div>
+ <div class="top-actions">
+ <button class="btn subtle" @onclick="ExportData">Export</button>
+ <button class="btn primary" @onclick="() => Navigation.NavigateTo(\"/tickets\")">+ New Ticket</button>
+ <div class="user-pill">
+ <div class="avatar">FH</div>
+ <div class="user-meta">
+ <p class="user-email">@AuthService.Email ?? "(not signed in)"</p>
+ <p class="user-role">@AuthService.Role ?? "Guest"</p>
+ </div>
+ </div>
+ </div>
+ </header>
+
+ <section class="kpi-grid">
+ <article class="kpi-card">
+ <div class="kpi-header">
+ <span>Total Customers</span>
+ <span class="badge success">@((customers?.Count ??0) >0 ? "+" + ((customers.Count/10.0).ToString("0.0")) + "%" : "0%")</span>
+ </div>
+ <h2>@(customers?.Count ??0)</h2>
+ <p class="kpi-sub">sample trend only</p>
+ </article>
+ <article class="kpi-card">
+ <div class="kpi-header">
+ <span>Active Subscriptions</span>
+ <span class="badge success">+2.1%</span>
+ </div>
+ <h2>94</h2>
+ <p class="kpi-sub">active this month</p>
+ </article>
+ <article class="kpi-card">
+ <div class="kpi-header">
+ <span>Open Tickets</span>
+ <span class="badge warning">@((tickets?.Count(t => t.Status == "Open") ??0) + " high")</span>
+ </div>
+ <h2>@(tickets?.Count ??0)</h2>
+ <p class="kpi-sub">need agent response</p>
+ </article>
+ <article class="kpi-card">
+ <div class="kpi-header">
+ <span>Pending Invoices</span>
+ <span class="badge danger">follow up</span>
+ </div>
+ <h2>₱30,000</h2>
+ <p class="kpi-sub">unpaid amount</p>
+ </article>
+ </section>
+
+ <section class="body-grid">
+ <div class="panel">
+ <div class="panel-head">
+ <div>
+ <h2>Latest Tickets</h2>
+ <p class="muted-text">Most recent customer issues</p>
+ </div>
+ <div class="filter-pill">This week</div>
+ </div>
+
+ <table class="data-table">
+ <thead>
+ <tr>
+ <th>Ticket #</th>
+ <th>Account</th>
+ <th>Subject</th>
+ <th>Status</th>
+ <th>Created</th>
+ <th></th>
+ </tr>
+ </thead>
+ <tbody>
+ @if (tickets != null)
+ {
+ foreach (var t in tickets.Take(4))
+ {
+ <tr>
+ <td>@t.Id</td>
+ <td>@t.Customer</td>
+ <td>@t.Title</td>
+ <td>
+ <span class="status-pill @t.Status.ToLower().Replace(" ", "")">@t.Status</span>
+ </td>
+ <td>@GetTimeAgo(t.Created)</td>
+ <td>
+ <button class="btn subtle" @onclick="() => Navigation.NavigateTo(\"/tickets\")">Open</button>
+ </td>
+ </tr>
+ }
+ }
+ </tbody>
+ </table>
+ </div>
+
+ <div class="panel">
+ <div class="panel-head">
+ <h2>Today's Activity</h2>
+ <p class="muted-text">Recent actions</p>
+ </div>
+ <ul class="activity-list">
+ <li class="activity success">
+ <span class="dot"></span>
+ Ticket #7004 assigned to <strong>CSR-01</strong>
+ <span class="time">10 mins ago</span>
+ </li>
+ <li class="activity warning">
+ <span class="dot"></span>
+ New customer registered: <strong>Kisha Tan</strong>
+ <span class="time">25 mins ago</span>
+ </li>
+ <li class="activity">
+ <span class="dot"></span>
+ Invoice reminder sent to <strong>Fiber Corp</strong>
+ <span class="time">35 mins ago</span>
+ </li>
+ <li class="activity">
+ <span class="dot"></span>
+2 tickets waiting for update
+ <span class="time">1 hr ago</span>
+ </li>
+ </ul>
+ </div>
+ </section>
+ </div>
+ </main>
+</div>
+
+@code {
+ private List<Ticket>? tickets;
+ private List<Customer>? customers;
+
+ protected override async Task OnInitializedAsync()
+ {
+ // If user is not authenticated, redirect to login page
+ if (!AuthService.IsAuthenticated)
+ {
+ Navigation.NavigateTo("/login", true);
+ return;
+ }
+
+ await LoadDataAsync();
+ }
+
+ private async Task LoadDataAsync()
+ {
+ tickets = await AdminService.GetTicketsAsync();
+ customers = await AdminService.GetCustomersAsync();
+ StateHasChanged();
+ }
+
+ private void HandleLogout()
+ {
+ AuthService.SignOut();
+ Navigation.NavigateTo("/login", true);
+ }
+
+ private string GetTimeAgo(DateTime date)
+ {
+ var span = DateTime.Now - date;
+ if (span.TotalMinutes <60) return $"{(int)span.TotalMinutes} mins ago";
+ if (span.TotalHours <24) return $"{(int)span.TotalHours} hrs ago";
+ return $"{(int)span.TotalDays} days ago";
+ }
+
+ private void ExportData()
+ {
+ // Placeholder export behavior: navigate to customers page as a simple action.
+ Navigation.NavigateTo("/customers");
+ }
+}

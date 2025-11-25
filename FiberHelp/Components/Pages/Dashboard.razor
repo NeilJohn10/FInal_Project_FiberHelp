@@ -1,0 +1,424 @@
+@page "/"
+@using FiberHelp.Models
+@inject FiberHelp.Services.AuthService AuthService
+@inject FiberHelp.Services.AdminService AdminService
+@inject NavigationManager Navigation
+
+<link href="css/dashboard.css" rel="stylesheet" />
+
+<div class="dashboard-root">
+ <header class="topbar">
+ <div class="topbar-left">
+ <p class="eyebrow">FIBERHELP · @GetRoleLabel()</p>
+ <h1 class="page-title">Dashboard</h1>
+ <p class="welcome-text">Welcome back, @(AuthService.FullName ?? "User")! Here's what's happening today.</p>
+ </div>
+ <div class="top-actions">
+ @if (!(AuthService.Role ?? "").Equals("Agent", StringComparison.OrdinalIgnoreCase))
+ {
+ <button class="btn-icon" @onclick="() => {}">
+ <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+ <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+ </svg>
+ </button>
+ <button class="btn subtle" @onclick="ExportData">
+ <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+ <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+ </svg>
+ Export
+ </button>
+ }
+ <UserPill />
+ </div>
+ </header>
+
+ @if ((AuthService.Role ?? "").Equals("Agent", StringComparison.OrdinalIgnoreCase))
+ {
+ <!-- AGENT VIEW -->
+ <section class="kpi-grid">
+ <article class="kpi-card card-gradient-red">
+ <div class="kpi-icon">
+ <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+ <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+ </svg>
+ </div>
+ <div class="kpi-content">
+ <div class="kpi-header">Your Open Tickets</div>
+ <h2>@(tickets?.Count(t => t.Status == "Open") ?? 0)</h2>
+ <p class="kpi-sub">Tickets requiring attention</p>
+ </div>
+ <div class="kpi-trend">
+ <span class="trend-badge trend-up">+12%</span>
+ </div>
+ </article>
+
+ <article class="kpi-card card-gradient-blue">
+ <div class="kpi-icon">
+ <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+ <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+ </svg>
+ </div>
+ <div class="kpi-content">
+ <div class="kpi-header">Assigned to You</div>
+ <h2>@(tickets?.Count ?? 0)</h2>
+ <p class="kpi-sub">Total tickets visible</p>
+ </div>
+ <div class="kpi-trend">
+ <span class="trend-badge trend-neutral">Same</span>
+ </div>
+ </article>
+
+ <article class="kpi-card card-gradient-purple">
+ <div class="kpi-icon">
+ <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+ <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+ </svg>
+ </div>
+ <div class="kpi-content">
+ <div class="kpi-header">Avg Response Time</div>
+ <h2>~@((tickets?.Any() == true) ? Math.Max(1, tickets.Count / Math.Max(1, tickets.Count / 3)) : 0) hrs</h2>
+ <p class="kpi-sub">Estimated avg turnaround</p>
+ </div>
+ <div class="kpi-trend">
+ <span class="trend-badge trend-down">-5%</span>
+ </div>
+ </article>
+
+ <article class="kpi-card card-gradient-green">
+ <div class="kpi-icon">
+ <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+ <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+ </svg>
+ </div>
+ <div class="kpi-content">
+ <div class="kpi-header">Resolved This Week</div>
+ <h2>@(tickets?.Count(t => t.Status == "Resolved" || t.Status == "Closed") ?? 0)</h2>
+ <p class="kpi-sub">Resolution count</p>
+ </div>
+ <div class="kpi-trend">
+ <span class="trend-badge trend-up">+8%</span>
+ </div>
+ </article>
+ </section>
+
+ <section class="charts-section">
+ <div class="chart-card">
+ <div class="chart-header">
+ <div>
+ <h3>Ticket Status Distribution</h3>
+ <p class="chart-subtitle">Overview of all ticket statuses</p>
+ </div>
+ </div>
+ <div class="chart-body">
+ <div class="donut-container">
+ @if (tickets != null && tickets.Any())
+ {
+ var statusCounts = tickets.GroupBy(t => (t.Status ?? "Unknown")).ToDictionary(g => g.Key, g => g.Count());
+ var total = Math.Max(1, statusCounts.Values.Sum());
+ var segments = statusCounts.Select(kv => new { Key = kv.Key, Count = kv.Value, Percent = (double)kv.Value / total }).ToList();
+ 
+ <div class="donut-wrap">
+ <svg width="180" height="180" viewBox="0 0 43 43" class="donut" role="img" aria-label="Ticket status distribution">
+ <circle r="15.915" cx="21" cy="21" fill="#fff" stroke="#eee" stroke-width="6"></circle>
+ @{
+ double cumulative = 0.0;
+ foreach (var seg in segments)
+ {
+ var dashPercent = seg.Percent * 100.0;
+ var dashArray = $"{dashPercent} {100.0 - dashPercent}";
+ <circle r="15.915" cx="21" cy="21" fill="transparent" stroke-width="6" stroke-linecap="butt"
+ stroke="@GetColorForStatus(seg.Key)" stroke-dasharray="@dashArray" stroke-dashoffset="@(-cumulative)"></circle>
+ cumulative += dashPercent;
+ }
+ }
+ </svg>
+ <div class="donut-center">
+ <div class="donut-total">@total</div>
+ <div class="donut-label">Total</div>
+ </div>
+ </div>
+ 
+ <div class="legend-wrap">
+ <ul class="legend-list">
+ @foreach (var kv in statusCounts.OrderByDescending(x => x.Value))
+ {
+ <li>
+ <span class="legend-dot" style="background:@GetColorForStatus(kv.Key)"></span>
+ <span class="legend-label">@kv.Key</span>
+ <span class="legend-value">@kv.Value</span>
+ <span class="legend-percent">@((kv.Value * 100.0 / total).ToString("F1"))%</span>
+ </li>
+ }
+ </ul>
+ </div>
+ }
+ </div>
+ </div>
+ </div>
+
+ <div class="chart-card">
+ <div class="chart-header">
+ <div>
+ <h3>Priority Distribution</h3>
+ <p class="chart-subtitle">Tickets by priority level</p>
+ </div>
+ </div>
+ <div class="chart-body">
+ @if (tickets != null && tickets.Any())
+ {
+ var pr = tickets.GroupBy(t => (t.Priority ?? "Medium")).ToDictionary(g => g.Key, g => g.Count());
+ var max = pr.Values.DefaultIfEmpty(1).Max();
+ 
+ <div class="priority-bars">
+ @foreach (var kv in pr.OrderByDescending(x => x.Value))
+ {
+ var width = (int)((kv.Value / (double)max) * 100);
+ var color = GetColorForPriority(kv.Key);
+ <div class="priority-bar-row">
+ <div class="priority-label">@kv.Key</div>
+ <div class="priority-bar">
+ <div class="priority-fill" style="width:@width%; background:@color"></div>
+ </div>
+ <div class="priority-count">@kv.Value</div>
+ </div>
+ }
+ </div>
+ }
+ </div>
+ </div>
+ </section>
+ }
+ else
+ {
+ <!-- ADMIN/CSR VIEW -->
+ <section class="kpi-grid">
+ <article class="kpi-card card-gradient-blue">
+ <div class="kpi-icon">
+ <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+ <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+ </svg>
+ </div>
+ <div class="kpi-content">
+ <div class="kpi-header">Total Customers</div>
+ <h2>@(customers?.Count ?? 0)</h2>
+ <p class="kpi-sub">Active customer accounts</p>
+ </div>
+ <div class="kpi-trend">
+ <span class="trend-badge trend-up">+@((customers?.Count ?? 0) > 0 ? ((customers.Count / 10.0).ToString("F1")) : "0")%</span>
+ </div>
+ </article>
+
+ <article class="kpi-card card-gradient-purple">
+ <div class="kpi-icon">
+ <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+ <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/>
+ </svg>
+ </div>
+ <div class="kpi-content">
+ <div class="kpi-header">Active Subscriptions</div>
+ <h2>94</h2>
+ <p class="kpi-sub">Active this month</p>
+ </div>
+ <div class="kpi-trend">
+ <span class="trend-badge trend-up">+2.1%</span>
+ </div>
+ </article>
+
+ <article class="kpi-card card-gradient-orange">
+ <div class="kpi-icon">
+ <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+ <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+ </svg>
+ </div>
+ <div class="kpi-content">
+ <div class="kpi-header">Open Tickets</div>
+ <h2>@(tickets?.Count ?? 0)</h2>
+ <p class="kpi-sub">Need agent response</p>
+ </div>
+ <div class="kpi-trend">
+ <span class="trend-badge trend-warning">@((tickets?.Count(t => t.Status == "Open") ?? 0)) high</span>
+ </div>
+ </article>
+
+ <article class="kpi-card card-gradient-red">
+ <div class="kpi-icon">
+ <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+ <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2zM10 8.5a.5.5 0 11-1 0 .5.5 0 011 0zm5 5a.5.5 0 11-1 0 .5.5 0 011 0z"/>
+ </svg>
+ </div>
+ <div class="kpi-content">
+ <div class="kpi-header">Pending Invoices</div>
+ <h2>?30,000</h2>
+ <p class="kpi-sub">Unpaid amount</p>
+ </div>
+ <div class="kpi-trend">
+ <span class="trend-badge trend-danger">Follow up</span>
+ </div>
+ </article>
+ </section>
+ }
+
+ <!-- LATEST TICKETS TABLE -->
+ <section class="tickets-section">
+ <div class="panel modern-panel">
+ <div class="panel-head">
+ <div>
+ <h2>Latest Tickets</h2>
+ <p class="muted-text">Most recent customer issues</p>
+ </div>
+ <div class="panel-actions">
+ <div class="filter-pill">This week</div>
+ <button class="btn-text" @onclick="NavigateToTickets">View all ?</button>
+ </div>
+ </div>
+
+ <div class="table-wrapper">
+ <table class="data-table modern-table">
+ <thead>
+ <tr>
+ <th>Ticket #</th>
+ <th>Customer</th>
+ <th>Subject</th>
+ <th>Status</th>
+ <th>Priority</th>
+ <th>Created</th>
+ <th></th>
+ </tr>
+ </thead>
+ <tbody>
+ @if (tickets != null && tickets.Any())
+ {
+ foreach (var t in tickets.Take(5))
+ {
+ <tr>
+ <td><span class="ticket-id">#@t.Id</span></td>
+ <td>
+ <div class="customer-cell">
+ <div class="customer-avatar">@GetInitials(t.Customer)</div>
+ <span>@t.Customer</span>
+ </div>
+ </td>
+ <td><span class="ticket-subject">@t.Title</span></td>
+ <td><span class="status-pill @GetStatusClass(t.Status)">@t.Status</span></td>
+ <td><span class="priority-badge @GetPriorityClass(t.Priority)">@t.Priority</span></td>
+ <td><span class="time-ago">@GetTimeAgo(t.Created)</span></td>
+ <td>
+ <button class="btn-action" @onclick="NavigateToTickets">
+ <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+ <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+ </svg>
+ </button>
+ </td>
+ </tr>
+ }
+ }
+ else
+ {
+ <tr>
+ <td colspan="7" class="no-data">
+ <svg width="48" height="48" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+ <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/>
+ </svg>
+ <p>No tickets available</p>
+ </td>
+ </tr>
+ }
+ </tbody>
+ </table>
+ </div>
+ </div>
+ </section>
+</div>
+
+@code {
+ private List<Ticket>? tickets;
+ private List<Customer>? customers;
+
+ protected override async Task OnInitializedAsync()
+ {
+ AuthService.AuthenticationStateChanged += OnAuthChanged;
+ if (!AuthService.IsAuthenticated)
+ {
+ Navigation.NavigateTo("/login", true);
+ return;
+ }
+ await LoadDataAsync();
+ }
+
+ private async void OnAuthChanged()
+ {
+ if (AuthService.IsAuthenticated)
+ {
+ await LoadDataAsync();
+ }
+ else
+ {
+ Navigation.NavigateTo("/login", true);
+ }
+ StateHasChanged();
+ }
+
+ private async Task LoadDataAsync()
+ {
+ tickets = await AdminService.GetTicketsAsync();
+ customers = await AdminService.GetCustomersAsync();
+ StateHasChanged();
+ }
+
+ private string GetTimeAgo(DateTime date)
+ {
+ var span = DateTime.UtcNow - date;
+ if (span.TotalMinutes < 1) return "Just now";
+ if (span.TotalMinutes < 60) return $"{(int)span.TotalMinutes}m ago";
+ if (span.TotalHours < 24) return $"{(int)span.TotalHours}h ago";
+ if (span.TotalDays < 7) return $"{(int)span.TotalDays}d ago";
+ return date.ToString("MMM dd");
+ }
+
+ private void ExportData() => Navigation.NavigateTo("/customers");
+ private void NavigateToTickets() => Navigation.NavigateTo("/tickets");
+
+ private string GetColorForStatus(string status)
+ {
+ return status?.Trim().ToLowerInvariant() switch
+ {
+ "open" => "#ef4444",
+ "in progress" or "inprogress" => "#f59e0b",
+ "resolved" => "#10b981",
+ "closed" => "#64748b",
+ _ => "#2563eb"
+ };
+ }
+
+ private string GetColorForPriority(string priority)
+ {
+ return priority?.Trim().ToLowerInvariant() switch
+ {
+ "critical" => "#dc2626",
+ "high" => "#f59e0b",
+ "medium" => "#3b82f6",
+ "low" => "#10b981",
+ _ => "#64748b"
+ };
+ }
+
+ private string GetStatusClass(string status) => status?.ToLower().Replace(" ", "") ?? "unknown";
+ private string GetPriorityClass(string priority) => "priority-" + (priority?.ToLower() ?? "medium");
+
+ private string GetInitials(string name)
+ {
+ if (string.IsNullOrWhiteSpace(name)) return "?";
+ var parts = name.Split(new[] { ' ', '@', '.' }, StringSplitOptions.RemoveEmptyEntries);
+ if (parts.Length >= 2) return (parts[0][0].ToString() + parts[1][0].ToString()).ToUpper();
+ return parts[0].Length >= 2 ? parts[0].Substring(0, 2).ToUpper() : parts[0][0].ToString().ToUpper();
+ }
+
+ private string GetRoleLabel()
+ {
+ var role = AuthService?.Role;
+ if (string.IsNullOrWhiteSpace(role)) return "GUEST";
+ return role.ToUpperInvariant() + " VIEW";
+ }
+
+ public void Dispose() => AuthService.AuthenticationStateChanged -= OnAuthChanged;
+}

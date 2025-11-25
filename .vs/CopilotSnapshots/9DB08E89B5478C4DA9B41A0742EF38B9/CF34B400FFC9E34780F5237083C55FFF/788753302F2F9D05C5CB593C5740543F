@@ -1,0 +1,65 @@
+﻿using FiberHelp.Models;
+using System.Security.Cryptography;
+using System.Text;
+
+namespace FiberHelp.Data
+{
+ public static class DbInitializer
+ {
+ private static string HashPassword(string password)
+ {
+ using var sha = SHA256.Create();
+ var bytes = Encoding.UTF8.GetBytes(password);
+ var hash = sha.ComputeHash(bytes);
+ return Convert.ToHexString(hash);
+ }
+
+ public static void Initialize(AppDbContext context)
+ {
+ // Ensure database is created
+ context.Database.EnsureCreated();
+
+ // Seed Users
+ if (!context.Users.Any())
+ {
+ context.Users.AddRange(
+ new User { Email = "admin@fiberhelp.com", PasswordHash = HashPassword("admin123"), Role = "Administrator", FullName = "System Admin" },
+ new User { Email = "agent@fiberhelp.com", PasswordHash = HashPassword("agent123"), Role = "Agent", FullName = "Support Agent" },
+ new User { Email = "csr@fiberhelp.com", PasswordHash = HashPassword("csr123"), Role = "CSR", FullName = "Customer Rep" }
+ );
+ context.SaveChanges();
+ }
+
+ // Seed Customers if none exist
+ if (!context.Customers.Any())
+ {
+ context.Customers.AddRange(
+ new Customer { Name = "Contoso Ltd", Email = "contact@contoso.com", Plan = "Premium" },
+ new Customer { Name = "Fabrikam", Email = "info@fabrikam.com", Plan = "Standard" }
+ );
+ context.SaveChanges();
+ }
+
+ // Seed Tickets if none exist
+ if (!context.Tickets.Any())
+ {
+ context.Tickets.AddRange(
+ new Ticket { Title = "Sample ticket1", Customer = context.Customers.First().Name, Priority = "High", Status = "Open" },
+ new Ticket { Title = "Sample ticket2", Customer = context.Customers.Skip(1).FirstOrDefault()?.Name ?? "Fabrikam", Priority = "Low", Status = "Open" }
+ );
+ context.SaveChanges();
+ }
+
+ // Seed Invoices for demo
+ if (!context.Invoices.Any())
+ {
+ var c1 = context.Customers.First();
+ context.Invoices.AddRange(
+ new Invoice { CustomerId = c1.Id, CustomerName = c1.Name, Amount =199.99m, DueDate = DateTime.UtcNow.AddDays(14), Created = DateTime.UtcNow },
+ new Invoice { CustomerId = c1.Id, CustomerName = c1.Name, Amount =99.50m, DueDate = DateTime.UtcNow.AddDays(30), Created = DateTime.UtcNow }
+ );
+ context.SaveChanges();
+ }
+ }
+ }
+}

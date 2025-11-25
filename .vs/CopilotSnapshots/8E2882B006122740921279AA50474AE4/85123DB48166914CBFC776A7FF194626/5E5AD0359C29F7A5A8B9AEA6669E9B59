@@ -1,0 +1,172 @@
+﻿@page "/admin/agents"
+@using FiberHelp.Models
+@inject FiberHelp.Services.AdminService AdminService
+@inject FiberHelp.Services.AuthService AuthService
+@inject NavigationManager Nav
+
+<link href="css/dashboard.css" rel="stylesheet" />
+
+<!-- Simple Agents Management Page (clean rebuild) -->
+@if (!AuthService.IsAuthenticated || !string.Equals(AuthService.Role, "Administrator", StringComparison.OrdinalIgnoreCase))
+{
+ <div class="panel"><strong>Access denied.</strong></div>
+}
+else
+{
+ <header class="topbar">
+ <div>
+ <p class="eyebrow">FIBERHELP · ADMIN</p>
+ <h1 class="page-title">Agents</h1>
+ </div>
+ <div class="top-actions">
+ <button class="btn primary" @onclick="OpenModal">+ Register Agent</button>
+ </div>
+ </header>
+
+ <section class="panel">
+ <table class="data-table">
+ <thead>
+ <tr>
+ <th>Email</th>
+ <th>Name</th>
+ <th>Role</th>
+ <th>Active</th>
+ <th></th>
+ </tr>
+ </thead>
+ <tbody>
+ @if (Agents != null && Agents.Count >0)
+ {
+ foreach (var a in Agents)
+ {
+ <tr>
+ <td>@a.Email</td>
+ <td>@a.FullName</td>
+ <td>@a.Role</td>
+ <td>@(a.IsActive ? "Yes" : "No")</td>
+ <td>
+ <button class="btn danger" @onclick="() => DeleteAgent(a.Id)">Delete</button>
+ </td>
+ </tr>
+ }
+ }
+ else
+ {
+ <tr><td colspan="5">No agents found.</td></tr>
+ }
+ </tbody>
+ </table>
+ </section>
+
+ @if (!string.IsNullOrEmpty(Notification))
+ {
+ <div class="panel" style="margin-top:12px;">@Notification</div>
+ }
+
+ @if (ShowModal)
+ {
+ <div class="modal-backdrop" @onclick="CloseModal">
+ <div class="modal" @onclick:stopPropagation>
+ <h3>Register Agent</h3>
+ @if (!string.IsNullOrEmpty(ErrorMessage))
+ {
+ <div class="error-message">@ErrorMessage</div>
+ }
+ <div class="form-group">
+ <label>Email</label>
+ <input class="form-input" @bind="NewEmail" />
+ </div>
+ <div class="form-group">
+ <label>Full Name</label>
+ <input class="form-input" @bind="NewFullName" />
+ </div>
+ <div class="form-group">
+ <label>Password</label>
+ <input type="password" class="form-input" @bind="NewPassword" @bind:event="oninput" />
+ </div>
+ <div style="font-size:12px; margin-bottom:10px;">
+ <div>@(PwdLenOk ? "✔" : "✖") Min12 chars</div>
+ <div>@(PwdUpperOk ? "✔" : "✖") Uppercase</div>
+ <div>@(PwdDigitOk ? "✔" : "✖") Digit</div>
+ <div>@(PwdAtOk ? "✔" : "✖") Contains &#64;</div>
+ </div>
+ <div style="display:flex;justify-content:flex-end;gap:8px;">
+ <button class="btn" @onclick="CloseModal">Cancel</button>
+ <button class="btn primary" @onclick="CreateAgent" disabled="@(!FormValid())">Create</button>
+ </div>
+ </div>
+ </div>
+ }
+}
+
+@code {
+ // State
+ List<User> Agents = new();
+ bool ShowModal;
+ string NewEmail = string.Empty;
+ string NewFullName = string.Empty;
+ string NewPassword = string.Empty;
+ string ErrorMessage = string.Empty;
+ string Notification = string.Empty;
+
+ bool PwdLenOk => NewPassword.Length >=12;
+ bool PwdUpperOk => NewPassword.Any(char.IsUpper);
+ bool PwdDigitOk => NewPassword.Any(char.IsDigit);
+ bool PwdAtOk => NewPassword.Contains('@');
+
+ protected override async Task OnInitializedAsync()
+ {
+ if (!AuthService.IsAuthenticated || !string.Equals(AuthService.Role, "Administrator", StringComparison.OrdinalIgnoreCase)) return;
+ Agents = await AdminService.GetAgentsAsync();
+ }
+
+ void OpenModal()
+ {
+ ShowModal = true;
+ ErrorMessage = string.Empty;
+ Notification = string.Empty;
+ NewEmail = NewFullName = NewPassword = string.Empty;
+ }
+
+ void CloseModal()
+ {
+ ShowModal = false;
+ ErrorMessage = string.Empty;
+ NewEmail = NewFullName = NewPassword = string.Empty;
+ }
+
+ bool FormValid() => !string.IsNullOrWhiteSpace(NewEmail) && PwdLenOk && PwdUpperOk && PwdDigitOk && PwdAtOk;
+
+ async Task CreateAgent()
+ {
+ ErrorMessage = string.Empty;
+ Notification = string.Empty;
+ if (!FormValid())
+ {
+ ErrorMessage = "Fill all fields & meet password rules.";
+ return;
+ }
+ var user = new User { Email = NewEmail.Trim().ToLowerInvariant(), FullName = NewFullName, Role = "Agent", IsActive = true };
+ var ok = await AdminService.CreateAgentAsync(user, NewPassword);
+ if (ok)
+ {
+ Notification = "Agent created.";
+ Agents = await AdminService.GetAgentsAsync();
+ CloseModal();
+ }
+ else
+ {
+ ErrorMessage = AdminService.LastError ?? "Create failed.";
+ }
+ }
+
+ async Task DeleteAgent(string id)
+ {
+ if (string.IsNullOrEmpty(id)) return;
+ if (await AdminService.DeleteUserAsync(id))
+ {
+ Notification = "Agent deleted.";
+ Agents = await AdminService.GetAgentsAsync();
+ }
+ }
+}

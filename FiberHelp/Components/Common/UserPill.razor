@@ -1,0 +1,22 @@
+@using FiberHelp.Services
+@inject AuthService AuthService
+
+<div class="user-pill">
+ <div class="avatar">@GetAvatarLetters()</div>
+ <div class="user-meta">
+ <p class="user-email">@(AuthService.Email ?? "(not signed in)")</p>
+ <p class="user-role">@(AuthService.Role ?? "Guest")</p>
+ </div>
+</div>
+
+@code {
+ private string GetAvatarLetters()
+ {
+ var name = AuthService?.Email ?? string.Empty;
+ if (string.IsNullOrWhiteSpace(name)) return "FH";
+ var parts = name.Split('@');
+ var left = parts[0];
+ if (left.Length >=2) return left.Substring(0,2).ToUpperInvariant();
+ return left.ToUpperInvariant();
+ }
+}

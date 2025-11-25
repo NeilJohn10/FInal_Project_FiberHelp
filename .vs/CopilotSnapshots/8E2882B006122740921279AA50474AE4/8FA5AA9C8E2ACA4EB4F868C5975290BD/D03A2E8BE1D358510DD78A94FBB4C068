@@ -1,0 +1,125 @@
+﻿using Microsoft.AspNetCore.Components;
+using FiberHelp.Models;
+using FiberHelp.Services;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+
+namespace FiberHelp.Components.Pages;
+
+public partial class Agents : ComponentBase
+{
+ // Services are injected via @inject in the .razor file (AdminService, AuthService, Navigation)
+ // Fields
+ private List<User>? agents;
+ private bool showNewAgent = false;
+ private string newEmail = string.Empty;
+ private string newFullName = string.Empty;
+ private string newPasswordBacking = string.Empty;
+ private string errorMessage = string.Empty;
+ private string notification = string.Empty;
+
+ private bool hasMinLength;
+ private bool hasUpper;
+ private bool hasDigit;
+ private bool hasAtChar;
+
+ private string NewPassword
+ {
+ get => newPasswordBacking;
+ set
+ {
+ newPasswordBacking = value ?? string.Empty;
+ ValidatePassword();
+ }
+ }
+
+ protected override async Task OnInitializedAsync()
+ {
+ if (!AuthService.IsAuthenticated || !(AuthService.Role ?? "").Equals("Administrator", System.StringComparison.OrdinalIgnoreCase))
+ {
+ Navigation.NavigateTo("/", true);
+ return;
+ }
+ await LoadAgents();
+ }
+
+ private async Task LoadAgents() => agents = await AdminService.GetAgentsAsync();
+
+ private void ShowNewAgent()
+ {
+ showNewAgent = true;
+ errorMessage = string.Empty;
+ notification = string.Empty;
+ }
+
+ private void CloseNewAgent()
+ {
+ showNewAgent = false;
+ newEmail = string.Empty;
+ newFullName = string.Empty;
+ NewPassword = string.Empty;
+ errorMessage = string.Empty;
+ ResetPasswordChecks();
+ }
+
+ private void ValidatePassword()
+ {
+ var pwd = NewPassword;
+ hasMinLength = pwd.Length >=12;
+ hasUpper = pwd.Any(char.IsUpper);
+ hasDigit = pwd.Any(char.IsDigit);
+ hasAtChar = pwd.Contains('@');
+ }
+
+ private void ResetPasswordChecks()
+ {
+ hasMinLength = hasUpper = hasDigit = hasAtChar = false;
+ }
+
+ private string CheckMark(bool ok) => ok ? "✔" : "✖";
+ private string GetReqClass(bool ok) => $"req {(ok ? "valid" : "invalid")}";
+
+ private bool IsFormValid()
+ {
+ if (string.IsNullOrWhiteSpace(newEmail)) return false;
+ if (string.IsNullOrWhiteSpace(NewPassword)) return false;
+ return hasMinLength && hasUpper && hasDigit && hasAtChar;
+ }
+
+ private async Task CreateAgent()
+ {
+ errorMessage = string.Empty;
+ notification = string.Empty;
+ if (!IsFormValid())
+ {
+ errorMessage = "Password does not meet requirements.";
+ return;
+ }
+ var user = new User { Email = newEmail.Trim().ToLowerInvariant(), FullName = newFullName, Role = "Agent", IsActive = true };
+ var ok = await AdminService.CreateAgentAsync(user, NewPassword);
+ if (ok)
+ {
+ notification = "Agent created successfully.";
+ await LoadAgents();
+ CloseNewAgent();
+ }
+ else
+ {
+ errorMessage = AdminService.LastError ?? "Failed to create agent.";
+ }
+ }
+
+ private void EditAgent(string id)
+ {
+ // future implementation
+ }
+
+ private async Task DeleteAgent(string id)
+ {
+ if (await AdminService.DeleteUserAsync(id))
+ {
+ await LoadAgents();
+ }
+ }
+}

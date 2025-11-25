@@ -39,18 +39,20 @@ CREATE TABLE dbo.Customers (
 );
 GO
 
--- Tickets table
+-- Tickets table (aligned with EF AppDbContext mappings)
 IF OBJECT_ID('dbo.Tickets', 'U') IS NOT NULL
  DROP TABLE dbo.Tickets;
 GO
 
 CREATE TABLE dbo.Tickets (
- Id NVARCHAR(50) NOT NULL PRIMARY KEY,
- Title NVARCHAR(500) NOT NULL,
- Customer NVARCHAR(256) NOT NULL,
- Priority NVARCHAR(50) NULL,
- Status NVARCHAR(50) NULL,
- Created DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME()
+ TicketId INT IDENTITY(1,1) NOT NULL PRIMARY KEY, -- maps to Ticket.Id
+ AccountId INT NULL, -- nullable linkage (can be updated later)
+ Subject NVARCHAR(500) NOT NULL, -- maps to Ticket.Title
+ Status NVARCHAR(50) NOT NULL DEFAULT 'Open', -- maps to Ticket.Status
+ CreatedAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(), -- maps to Ticket.Created
+ Customer NVARCHAR(256) NULL, -- maps to Ticket.Customer (id or name)
+ CustomerName NVARCHAR(256) NULL, -- maps to Ticket.CustomerName (display)
+ Priority NVARCHAR(50) NULL DEFAULT 'Medium' -- maps to Ticket.Priority
 );
 GO
 
@@ -59,3 +61,8 @@ GO
 INSERT INTO dbo.Users (Id, Email, PasswordHash, Role, FullName, IsActive)
 VALUES ('user-1', 'admin@fiberhelp.local', '7C4A8D09CA3762AF61E59520943DC26494F8941B', 'Administrator', 'Admin User',1);
 GO
+
+-- NOTE:
+-- If you previously had a Tickets table with different column names (Id, Title, Created, etc.),
+-- drop it first (handled above) then recreate with this script so EF mappings work.
+-- After recreating, existing ticket data is lost. Migrate data manually if needed.

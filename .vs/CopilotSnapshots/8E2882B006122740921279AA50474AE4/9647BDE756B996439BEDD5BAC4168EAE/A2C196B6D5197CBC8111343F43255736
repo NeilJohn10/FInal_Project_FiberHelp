@@ -1,0 +1,176 @@
+﻿@page "/admin/agents"
+@using FiberHelp.Models
+@inject FiberHelp.Services.AdminService AdminService
+@inject FiberHelp.Services.AuthService AuthService
+@inject NavigationManager Nav
+
+<link href="css/dashboard.css" rel="stylesheet" />
+<style>
+.pwd-reqs { font-size:12px; margin-bottom:12px; display:flex; flex-direction:column; gap:4px; }
+.pwd-req { padding:4px8px; border-radius:6px; border:1px solid #e2e8f0; background:#f8fafc; display:flex; align-items:center; gap:6px; }
+.pwd-req.ok { border-color:#16a34a; background:#ecfdf5; color:#065f46; }
+.pwd-req.bad { border-color:#dc2626; background:#fef2f2; color:#991b1b; }
+.modal-shell { background:#ffffff; border-radius:14px; padding:24px; width:100%; max-width:560px; box-shadow:012px40px rgba(0,0,0,0.25); border:1px solid #e2e8f0; position:relative; }
+</style>
+
+<!-- Simple Agents Management Page (clean rebuild) -->
+@if (!AuthService.IsAuthenticated || !string.Equals(AuthService.Role, "Administrator", StringComparison.OrdinalIgnoreCase))
+{
+ <div class="panel"><strong>Access denied.</strong></div>
+}
+else
+{
+ <header class="topbar">
+ <div>
+ <p class="eyebrow">FIBERHELP · ADMIN</p>
+ <h1 class="page-title">Agents</h1>
+ </div>
+ <div class="top-actions">
+ <button class="btn primary" @onclick="OpenModal" style="background:#2563eb;color:#fff;font-weight:700;">+ Register Agent</button>
+ </div>
+ </header>
+
+ <section class="panel">
+ <table class="data-table">
+ <thead>
+ <tr><th>Email</th><th>Name</th><th>Role</th><th>Active</th><th></th></tr>
+ </thead>
+ <tbody>
+ @if (AgentList != null && AgentList.Count >0)
+ {
+ foreach (var a in AgentList)
+ {
+ <tr>
+ <td>@a.Email</td>
+ <td>@a.FullName</td>
+ <td>@a.Role</td>
+ <td>@(a.IsActive ? "Yes" : "No")</td>
+ <td><button class="btn danger" @onclick="() => DeleteAgent(a.Id)">Delete</button></td>
+ </tr>
+ }
+ }
+ else
+ {
+ <tr><td colspan="5">No agents found.</td></tr>
+ }
+ </tbody>
+ </table>
+ </section>
+
+ @if (!string.IsNullOrEmpty(Notification))
+ {
+ <div class="panel" style="margin-top:12px;">@Notification</div>
+ }
+
+ @if (ShowModal)
+ {
+ <div class="modal-backdrop" style="position:fixed;inset:0;background:rgba(0,0,0,0.55);display:flex;align-items:center;justify-content:center;z-index:10000;" @onclick="CloseModal">
+ <div class="modal-shell" @onclick:stopPropagation>
+ <h3 style="margin:0018px0;font-weight:800;font-size:22px;">Register Agent</h3>
+ @if (!string.IsNullOrEmpty(ErrorMessage))
+ {
+ <div class="error-message" style="margin-bottom:14px;">@ErrorMessage</div>
+ }
+ <div class="form-group">
+ <label>Email</label>
+ <input class="form-input" @bind="NewEmail" placeholder="agent@domain.com" />
+ </div>
+ <div class="form-group">
+ <label>Full Name</label>
+ <input class="form-input" @bind="NewFullName" placeholder="Full name" />
+ </div>
+ <div class="form-group">
+ <label>Password</label>
+ <input type="password" class="form-input" @bind="NewPassword" @bind:event="oninput" placeholder="Initial password" />
+ </div>
+ @if (attemptedCreate && !FormValid())
+ {
+ <div class="pwd-reqs">
+ <div class="pwd-req @((PwdLenOk?"ok":"bad"))">@((PwdLenOk?"✔":"✖")) Minimum12 characters</div>
+ <div class="pwd-req @((PwdUpperOk?"ok":"bad"))">@((PwdUpperOk?"✔":"✖")) At least one uppercase letter</div>
+ <div class="pwd-req @((PwdDigitOk?"ok":"bad"))">@((PwdDigitOk?"✔":"✖")) At least one digit</div>
+ <div class="pwd-req @((PwdSpecialOk?"ok":"bad"))">@((PwdSpecialOk?"✔":"✖")) At least one special character</div>
+ </div>
+ }
+ <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:4px;">
+ <button class="btn" @onclick="CloseModal">Cancel</button>
+ <button class="btn primary" @onclick="CreateAgent">Create Agent</button>
+ </div>
+ </div>
+ </div>
+ }
+}
+
+@code {
+ private List<User>? AgentList;
+ private bool ShowModal;
+ private string NewEmail = string.Empty;
+ private string NewFullName = string.Empty;
+ private string NewPassword = string.Empty;
+ private string ErrorMessage = string.Empty;
+ private string Notification = string.Empty;
+ private bool attemptedCreate = false;
+
+ private bool PwdLenOk => NewPassword.Length >=12;
+ private bool PwdUpperOk => NewPassword.Any(char.IsUpper);
+ private bool PwdDigitOk => NewPassword.Any(char.IsDigit);
+ private bool PwdSpecialOk => NewPassword.Any(c => !char.IsLetterOrDigit(c));
+ private bool FormValid() => !string.IsNullOrWhiteSpace(NewEmail) && PwdLenOk && PwdUpperOk && PwdDigitOk && PwdSpecialOk;
+
+ protected override async Task OnInitializedAsync()
+ {
+ if (!AuthService.IsAuthenticated || !string.Equals(AuthService.Role, "Administrator", StringComparison.OrdinalIgnoreCase)) return;
+ AgentList = await AdminService.GetAgentsAsync();
+ }
+
+ private void OpenModal()
+ {
+ ShowModal = true;
+ ErrorMessage = string.Empty;
+ Notification = string.Empty;
+ NewEmail = NewFullName = NewPassword = string.Empty;
+ attemptedCreate = false;
+ }
+
+ private void CloseModal()
+ {
+ ShowModal = false;
+ ErrorMessage = string.Empty;
+ NewEmail = NewFullName = NewPassword = string.Empty;
+ attemptedCreate = false;
+ }
+
+ private async Task CreateAgent()
+ {
+ attemptedCreate = true;
+ ErrorMessage = string.Empty;
+ Notification = string.Empty;
+ if (!FormValid())
+ {
+ ErrorMessage = "Password requirements not met or missing fields.";
+ return;
+ }
+ var user = new User { Email = NewEmail.Trim().ToLowerInvariant(), FullName = NewFullName, Role = "Agent", IsActive = true };
+ var ok = await AdminService.CreateAgentAsync(user, NewPassword);
+ if (ok)
+ {
+ Notification = "Agent created.";
+ AgentList = await AdminService.GetAgentsAsync();
+ CloseModal();
+ }
+ else
+ {
+ ErrorMessage = AdminService.LastError ?? "Create failed.";
+ }
+ }
+
+ private async Task DeleteAgent(string id)
+ {
+ if (string.IsNullOrEmpty(id)) return;
+ if (await AdminService.DeleteUserAsync(id))
+ {
+ Notification = "Agent deleted.";
+ AgentList = await AdminService.GetAgentsAsync();
+ }
+ }
+}

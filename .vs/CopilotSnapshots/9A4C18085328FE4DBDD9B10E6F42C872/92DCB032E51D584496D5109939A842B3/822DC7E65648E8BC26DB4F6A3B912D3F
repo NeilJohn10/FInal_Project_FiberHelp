@@ -1,0 +1,183 @@
+﻿@page "/agent-dashboard"
+@using FiberHelp.Models
+@inject FiberHelp.Services.AuthService AuthService
+@inject FiberHelp.Services.AdminService AdminService
+@inject NavigationManager Navigation
+
+<link href="css/dashboard.css" rel="stylesheet" />
+
+<div>
+ <header class="topbar">
+ <div>
+ <p class="eyebrow">FIBERHELP · AGENT VIEW</p>
+ <h1 class="page-title">Agent Dashboard</h1>
+ </div>
+ <div class="top-actions">
+ <div class="user-pill">
+ <div class="avatar">AG</div>
+ <div class="user-meta">
+ <p class="user-email">@(AuthService.Email ?? "(not signed in)")</p>
+ <p class="user-role">@(AuthService.Role ?? "Agent")</p>
+ </div>
+ </div>
+ </div>
+ </header>
+
+ <section class="body-grid">
+ <div class="panel">
+ <div class="panel-head">
+ <h2>Your Tickets</h2>
+ </div>
+
+ <table class="data-table">
+ <thead>
+ <tr>
+ <th>Ticket #</th>
+ <th>Subject</th>
+ <th>Customer</th>
+ <th>Status</th>
+ <th>Created</th>
+ <th></th>
+ </tr>
+ </thead>
+ <tbody>
+ @if (tickets != null)
+ {
+ @foreach (var t in tickets)
+ {
+ <tr>
+ <td>@t.Id</td>
+ <td>@t.Title</td>
+ <td>@GetCustomerDisplay(t.Customer)</td>
+ <td><span class="status-pill @t.Status.ToLower().Replace(" ", "")">@t.Status</span></td>
+ <td>@t.Created.ToString("yyyy-MM-dd HH:mm")</td>
+ <td>
+ <button class="btn subtle" @onclick="() => ShowEditTicketModal(t)">Edit</button>
+ <button class="btn danger" @onclick="() => DeleteTicketAsync(t.Id)">Delete</button>
+ </td>
+ </tr>
+ }
+ }
+ </tbody>
+ </table>
+
+ <div style="margin-top:12px;">
+ <button class="btn primary" @onclick="ShowNewTicketModal">+ New Ticket</button>
+ </div>
+ </div>
+ </section>
+
+ @if (showNewTicketModal)
+ {
+ <div class="modal-backdrop" @onclick="CloseNewTicketModal">
+ <div class="modal" @onclick:stopPropagation>
+ <h3>New Ticket</h3>
+ <div class="form-group">
+ <label>Title</label>
+ <input class="form-input" @bind="newTicketTitle" />
+ </div>
+ <div class="form-group">
+ <label>Customer</label>
+ <input class="form-input" @bind="newTicketCustomer" />
+ </div>
+ <div class="modal-actions">
+ <button class="btn" @onclick="CloseNewTicketModal">Cancel</button>
+ <button class="btn primary" @onclick="CreateNewTicketAsync">Create</button>
+ </div>
+ </div>
+ </div>
+ }
+
+ @if (showEditTicketModal && editingTicket != null)
+ {
+ <div class="modal-backdrop" @onclick="CloseEditTicketModal">
+ <div class="modal" @onclick:stopPropagation>
+ <h3>Edit Ticket</h3>
+ <div class="form-group">
+ <label>Title</label>
+ <input class="form-input" @bind="editingTicket.Title" />
+ </div>
+ <div class="form-group">
+ <label>Status</label>
+ <select class="form-input" @bind="editingTicket.Status">
+ <option>Open</option>
+ <option>In Progress</option>
+ <option>Resolved</option>
+ <option>Closed</option>
+ </select>
+ </div>
+ <div class="modal-actions">
+ <button class="btn" @onclick="CloseEditTicketModal">Cancel</button>
+ <button class="btn primary" @onclick="UpdateTicketAsync">Update</button>
+ </div>
+ </div>
+ </div>
+ }
+</div>
+
+@code {
+ private List<Ticket>? tickets;
+ private Ticket? editingTicket;
+ private bool showNewTicketModal = false;
+ private bool showEditTicketModal = false;
+ private string newTicketTitle = string.Empty;
+ private string newTicketCustomer = string.Empty;
+ private List<Customer>? customers;
+
+ protected override async Task OnInitializedAsync()
+ {
+ if (!AuthService.IsAuthenticated)
+ {
+ Navigation.NavigateTo("/login", true);
+ return;
+ }
+ await LoadTicketsAsync();
+ }
+
+ private async Task LoadTicketsAsync()
+ {
+ tickets = await AdminService.GetTicketsAsync();
+ customers = await AdminService.GetCustomersAsync();
+ StateHasChanged();
+ }
+
+ private void ShowNewTicketModal() { showNewTicketModal = true; }
+ private void CloseNewTicketModal() { showNewTicketModal = false; }
+ private void ShowEditTicketModal(Ticket t) { editingTicket = t; showEditTicketModal = true; }
+ private void CloseEditTicketModal() { showEditTicketModal = false; editingTicket = null; }
+
+ private async Task CreateNewTicketAsync()
+ {
+ var t = new Ticket { Title = newTicketTitle, Customer = newTicketCustomer, Priority = "Medium", Status = "Open", Created = DateTime.UtcNow };
+ await AdminService.CreateTicketAsync(t);
+ await LoadTicketsAsync();
+ CloseNewTicketModal();
+ }
+
+ private async Task UpdateTicketAsync()
+ {
+ if (editingTicket == null) return;
+ await AdminService.UpdateTicketAsync(editingTicket);
+ await LoadTicketsAsync();
+ CloseEditTicketModal();
+ }
+
+ private async Task DeleteTicketAsync(string id)
+ {
+ await AdminService.DeleteTicketAsync(id);
+ await LoadTicketsAsync();
+ }
+
+ private string GetCustomerDisplay(string customerField)
+ {
+ if (string.IsNullOrEmpty(customerField)) return string.Empty;
+ if (customers != null)
+ {
+ var byId = customers.FirstOrDefault(c => c.Id == customerField);
+ if (byId != null) return byId.Name ?? customerField;
+ var byName = customers.FirstOrDefault(c => string.Equals(c.Name, customerField, StringComparison.OrdinalIgnoreCase));
+ if (byName != null) return byName.Name;
+ }
+ return customerField;
+ }
+}

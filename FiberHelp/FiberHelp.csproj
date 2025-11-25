@@ -50,7 +50,7 @@
         <_ExeName>$(AssemblyName).exe</_ExeName>
       </PropertyGroup>
 
-      <Exec Command="powershell -NoProfile -Command &quot;$out = Join-Path '$(ProjectDir)$(OutputPath)' '$(AssemblyName).exe'; if (Test-Path $out) { $procName = [System.IO.Path]::GetFileNameWithoutExtension($out); $procs = Get-Process -Name $procName -ErrorAction SilentlyContinue; if ($procs) { $procs | ForEach-Object { Stop-Process -Id $_.Id -Force -ErrorAction SilentlyContinue } }; Start-Sleep -Milliseconds500; $tries =0; while (Test-Path $out -and $tries -lt10) { try { $stream = [System.IO.File]::Open($out,'Open','ReadWrite'); $stream.Close(); break } catch { Start-Sleep -Milliseconds300; $tries++ } } } &quot;" IgnoreExitCode="true" />
+      <Exec Command="powershell -NoProfile -Command &quot;$out = Join-Path '$(ProjectDir)$(OutputPath)' '$(AssemblyName).exe'; if (Test-Path $out) { $procName = [System.IO.Path]::GetFileNameWithoutExtension($out); $procs = Get-Process -Name $procName -ErrorAction SilentlyContinue; if ($procs) { $procs | ForEach-Object { Stop-Process -Id $_.Id -Force -ErrorAction SilentlyContinue } }; Start-Sleep -Milliseconds 500; $tries =0; while (Test-Path $out -and $tries -lt 10) { try { $stream = [System.IO.File]::Open($out,'Open','ReadWrite'); $stream.Close(); break } catch { Start-Sleep -Milliseconds 300; $tries++ } } } &quot;" IgnoreExitCode="true" />
     </Target>
 
     <ItemGroup>

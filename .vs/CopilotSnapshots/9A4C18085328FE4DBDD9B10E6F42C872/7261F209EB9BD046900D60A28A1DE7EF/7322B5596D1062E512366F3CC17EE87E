@@ -1,0 +1,109 @@
+﻿using System.Collections.Generic;
+using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
+using FiberHelp.Data;
+using FiberHelp.Models;
+using System;
+using System.Linq;
+
+namespace FiberHelp.Services
+{
+public class AdminService
+{
+private readonly AppDbContext _db;
+public AdminService(AppDbContext db) { _db = db; }
+
+public async Task<List<Ticket>> GetTicketsAsync()
+{
+try
+{
+return await _db.Tickets.OrderByDescending(t => t.Created).ToListAsync();
+}
+catch (Exception ex)
+{
+System.Diagnostics.Debug.WriteLine($"AdminService.GetTicketsAsync error: {ex}");
+return new List<Ticket>();
+}
+}
+
+public async Task<Ticket?> GetTicketAsync(string id)
+{
+try { return await _db.Tickets.FindAsync(id); }
+catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"AdminService.GetTicketAsync error: {ex}"); return null; }
+}
+
+public async Task<bool> CreateTicketAsync(Ticket t)
+{
+try
+{
+if (t == null) return false;
+if (string.IsNullOrWhiteSpace(t.Id)) t.Id = Guid.NewGuid().ToString();
+if (t.Created == default) t.Created = DateTime.UtcNow;
+
+_db.Tickets.Add(t);
+await _db.SaveChangesAsync();
+return true;
+}
+catch (Exception ex)
+{
+System.Diagnostics.Debug.WriteLine($"AdminService.CreateTicketAsync error: {ex}");
+return false;
+}
+}
+
+public async Task UpdateTicketAsync(Ticket t)
+{
+try
+{
+if (t == null || string.IsNullOrWhiteSpace(t.Id)) return;
+
+var existing = await _db.Tickets.FindAsync(t.Id);
+if (existing == null)
+{
+System.Diagnostics.Debug.WriteLine($"AdminService.UpdateTicketAsync: ticket not found id={t.Id}");
+return;
+}
+
+// Update only editable fields and preserve original Created timestamp
+existing.Title = t.Title;
+existing.Customer = t.Customer;
+existing.Priority = t.Priority;
+existing.Status = t.Status;
+
+_db.Tickets.Update(existing);
+await _db.SaveChangesAsync();
+}
+catch (Exception ex)
+{
+System.Diagnostics.Debug.WriteLine($"AdminService.UpdateTicketAsync error: {ex}");
+}
+}
+
+public async Task DeleteTicketAsync(string id)
+{
+try
+{
+var t = await _db.Tickets.FindAsync(id);
+if (t != null)
+{
+_db.Tickets.Remove(t);
+await _db.SaveChangesAsync();
+}
+}
+catch (Exception ex)
+{
+System.Diagnostics.Debug.WriteLine($"AdminService.DeleteTicketAsync error: {ex}");
+}
+}
+
+public async Task<List<Customer>> GetCustomersAsync()
+{
+try { return await _db.Customers.OrderByDescending(c => c.JoinDate).ToListAsync(); }
+catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"AdminService.GetCustomersAsync error: {ex}"); return new List<Customer>(); }
+}
+public async Task<Customer?> GetCustomerAsync(string id) { try { return await _db.Customers.FindAsync(id); } catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"AdminService.GetCustomerAsync error: {ex}"); return null; } }
+public async Task<bool> CreateCustomerAsync(Customer c) { try { if (c == null) return false; if (string.IsNullOrWhiteSpace(c.Id)) c.Id = Guid.NewGuid().ToString(); if (c.JoinDate == default) c.JoinDate = DateTime.UtcNow; _db.Customers.Add(c); await _db.SaveChangesAsync(); return true; } catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"AdminService.CreateCustomerAsync error: {ex}"); return false; } }
+public async Task UpdateCustomerAsync(Customer c) { try { if (c == null || string.IsNullOrWhiteSpace(c.Id)) return; var existing = await _db.Customers.FindAsync(c.Id); if (existing == null) { System.Diagnostics.Debug.WriteLine($"AdminService.UpdateCustomerAsync: customer not found id={c.Id}"); return; } existing.Name = c.Name; existing.Email = c.Email; existing.Plan = c.Plan; existing.Status = c.Status; _db.Customers.Update(existing); await _db.SaveChangesAsync(); } catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"AdminService.UpdateCustomerAsync error: {ex}"); } }
+public async Task DeleteCustomerAsync(string id) { try { var c = await _db.Customers.FindAsync(id); if (c != null) { _db.Customers.Remove(c); await _db.SaveChangesAsync(); } } catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"AdminService.DeleteCustomerAsync error: {ex}"); } }
+}
+}

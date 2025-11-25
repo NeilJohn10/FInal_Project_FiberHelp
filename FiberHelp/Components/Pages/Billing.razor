@@ -1,0 +1,114 @@
+@page "/billing"
+@inject FiberHelp.Services.AuthService AuthService
+@inject NavigationManager Navigation
+@inject FiberHelp.Services.BillingService BillingService
+
+<link href="css/billing.css" rel="stylesheet" />
+
+<div>
+ <header class="topbar">
+ <div>
+ <p class="eyebrow">FIBERHELP · @GetRoleLabel()</p>
+ <h1 class="page-title">Billing</h1>
+ </div>
+ <div class="top-actions">
+ <div class="user-pill">
+ <div class="avatar">@GetAvatarLetters()</div>
+ <div class="user-meta">
+ <p class="user-email">@(AuthService.Email ?? "(not signed in)")</p>
+ <p class="user-role">@(AuthService.Role ?? "Guest")</p>
+ </div>
+ </div>
+ </div>
+ </header>
+ <section class="panel">
+ <h3>Invoices</h3>
+ @if (!string.IsNullOrEmpty(pageError))
+ {
+ <div class="error-message" style="color:#b91c1c;margin-bottom:12px;">Error: @pageError</div>
+ }
+ <table class="data-table">
+ <thead>
+ <tr><th>Invoice #</th><th>Account</th><th>Amount</th><th>Issue Date</th><th>Status</th><th></th></tr>
+ </thead>
+ <tbody>
+ @if (invoices != null && invoices.Any())
+ {
+ foreach (var inv in invoices)
+ {
+ <tr>
+ <td>@inv.Id</td>
+ <td>@(inv.AccountId?.ToString() ?? "-")</td>
+ <td>@inv.AmountDue.ToString("C")</td>
+ <td>@inv.IssueDate.ToLocalTime().ToString("yyyy-MM-dd")</td>
+ <td>@inv.Status</td>
+ <td>
+ @if (!string.Equals(inv.Status, "Paid", StringComparison.OrdinalIgnoreCase) && !(AuthService.Role ?? "").Equals("Agent", StringComparison.OrdinalIgnoreCase))
+ {
+ <button class="btn" @onclick="() => MarkPaid(inv.Id)">Mark Paid</button>
+ }
+ </td>
+ </tr>
+ }
+ }
+ else
+ {
+ <tr><td colspan="6" class="muted-text">No invoices available.</td></tr>
+ }
+ </tbody>
+ </table>
+ </section>
+</div>
+
+@code {
+ private List<FiberHelp.Models.Invoice>? invoices;
+ private string pageError = string.Empty;
+
+ protected override async Task OnInitializedAsync()
+ {
+ try
+ {
+ if (!AuthService.IsAuthenticated) { Navigation.NavigateTo("/login", true); return; }
+ invoices = await BillingService.GetInvoicesAsync();
+ if (!string.IsNullOrEmpty(BillingService.LastError)) pageError = BillingService.LastError!;
+ }
+ catch (Exception ex)
+ {
+ pageError = ex.Message;
+ System.Diagnostics.Debug.WriteLine($"Billing page initialization error: {ex}");
+ }
+ }
+
+ private async Task MarkPaid(int id)
+ {
+ try
+ {
+ var ok = await BillingService.MarkPaidAsync(id);
+ if (!ok) pageError = BillingService.LastError ?? "Failed to mark invoice paid";
+ invoices = await BillingService.GetInvoicesAsync();
+ }
+ catch (Exception ex)
+ {
+ pageError = ex.Message;
+ System.Diagnostics.Debug.WriteLine($"Billing.MarkPaid error: {ex}");
+ }
+ StateHasChanged();
+ }
+
+ private string GetRoleLabel()
+ {
+ var role = AuthService?.Role;
+ if (string.IsNullOrWhiteSpace(role)) return "GUEST";
+ return role.ToUpperInvariant();
+ }
+
+ private string GetAvatarLetters()
+ {
+ var name = AuthService?.Email ?? "";
+ if (string.IsNullOrWhiteSpace(name)) return "FH";
+ var parts = name.Split('@');
+ var left = parts[0];
+ if (left.Length >=2) return left.Substring(0,2).ToUpperInvariant();
+ return left.ToUpperInvariant();
+ }
+}

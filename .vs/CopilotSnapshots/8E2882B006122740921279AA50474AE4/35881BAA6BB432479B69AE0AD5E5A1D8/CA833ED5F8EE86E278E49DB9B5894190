@@ -1,0 +1,159 @@
+﻿@* Login.razor *@
+@page "/login"
+@layout FiberHelp.Components.Layout.EmptyLayout
+@inject NavigationManager NavigationManager
+@inject FiberHelp.Services.AuthService AuthService
+
+@using System.Linq
+
+<PageTitle>Login - FiberHelp</PageTitle>
+
+<link href="css/login.css" rel="stylesheet" />
+
+<div class="login-wrapper">
+ <div class="login-container">
+ <div class="login-card show">
+ <div class="login-header">
+ <img src="css/bootstrap/Logo.png" alt="FiberHelp" class="login-logo-centered" />
+ <p>Internet Service Provider Customer Support System</p>
+ </div>
+
+ @if (!string.IsNullOrEmpty(errorMessage))
+ {
+ <div class="error-message">
+ <span>⚠️ @errorMessage</span>
+ </div>
+ }
+
+ <div class="login-form">
+ <div class="form-group">
+ <label for="email">Email Address</label>
+ <input type="email"
+ id="email"
+ class="form-input"
+ placeholder="Enter your email"
+ @bind="email"
+ required />
+ </div>
+
+ <div class="form-group">
+ <label for="password">Password</label>
+ <input type="password"
+ id="password"
+ class="form-input"
+ placeholder="Enter your password"
+ @bind="Password" @bind:event="oninput"
+ required />
+ </div>
+
+ @if (!string.IsNullOrWhiteSpace(Password))
+ {
+ <div class="pw-requirements">
+ <div class="@ReqClass(hasMinLength)">
+ <span>@CheckMark(hasMinLength)</span>
+ <span>Minimum12 characters</span>
+ </div>
+ <div class="@ReqClass(hasUpper)">
+ <span>@CheckMark(hasUpper)</span>
+ <span>At least one uppercase letter</span>
+ </div>
+ <div class="@ReqClass(hasDigit)">
+ <span>@CheckMark(hasDigit)</span>
+ <span>At least one number</span>
+ </div>
+ <div class="@ReqClass(hasAtChar)">
+ <span>@CheckMark(hasAtChar)</span>
+ <span>Contains &#64;</span>
+ </div>
+ </div>
+ }
+
+ <div class="form-options">
+ <label class="checkbox-label">
+ <input type="checkbox" @bind="rememberMe" />
+ <span>Remember me</span>
+ </label>
+ <a href="#" class="forgot-password">Forgot password?</a>
+ </div>
+
+ <button type="button" class="btn-login" disabled="@(isLoading || string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(_password))" @onclick="HandleLogin">
+ @if (isLoading)
+ {
+ <span>Logging in...</span>
+ }
+ else
+ {
+ <span>Sign In</span>
+ }
+ </button>
+ </div>
+ </div>
+ </div>
+</div>
+
+@code {
+ private string email = "";
+ private string _password = string.Empty;
+ private bool rememberMe = false;
+ private bool isLoading = false;
+ private string errorMessage = "";
+
+ private bool hasMinLength = false;
+ private bool hasUpper = false;
+ private bool hasDigit = false;
+ private bool hasAtChar = false;
+
+ private string Password
+ {
+ get => _password;
+ set
+ {
+ _password = value ?? string.Empty;
+ ValidatePassword();
+ }
+ }
+
+ private void ValidatePassword()
+ {
+ hasMinLength = _password.Length >=12;
+ hasUpper = _password.Any(c => char.IsUpper(c));
+ hasDigit = _password.Any(c => char.IsDigit(c));
+ hasAtChar = _password.Contains('@');
+ }
+
+ private bool IsPasswordValid() => hasMinLength && hasUpper && hasDigit && hasAtChar;
+
+ private string ReqClass(bool ok) => ok ? "req valid" : "req invalid";
+ private string CheckMark(bool ok) => ok ? "✔" : "✖";
+
+ private async Task HandleLogin()
+ {
+ isLoading = true;
+ errorMessage = string.Empty;
+ StateHasChanged();
+
+ // Client-side validation: require fields, but do not block login on complexity
+ if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(_password))
+ {
+ errorMessage = "Email and password are required.";
+ isLoading = false;
+ StateHasChanged();
+ return;
+ }
+
+ var ok = await AuthService.SignInAsync(email?.Trim() ?? string.Empty, _password ?? string.Empty);
+ if (ok)
+ {
+ // All roles now land on common dashboard route '/'
+ NavigationManager.NavigateTo("/");
+ return;
+ }
+
+ // Login failed
+ errorMessage = "Invalid email or password. Please try again.";
+ isLoading = false;
+ _password = string.Empty;
+ ValidatePassword();
+ StateHasChanged();
+ }
+}

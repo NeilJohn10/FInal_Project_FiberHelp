@@ -19,15 +19,42 @@ namespace FiberHelp.Data
  // Ensure database is created
  context.Database.EnsureCreated();
 
- // Seed Users
+ // Desired admin password
+ var adminPassword = "Adminlogin123@";
+ var adminHash = HashPassword(adminPassword);
+
+ // Desired agent password
+ var agentPassword = "Agentlogin123@";
+ var agentHash = HashPassword(agentPassword);
+
+ // Seed Users (create if missing) and ensure admin password is set
  if (!context.Users.Any())
  {
  context.Users.AddRange(
- new User { Email = "admin@fiberhelp.com", PasswordHash = HashPassword("admin123"), Role = "Administrator", FullName = "System Admin" },
- new User { Email = "agent@fiberhelp.com", PasswordHash = HashPassword("agent123"), Role = "Agent", FullName = "Support Agent" },
+ new User { Email = "admin@fiberhelp.com", PasswordHash = adminHash, Role = "Administrator", FullName = "System Admin" },
+ new User { Email = "agent@fiberhelp.com", PasswordHash = agentHash, Role = "Agent", FullName = "Support Agent" },
  new User { Email = "csr@fiberhelp.com", PasswordHash = HashPassword("csr123"), Role = "CSR", FullName = "Customer Rep" }
  );
  context.SaveChanges();
+ }
+ else
+ {
+ // If users exist, ensure admin user has the desired password
+ var admin = context.Users.FirstOrDefault(u => u.Email == "admin@fiberhelp.com");
+ if (admin != null)
+ {
+ admin.PasswordHash = adminHash;
+ context.Users.Update(admin);
+ context.SaveChanges();
+ }
+ // Ensure agent user has the desired password as well
+ var agent = context.Users.FirstOrDefault(u => u.Email == "agent@fiberhelp.com");
+ if (agent != null)
+ {
+ agent.PasswordHash = agentHash;
+ context.Users.Update(agent);
+ context.SaveChanges();
+ }
  }
 
  // Seed Customers if none exist
@@ -46,6 +73,17 @@ namespace FiberHelp.Data
  context.Tickets.AddRange(
  new Ticket { Title = "Sample ticket1", Customer = context.Customers.First().Name, Priority = "High", Status = "Open" },
  new Ticket { Title = "Sample ticket2", Customer = context.Customers.Skip(1).FirstOrDefault()?.Name ?? "Fabrikam", Priority = "Low", Status = "Open" }
+ );
+ context.SaveChanges();
+ }
+
+ // Seed Invoices for demo (match Invoice model: AmountDue, IssueDate, Status, AccountId)
+ if (!context.Invoices.Any())
+ {
+ var c1 = context.Customers.First();
+ context.Invoices.AddRange(
+ new Invoice { AccountId = null, AmountDue =199.99m, IssueDate = DateTime.UtcNow.AddDays(-7), Status = "Pending" },
+ new Invoice { AccountId = null, AmountDue =99.50m, IssueDate = DateTime.UtcNow.AddDays(-30), Status = "Paid" }
  );
  context.SaveChanges();
  }

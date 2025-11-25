@@ -1,0 +1,105 @@
+﻿using System;
+using System.Threading.Tasks;
+using FiberHelp.Data;
+using Microsoft.EntityFrameworkCore;
+using System.Security.Cryptography;
+using System.Text;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace FiberHelp.Services
+{
+    public class AuthService
+    {
+        private readonly IServiceProvider _serviceProvider;
+     
+        public AuthService(IServiceProvider serviceProvider) 
+        { 
+            _serviceProvider = serviceProvider; 
+        }
+
+        public bool IsAuthenticated { get; private set; }
+        public string? Email { get; private set; }
+        public string? Role { get; private set; }
+        public string? FullName { get; private set; }
+
+        public event Action? AuthenticationStateChanged;
+
+        private static string HashPassword(string password)
+        {
+            using var sha = SHA256.Create();
+            var bytes = Encoding.UTF8.GetBytes(password ?? string.Empty);
+            var hash = sha.ComputeHash(bytes);
+            return Convert.ToHexString(hash);
+        }
+
+        public async Task<bool> SignInAsync(string email, string password)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
+                {
+                    System.Diagnostics.Debug.WriteLine("AuthService.SignInAsync: empty email or password");
+                    return false;
+                }
+
+                // Create a scope to get DbContext
+                using var scope = _serviceProvider.CreateScope();
+                var _db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+                // Ensure DB has users seeded (best-effort)
+                try
+                {
+                    if (!await _db.Users.AnyAsync())
+                    {
+                        System.Diagnostics.Debug.WriteLine("AuthService.SignInAsync: no users found, running DbInitializer.Initialize");
+                        DbInitializer.Initialize(_db);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"AuthServiceSignIn: user table check/seed failed: {ex}");
+                }
+
+                var lowered = email.ToLower();
+                System.Diagnostics.Debug.WriteLine($"AuthService.SignInAsync: attempting lookup for {lowered}");
+                var user = await _db.Users.FirstOrDefaultAsync(u => u.Email.ToLower() == lowered);
+                if (user == null)
+                {
+                    System.Diagnostics.Debug.WriteLine($"AuthService.SignInAsync: user not found for {lowered}");
+                    return false;
+                }
+
+                var hashed = HashPassword(password);
+                System.Diagnostics.Debug.WriteLine($"AuthService.SignInAsync: computed hash length={hashed?.Length}, stored hash length={(user.PasswordHash?.Length ??0)}");
+
+                if (user.PasswordHash != hashed)
+                {
+                    System.Diagnostics.Debug.WriteLine($"AuthService.SignInAsync: password hash mismatch for {lowered}");
+                    return false;
+                }
+
+                IsAuthenticated = true;
+                Email = user.Email;
+                Role = user.Role;
+                FullName = user.FullName;
+                AuthenticationStateChanged?.Invoke();
+                System.Diagnostics.Debug.WriteLine($"AuthService.SignInAsync: success for {lowered} role={user.Role}");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"AuthService.SignInAsync error: {ex}");
+                return false;
+            }
+        }
+
+        public void SignOut()
+        {
+            IsAuthenticated = false;
+            Email = null;
+            Role = null;
+            FullName = null;
+            AuthenticationStateChanged?.Invoke();
+        }
+    }
+}

@@ -1,0 +1,148 @@
+﻿@page "/admin/agents"
+@using FiberHelp.Models
+@inject FiberHelp.Services.AdminService AdminService
+@inject FiberHelp.Services.AuthService AuthService
+@inject NavigationManager Navigation
+
+<link href="css/dashboard.css" rel="stylesheet" />
+
+@if (!AuthService.IsAuthenticated || !(AuthService.Role ?? "").Equals("Administrator", StringComparison.OrdinalIgnoreCase))
+{
+ <div class="panel"><strong>Access denied.</strong></div>
+}
+else
+{
+ <header class="topbar">
+ <div>
+ <p class="eyebrow">FIBERHELP · ADMIN</p>
+ <h1 class="page-title">Agents</h1>
+ </div>
+ <div class="top-actions">
+ <button class="btn primary" @onclick="ShowNewAgent">Register Agent</button>
+ </div>
+ </header>
+
+ <section class="panel">
+ <table class="data-table">
+ <thead>
+ <tr><th>Email</th><th>Name</th><th>Role</th><th>Active</th><th></th></tr>
+ </thead>
+ <tbody>
+ @if (agents != null && agents.Any())
+ {
+ @foreach (var a in agents)
+ {
+ <tr>
+ <td>@a.Email</td>
+ <td>@a.FullName</td>
+ <td>@a.Role</td>
+ <td>@(a.IsActive ? "Yes" : "No")</td>
+ <td><button class="btn danger" @onclick="() => DeleteAgent(a.Id)">Delete</button></td>
+ </tr>
+ }
+ }
+ else
+ {
+ <tr><td colspan="5">No agents found.</td></tr>
+ }
+ </tbody>
+ </table>
+ </section>
+
+ @if (!string.IsNullOrEmpty(notification))
+ {
+ <div class="panel" style="margin-top:12px;">@notification</div>
+ }
+
+ @if (showNewAgent)
+ {
+ <div class="modal-backdrop" @onclick="CloseModal">
+ <div class="modal" @onclick:stopPropagation>
+ <h3>Register New Agent</h3>
+ @if (!string.IsNullOrEmpty(errorMessage)) { <div class="error-message">@errorMessage</div> }
+ <div class="form-group">
+ <label>Email</label>
+ <input class="form-input" @bind="newEmail" />
+ </div>
+ <div class="form-group">
+ <label>Full Name</label>
+ <input class="form-input" @bind="newFullName" />
+ </div>
+ <div class="form-group">
+ <label>Password</label>
+ <input type="password" class="form-input" @bind="newPassword" @bind:event="oninput" />
+ </div>
+ <ul class="pw-requirements" style="margin-bottom:10px; list-style:none; padding:0;">
+ <li class="@GetReqClass(hasMinLength)">@CheckMark(hasMinLength) Minimum12 characters</li>
+ <li class="@GetReqClass(hasUpper)">@CheckMark(hasUpper) At least one uppercase letter</li>
+ <li class="@GetReqClass(hasDigit)">@CheckMark(hasDigit) At least one number</li>
+ <li class="@GetReqClass(hasAtChar)">@CheckMark(hasAtChar) Contains &#64;</li>
+ </ul>
+ <div style="display:flex;justify-content:flex-end;gap:8px;">
+ <button class="btn" @onclick="CloseModal">Cancel</button>
+ <button class="btn primary" @onclick="CreateAgent" disabled="@(!FormReady())">Create Agent</button>
+ </div>
+ </div>
+ </div>
+ }
+}
+
+@functions {
+ List<User>? agents;
+ bool showNewAgent;
+ string newEmail = string.Empty;
+ string newFullName = string.Empty;
+ string _newPassword = string.Empty;
+ string errorMessage = string.Empty;
+ string notification = string.Empty;
+
+ bool hasMinLength;
+ bool hasUpper;
+ bool hasDigit;
+ bool hasAtChar;
+
+ string newPassword
+ {
+ get => _newPassword;
+ set { _newPassword = value ?? string.Empty; ValidatePassword(); }
+ }
+
+ protected override async Task OnInitializedAsync()
+ {
+ if (!AuthService.IsAuthenticated || !(AuthService.Role ?? "").Equals("Administrator", StringComparison.OrdinalIgnoreCase)) return;
+ await LoadAgents();
+ }
+
+ async Task LoadAgents() => agents = await AdminService.GetAgentsAsync();
+ bool FormReady() => !string.IsNullOrWhiteSpace(newEmail) && !string.IsNullOrWhiteSpace(newPassword) && hasMinLength && hasUpper && hasDigit && hasAtChar;
+ void ShowNewAgent() { showNewAgent = true; errorMessage = string.Empty; notification = string.Empty; }
+ void CloseModal() { showNewAgent = false; newEmail = newFullName = string.Empty; newPassword = string.Empty; errorMessage = string.Empty; ResetChecks(); }
+
+ void ValidatePassword()
+ {
+ var pwd = newPassword;
+ hasMinLength = pwd.Length >=12;
+ hasUpper = pwd.Any(char.IsUpper);
+ hasDigit = pwd.Any(char.IsDigit);
+ hasAtChar = pwd.Contains('@');
+ }
+ void ResetChecks() { hasMinLength = hasUpper = hasDigit = hasAtChar = false; }
+ string CheckMark(bool ok) => ok ? "✔" : "✖";
+ string GetReqClass(bool ok) => $"req {(ok ? "valid" : "invalid")}";
+
+
+ async Task CreateAgent()
+ {
+ errorMessage = string.Empty; notification = string.Empty;
+ if (!FormReady()) { errorMessage = "Fill fields / password requirements."; return; }
+ var user = new User { Email = newEmail.Trim().ToLowerInvariant(), FullName = newFullName, Role = "Agent", IsActive = true };
+ var ok = await AdminService.CreateAgentAsync(user, newPassword);
+ if (ok) { notification = "Agent created"; await LoadAgents(); CloseModal(); } else { errorMessage = AdminService.LastError ?? "Failed"; }
+ }
+
+ async Task DeleteAgent(string id)
+ {
+ if (string.IsNullOrWhiteSpace(id)) return;
+ if (await AdminService.DeleteUserAsync(id)) { notification = "Agent deleted"; await LoadAgents(); }
+ }
+}

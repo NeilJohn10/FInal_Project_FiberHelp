@@ -1,0 +1,117 @@
+﻿@page "/admin/agents"
+@using FiberHelp.Models
+@inject FiberHelp.Services.AdminService AdminService
+@inject FiberHelp.Services.AuthService AuthService
+
+<link href="css/dashboard.css" rel="stylesheet" />
+<style>
+.req-list{font-size:12px;margin-bottom:12px;display:flex;flex-direction:column;gap:4px}
+.req{padding:4px8px;border:1px solid #e2e8f0;border-radius:6px;background:#f8fafc;display:flex;align-items:center;gap:6px}
+.req.ok{border-color:#16a34a;background:#ecfdf5;color:#065f46}
+.req.bad{border-color:#dc2626;background:#fef2f2;color:#991b1b}
+/* Modal specific button clarity overrides */
+.modal-actions{background:#f9fafb;border-top:1px solid #e2e8f0;margin-top:28px;padding-top:16px;display:flex;justify-content:flex-end;gap:12px}
+.modal-actions .btn{min-width:140px;border-radius:8px}
+.modal-actions .btn.primary{background:linear-gradient(135deg,#2563eb0%,#1d4ed8100%);color:#fff;border:1px solid #1d4ed8;box-shadow:04px12px rgba(37,99,235,.25)}
+.modal-actions .btn.primary:hover{background:#1d4ed8}
+.modal-actions .btn.primary:active{background:#1e3a8a}
+.modal-actions .btn:not(.primary){background:#ffffff;border:1px solid #cbd5e1;color:#334155}
+.modal-actions .btn:not(.primary):hover{background:#f1f5f9}
+.modal-actions .btn:focus{outline:3px solid rgba(37,99,235,.4);outline-offset:2px}
+</style>
+
+@if(!AuthService.IsAuthenticated || !string.Equals(AuthService.Role,"Administrator",StringComparison.OrdinalIgnoreCase))
+{
+ <div class="panel"><strong>Access denied.</strong></div>
+}
+else
+{
+ <header class="topbar">
+ <div>
+ <p class="eyebrow">FIBERHELP · ADMIN</p>
+ <h1 class="page-title">Agents</h1>
+ </div>
+ <div class="top-actions">
+ <button class="btn primary" @onclick="OpenModal">+ Register Agent</button>
+ </div>
+ </header>
+
+ <section class="panel">
+ <table class="data-table">
+ <thead><tr><th>Email</th><th>Name</th><th>Dept</th><th>Phone</th><th>Active</th></tr></thead>
+ <tbody>
+ @if(agentRecords?.Count>0){
+ @foreach(var a in agentRecords){
+ <tr>
+ <td>@a.Email</td><td>@a.FullName</td><td>@a.Department</td><td>@a.Phone</td><td>@(a.IsActive?"Yes":"No")</td>
+ </tr>
+ }
+ } else { <tr><td colspan="5">No agents found.</td></tr> }
+ </tbody>
+ </table>
+ </section>
+
+ @if(!string.IsNullOrEmpty(notification))
+ { <div class="panel" style="margin-top:12px">@notification</div> }
+
+ @if(showModal){
+ <div class="modal-bg" @onclick="CloseModal">
+ <div class="modal-card" @onclick:stopPropagation>
+ <h3>Register Agent</h3>
+ <p class="modal-desc">Create a new support agent account. Password rules apply after typing.</p>
+ @if(!string.IsNullOrEmpty(errorMessage)) { <div class="error-message" style="margin-bottom:16px;color:#dc2626;font-weight:600">@errorMessage</div> }
+ <div class="form-grid">
+ <div class="form-group form-span-2">
+ <label>Email <span style="font-weight:400;color:#64748b">(work address)</span></label>
+ <input class="form-input" @bind="newEmail" placeholder="agent@domain.com" />
+ </div>
+ <div class="form-group form-span-2">
+ <label>Full Name</label>
+ <input class="form-input" @bind="newFullName" placeholder="Full name" />
+ </div>
+ <div class="form-group">
+ <label>Department</label>
+ <input class="form-input" @bind="newDept" placeholder="e.g. Support" />
+ </div>
+ <div class="form-group">
+ <label>Phone</label>
+ <input class="form-input" @bind="newPhone" placeholder="+639123456789" />
+ </div>
+ <div class="form-group form-span-2" style="flex-direction:row;align-items:center;gap:10px;">
+ <input type="checkbox" @bind="newActive" style="width:18px;height:18px" /> <label style="margin:0;font-weight:600">Active</label>
+ </div>
+ <div class="form-group form-span-2">
+ <label>Password <span style="font-weight:400;color:#64748b">(initial)</span></label>
+ <input type="password" class="form-input" @bind="newPassword" @bind:event="oninput" placeholder="Initial password" />
+ @if(attempted && !IsValidPassword()){
+ <div class="req-list">
+ <div class="req @(LenOk?"ok":"bad")">@(LenOk?"✓":"✕")12+ chars</div>
+ <div class="req @(UpperOk?"ok":"bad")">@(UpperOk?"✓":"✕") Uppercase</div>
+ <div class="req @(DigitOk?"ok":"bad")">@(DigitOk?"✓":"✕") Digit</div>
+ <div class="req @(SpecialOk?"ok":"bad")">@(SpecialOk?"✓":"✕") Special</div>
+ </div>
+ }
+ </div>
+ </div>
+ <div class="modal-actions">
+ <button class="btn" @onclick="CloseModal">Cancel</button>
+ <button class="btn primary" @onclick="CreateAgent">Create Agent</button>
+ </div>
+ </div>
+ </div>
+ }
+}
+
+@code {
+ List<Agent>? agentRecords;
+ bool showModal=false;
+ string newEmail=""; string newFullName=""; string newPassword="";
+ string errorMessage=""; string notification=""; bool attempted=false;
+ string newDept=""; string newPhone=""; bool newActive=true;
+ bool LenOk=>newPassword.Length>=12; bool UpperOk=>newPassword.Any(char.IsUpper); bool DigitOk=>newPassword.Any(char.IsDigit); bool SpecialOk=>newPassword.Any(c=>!char.IsLetterOrDigit(c));
+ bool IsValidPassword()=>LenOk&&UpperOk&&DigitOk&&SpecialOk&& !string.IsNullOrWhiteSpace(newEmail) && !string.IsNullOrWhiteSpace(newFullName);
+ protected override async Task OnInitializedAsync(){ if(!AuthService.IsAuthenticated || !string.Equals(AuthService.Role,"Administrator",StringComparison.OrdinalIgnoreCase)) return; agentRecords=await AdminService.GetAgentRecordsAsync(); }
+ void OpenModal(){ showModal=true; errorMessage=""; notification=""; newEmail=newFullName=newPassword=newDept=newPhone=""; newActive=true; attempted=false; }
+ void CloseModal(){ showModal=false; errorMessage=""; newEmail=newFullName=newPassword=newDept=newPhone=""; attempted=false; }
+ async Task CreateAgent(){ attempted=true; errorMessage=""; notification=""; if(!IsValidPassword()){ errorMessage="Fill required fields & meet password rules."; return; } var a=new Agent{ Email=newEmail.Trim().ToLowerInvariant(), FullName=newFullName, Department=newDept, Phone=newPhone, IsActive=newActive }; var ok=await AdminService.CreateAgentRecordAsync(a,newPassword); if(ok){ notification="Agent created."; agentRecords=await AdminService.GetAgentRecordsAsync(); CloseModal(); } else { errorMessage=AdminService.LastError??"Create failed."; } }
+}

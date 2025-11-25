@@ -1,0 +1,164 @@
+﻿@* Login.razor *@
+@page "/login"
+@layout FiberHelp.Components.Layout.EmptyLayout
+@inject NavigationManager NavigationManager
+@inject FiberHelp.Services.AuthService AuthService
+
+@using System.Linq
+
+<PageTitle>Login - FiberHelp</PageTitle>
+
+<link href="css/login.css" rel="stylesheet" />
+
+<div class="login-wrapper">
+ <div class="login-split">
+ <div class="hero-panel">
+ <div class="hero-header">
+ <div class="hero-logo">
+ <img src="css/bootstrap/Logo.png" alt="FiberHelp" />
+ </div>
+ <h2 class="hero-subtitle">FIBERHELP</h2>
+ <p class="hero-tagline">SUPPORT · CONNECTIVITY · CARE</p>
+ <h1 class="hero-title">Smile with<br/><span class="hero-promo"><span>Confidence</span></span></h1>
+ <p class="hero-text">Your trusted partner in reliable fiber internet service and customer support excellence. Experience fast solutions with our dedicated team and tools built just for you.</p>
+ <div class="stat-grid">
+ <div class="stat-card"><h3>500+</h3><p>Active Accounts</p></div>
+ <div class="stat-card"><h3>15+</h3><p>Years Experience</p></div>
+ <div class="stat-card"><h3>99%</h3><p>Uptime SLA</p></div>
+ </div>
+ </div>
+ </div>
+
+ <div class="login-container">
+ <div class="login-card show">
+ <div class="login-header">
+ <h1>Welcome Back</h1>
+ <p>Sign in to your support portal</p>
+ </div>
+
+ @if (!string.IsNullOrEmpty(errorMessage))
+ {
+ <div class="error-message">
+ <span>⚠️ @errorMessage</span>
+ </div>
+ }
+
+ <div class="login-form">
+ <div class="form-group">
+ <label for="email">Email Address</label>
+ <input type="email" id="email" class="form-input" placeholder="your.email@example.com" @bind="email" required />
+ </div>
+
+ <div class="form-group">
+ <label for="password">Password</label>
+ <input type="password" id="password" class="form-input" placeholder="Enter your password" @bind="Password" @bind:event="oninput" required />
+ </div>
+
+ @* Show password requirements only after user attempted sign-in and validation failed *@
+ @if (attemptedSignIn && !IsPasswordValid())
+ {
+ <div class="pw-requirements">
+ <div class="@ReqClass(hasMinLength)"><span>@CheckMark(hasMinLength)</span><span>12+ characters</span></div>
+ <div class="@ReqClass(hasUpper)"><span>@CheckMark(hasUpper)</span><span>Uppercase letter</span></div>
+ <div class="@ReqClass(hasDigit)"><span>@CheckMark(hasDigit)</span><span>Number</span></div>
+ <div class="@ReqClass(hasSpecial)"><span>@CheckMark(hasSpecial)</span><span>Special character</span></div>
+ </div>
+ }
+
+ <div class="form-options">
+ <label class="checkbox-label">
+ <input type="checkbox" @bind="rememberMe" /> <span>Remember me</span>
+ </label>
+ <a href="#" class="forgot-password">Forgot Password?</a>
+ </div>
+
+ <button type="button" class="btn-login" disabled="@(isLoading || string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(_password))" @onclick="HandleLogin">
+ @if (isLoading) { <span>Logging in...</span> } else { <span>Access My Portal</span> }
+ </button>
+
+ <div class="register-link">
+ <p>Don't have an account? <a href="#">Request Access</a></p>
+ </div>
+ </div>
+ </div>
+ </div>
+ </div>
+</div>
+
+@code {
+ private string email = "";
+ private string _password = string.Empty;
+ private bool rememberMe = false;
+ private bool isLoading = false;
+ private string errorMessage = "";
+
+ private bool hasMinLength = false;
+ private bool hasUpper = false;
+ private bool hasDigit = false;
+ private bool hasSpecial = false;
+ private bool attemptedSignIn = false;
+
+ private string Password
+ {
+ get => _password;
+ set
+ {
+ _password = value ?? string.Empty;
+ // still update checks but do not show them until sign-in attempt
+ hasMinLength = _password.Length >=12;
+ hasUpper = _password.Any(c => char.IsUpper(c));
+ hasDigit = _password.Any(c => char.IsDigit(c));
+ hasSpecial = _password.Any(c => !char.IsLetterOrDigit(c));
+ }
+ }
+
+ private bool IsPasswordValid() => hasMinLength && hasUpper && hasDigit && hasSpecial;
+
+ private string ReqClass(bool ok) => ok ? "req valid" : "req invalid";
+ private string CheckMark(bool ok) => ok ? "✔" : "✖";
+
+ private async Task HandleLogin()
+ {
+ attemptedSignIn = true; // show validation results only after click
+ errorMessage = string.Empty;
+ StateHasChanged();
+
+ // Client-side validation: require fields
+ if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(_password))
+ {
+ errorMessage = "Email and password are required.";
+ isLoading = false;
+ StateHasChanged();
+ return;
+ }
+
+ // Validate password complexity on attempt
+ if (!IsPasswordValid())
+ {
+ errorMessage = "Password does not meet complexity requirements.";
+ isLoading = false;
+ StateHasChanged();
+ return;
+ }
+
+ isLoading = true;
+ StateHasChanged();
+
+ var ok = await AuthService.SignInAsync(email?.Trim() ?? string.Empty, _password ?? string.Empty);
+ isLoading = false;
+ if (ok)
+ {
+ // All roles now land on common dashboard route '/'
+ NavigationManager.NavigateTo("/");
+ return;
+ }
+
+ // Login failed
+ errorMessage = "Invalid email or password. Please try again.";
+ _password = string.Empty;
+ // reset password flags (user will re-enter)
+ hasMinLength = hasUpper = hasDigit = hasSpecial = false;
+ attemptedSignIn = false; // hide requirements until next attempt
+ StateHasChanged();
+ }
+}

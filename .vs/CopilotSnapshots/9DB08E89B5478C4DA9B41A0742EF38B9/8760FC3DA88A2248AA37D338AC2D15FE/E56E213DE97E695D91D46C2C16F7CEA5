@@ -1,0 +1,356 @@
+﻿@page "/"
+@using FiberHelp.Models
+@inject FiberHelp.Services.AuthService AuthService
+@inject FiberHelp.Services.AdminService AdminService
+@inject NavigationManager Navigation
+
+<link href="css/dashboard.css" rel="stylesheet" />
+
+@* Unified header showing who is logged in and role label; role-specific content below *@
+<div class="dashboard-root">
+ <header class="topbar">
+ <div>
+ <p class="eyebrow">FIBERHELP · @GetRoleLabel()</p>
+ <h1 class="page-title">Dashboard</h1>
+ </div>
+ <div class="top-actions">
+ @* Show Export only to non-agent roles *@
+ @if (!(AuthService.Role ?? "").Equals("Agent", StringComparison.OrdinalIgnoreCase))
+ {
+ <button class="btn subtle" @onclick="ExportData">Export</button>
+ }
+ <UserPill />
+ </div>
+ </header>
+
+ @* Agent specific compact view *@
+ @if ((AuthService.Role ?? "").Equals("Agent", StringComparison.OrdinalIgnoreCase))
+ {
+ <section class="kpi-grid">
+ <article class="kpi-card">
+ <div class="kpi-header">Your Open Tickets</div>
+ <h2>@(tickets?.Count(t => t.Status == "Open") ??0)</h2>
+ <p class="kpi-sub">Tickets requiring attention</p>
+ </article>
+ <article class="kpi-card">
+ <div class="kpi-header">Assigned to you (sample)</div>
+ <h2>@(tickets?.Count ??0)</h2>
+ <p class="kpi-sub">Total tickets visible</p>
+ </article>
+ <article class="kpi-card">
+ <div class="kpi-header">Avg response (est.)</div>
+ <h2>~@((tickets?.Any() == true) ? Math.Max(1, tickets.Count / Math.Max(1, tickets.Count /3)) :0) hrs</h2>
+ <p class="kpi-sub">Estimated avg turnaround</p>
+ </article>
+ <article class="kpi-card">
+ <div class="kpi-header">Resolved this week</div>
+ <h2>@(tickets?.Count(t => t.Status == "Resolved" || t.Status == "Closed") ??0)</h2>
+ <p class="kpi-sub">Resolution count</p>
+ </article>
+ </section>
+
+ <section class="body-grid">
+ @* Reuse the same panels as before for agent but maybe fewer charts *@
+ <div class="panel">
+ <h2>Ticket status distribution</h2>
+ <div class="chart-row">
+ <div class="donut-wrap">
+ @if (tickets != null)
+ {
+ var statusCounts = tickets.GroupBy(t => (t.Status ?? "Unknown")).ToDictionary(g => g.Key, g => g.Count());
+ var total = Math.Max(1, statusCounts.Values.Sum());
+ var segments = statusCounts.Select(kv => new { Key = kv.Key, Count = kv.Value, Percent = (double)kv.Value / total }).ToList();
+ <svg width="160" height="160" viewBox="004242" class="donut" role="img" aria-label="Ticket status distribution">
+ <circle r="15.915" cx="21" cy="21" fill="#fff" stroke="#eee" stroke-width="6"></circle>
+ @{
+ double cumulative =0.0;
+ foreach (var seg in segments)
+ {
+ var dashPercent = seg.Percent *100.0;
+ var dashArray = $"{dashPercent} {100.0 - dashPercent}";
+ <circle r="15.915" cx="21" cy="21" fill="transparent" stroke-width="6" stroke-linecap="butt"
+ stroke="@GetColorForStatus(seg.Key)" stroke-dasharray="@dashArray" stroke-dashoffset="@(-cumulative)"></circle>;
+ cumulative += dashPercent;
+ }
+ }
+ </svg>
+ }
+ </div>
+ <div class="legend-wrap">
+ <ul class="legend-list">
+ @if (tickets != null)
+ {
+ foreach (var kv in tickets.GroupBy(t => (t.Status ?? "Unknown")).OrderByDescending(g => g.Count()))
+ {
+ <li>
+ <span class="dot" style="background:@GetColorForStatus(kv.Key)"></span>
+ <strong>@kv.Key</strong>
+ <span class="muted" style="float:right">@kv.Count()</span>
+ </li>
+ }
+ }
+ </ul>
+ </div>
+ </div>
+ </div>
+
+ <div class="panel">
+ <h2>Priority distribution</h2>
+ @if (tickets != null)
+ {
+ var pr = tickets.GroupBy(t => (t.Priority ?? "Medium")).ToDictionary(g => g.Key, g => g.Count());
+ var max = pr.Values.DefaultIfEmpty(1).Max();
+ <div class="bars">
+ @foreach (var kv in pr.OrderByDescending(x => x.Value))
+ {
+ var width = (int)((kv.Value / (double)max) *100);
+ <div class="bar-row">
+ <div class="bar-label">@kv.Key</div>
+ <div class="bar-track"><div class="bar-fill" style="width:@width%"></div></div>
+ <div class="bar-count">@kv.Value</div>
+ </div>
+ }
+ </div>
+ }
+ </div>
+
+ @* Add Latest Tickets panel for Agent view so tickets are visible on dashboard *@
+ <div class="panel">
+ <div class="panel-head">
+ <div>
+ <h2>Latest Tickets</h2>
+ <p class="muted-text">Most recent customer issues</p>
+ </div>
+ <div class="filter-pill">This week</div>
+ </div>
+
+ <table class="data-table">
+ <thead>
+ <tr>
+ <th>Ticket #</th>
+ <th>Account</th>
+ <th>Subject</th>
+ <th>Status</th>
+ <th>Created</th>
+ <th></th>
+ </tr>
+ </thead>
+ <tbody>
+ @if (tickets != null)
+ {
+ foreach (var t in tickets.Take(4))
+ {
+ <tr>
+ <td>@t.Id</td>
+ <td>@t.Customer</td>
+ <td>@t.Title</td>
+ <td>
+ <span class="status-pill @t.Status.ToLower().Replace(" ", "")">@t.Status</span>
+ </td>
+ <td>@GetTimeAgo(t.Created)</td>
+ <td>
+ <button class="btn subtle" @onclick="NavigateToTickets">Open</button>
+ </td>
+ </tr>
+ }
+ }
+ </tbody>
+ </table>
+ </div>
+
+ </section>
+ }
+ else
+ {
+ @* Admin / non-agent full view *@
+ <section class="kpi-grid">
+ <article class="kpi-card">
+ <div class="kpi-header">
+ <span>Total Customers</span>
+ <span class="badge success">@((customers?.Count ??0) >0 ? "+" + ((customers.Count /10.0).ToString("0.0")) + "%" : "0%")</span>
+ </div>
+ <h2>@(customers?.Count ??0)</h2>
+ <p class="kpi-sub">total customers</p>
+ </article>
+ <article class="kpi-card">
+ <div class="kpi-header">
+ <span>Active Subscriptions</span>
+ <span class="badge success">+2.1%</span>
+ </div>
+ <h2>94</h2>
+ <p class="kpi-sub">active this month</p>
+ </article>
+ <article class="kpi-card">
+ <div class="kpi-header">
+ <span>Open Tickets</span>
+ <span class="badge warning">@((tickets?.Count(t => t.Status == "Open") ??0) + " high")</span>
+ </div>
+ <h2>@(tickets?.Count ??0)</h2>
+ <p class="kpi-sub">need agent response</p>
+ </article>
+ <article class="kpi-card">
+ <div class="kpi-header">
+ <span>Pending Invoices</span>
+ <span class="badge danger">follow up</span>
+ </div>
+ <h2>?30,000</h2>
+ <p class="kpi-sub">unpaid amount</p>
+ </div>
+ </article>
+ </section>
+
+ <section class="body-grid">
+ <div class="panel">
+ <div class="panel-head">
+ <div>
+ <h2>Latest Tickets</h2>
+ <p class="muted-text">Most recent customer issues</p>
+ </div>
+ <div class="filter-pill">This week</div>
+ </div>
+
+ <table class="data-table">
+ <thead>
+ <tr>
+ <th>Ticket #</th>
+ <th>Account</th>
+ <th>Subject</th>
+ <th>Status</th>
+ <th>Created</th>
+ <th></th>
+ </tr>
+ </thead>
+ <tbody>
+ @if (tickets != null)
+ {
+ foreach (var t in tickets.Take(4))
+ {
+ <tr>
+ <td>@t.Id</td>
+ <td>@t.Customer</td>
+ <td>@t.Title</td>
+ <td>
+ <span class="status-pill @t.Status.ToLower().Replace(" ", "")">@t.Status</span>
+ </td>
+ <td>@GetTimeAgo(t.Created)</td>
+ <td>
+ <button class="btn subtle" @onclick="NavigateToTickets">Open</button>
+ </td>
+ </tr>
+ }
+ }
+ </tbody>
+ </table>
+ </div>
+
+ <div class="panel">
+ <div class="panel-head">
+ <h2>Today's Activity</h2>
+ <p class="muted-text">Recent actions</p>
+ </div>
+ <ul class="activity-list">
+ <li class="activity success">
+ <span class="dot"></span>
+ Ticket #7004 assigned to <strong>CSR-01</strong>
+ <span class="time">10 mins ago</span>
+ </li>
+ <li class="activity warning">
+ <span class="dot"></span>
+ New customer registered: <strong>Kisha Tan</strong>
+ <span class="time">25 mins ago</span>
+ </li>
+ <li class="activity">
+ <span class="dot"></span>
+ Invoice reminder sent to <strong>Fiber Corp</strong>
+ <span class="time">35 mins ago</span>
+ </li>
+ <li class="activity">
+ <span class="dot"></span>
+2 tickets waiting for update
+ <span class="time">1 hr ago</span>
+ </li>
+ </ul>
+ </div>
+ </section>
+ }
+</div>
+
+@code {
+ private List<Ticket>? tickets;
+ private List<Customer>? customers;
+
+ protected override async Task OnInitializedAsync()
+ {
+ AuthService.AuthenticationStateChanged += OnAuthChanged;
+ if (!AuthService.IsAuthenticated)
+ {
+ Navigation.NavigateTo("/login", true);
+ return;
+ }
+ await LoadDataAsync();
+ }
+
+ private async void OnAuthChanged()
+ {
+ if (AuthService.IsAuthenticated)
+ {
+ await LoadDataAsync();
+ }
+ else
+ {
+ Navigation.NavigateTo("/login", true);
+ }
+ StateHasChanged();
+ }
+
+ private async Task LoadDataAsync()
+ {
+ tickets = await AdminService.GetTicketsAsync();
+ customers = await AdminService.GetCustomersAsync();
+ }
+
+ private string GetTimeAgo(DateTime date)
+ {
+ var span = DateTime.Now - date;
+ if (span.TotalMinutes <60) return $"{(int)span.TotalMinutes} mins ago";
+ if (span.TotalHours <24) return $"{(int)span.TotalHours} hrs ago";
+ return $"{(int)span.TotalDays} days ago";
+ }
+
+ private void ExportData() => Navigation.NavigateTo("/customers");
+ private void NavigateToTickets() => Navigation.NavigateTo("/tickets");
+
+ // Map ticket status to color used in charts
+ private string GetColorForStatus(string status)
+ {
+ if (string.IsNullOrWhiteSpace(status)) return "#94a3b8"; // muted gray
+ switch (status.Trim().ToLowerInvariant())
+ {
+ case "open": return "#ef4444"; // red
+ case "in progress":
+ case "inprogress": return "#f59e0b"; // amber
+ case "resolved": return "#10b981"; // green
+ case "closed": return "#64748b"; // gray
+ default: return "#2563eb"; // blue default
+ }
+ }
+
+ private string GetRoleLabel()
+ {
+ var role = AuthService?.Role;
+ if (string.IsNullOrWhiteSpace(role)) return "GUEST";
+ return role.ToUpperInvariant();
+ }
+
+ private string GetAvatarLetters()
+ {
+ var name = AuthService?.Email ?? "";
+ if (string.IsNullOrWhiteSpace(name)) return "FH";
+ var parts = name.Split('@');
+ var left = parts[0];
+ if (left.Length >=2) return left.Substring(0,2).ToUpperInvariant();
+ return left.ToUpperInvariant();
+ }
+
+ public void Dispose() => AuthService.AuthenticationStateChanged -= OnAuthChanged;
+ }

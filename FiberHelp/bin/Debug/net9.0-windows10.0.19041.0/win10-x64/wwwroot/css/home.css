@@ -701,6 +701,7 @@ html, body, #app {
  place-items: center;
  z-index:9999; /* raised */
  padding:24px;
+ pointer-events: auto;
 }
 
 .modal {
@@ -712,6 +713,9 @@ html, body, #app {
  box-shadow: var(--card-shadow-lg);
  border: var(--border);
  z-index:10000; /* ensure on top */
+ pointer-events: auto;
+ max-height: calc(100vh -80px);
+ overflow: auto;
 }
 
 .modal h3 {

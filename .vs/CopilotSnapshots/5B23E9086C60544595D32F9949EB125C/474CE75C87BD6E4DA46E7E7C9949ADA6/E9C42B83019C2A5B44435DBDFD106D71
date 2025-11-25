@@ -1,0 +1,129 @@
+﻿@page "/tickets"
+@using FiberHelp.Models
+@inject FiberHelp.Services.AdminService AdminService
+
+<link href="css/tickets.css" rel="stylesheet" />
+
+<div>
+ <header class="topbar">
+ <div>
+ <p class="eyebrow">FIBERHELP · ADMIN VIEW</p>
+ <h1 class="page-title">Tickets</h1>
+ </div>
+ <div class="top-actions">
+ <button class="btn primary" @onclick="() => ShowNewTicket(true)">+ New Ticket</button>
+ </div>
+ </header>
+ <section class="panel">
+ <table class="data-table">
+ <thead>
+ <tr>
+ <th>Ticket ID</th>
+ <th>Title</th>
+ <th>Customer</th>
+ <th>Priority</th>
+ <th>Status</th>
+ <th>Created</th>
+ <th></th>
+ </tr>
+ </thead>
+ <tbody>
+ @if (tickets != null)
+ {
+ foreach (var ticket in tickets)
+ {
+ <tr>
+ <td>@ticket.Id</td>
+ <td>@ticket.Title</td>
+ <td>@ticket.Customer</td>
+ <td><span class="status-pill priority">@ticket.Priority</span></td>
+ <td><span class="status-pill @ticket.Status.ToLower().Replace(" ", "")">@ticket.Status</span></td>
+ <td>@GetTimeAgo(ticket.Created)</td>
+ <td>
+ <button class="btn subtle" @onclick="() => EditTicket(ticket.Id)">Edit</button>
+ <button class="btn danger" @onclick="() => DeleteTicket(ticket.Id)">Delete</button>
+ </td>
+ </tr>
+ }
+ }
+ </tbody>
+ </table>
+ </section>
+
+ <!-- small modal for new ticket -->
+ <div class="modal-backdrop" style="display:@(showNewTicketModal ? "grid" : "none")" @onclick="() => ShowNewTicket(false)">
+ <div class="modal" @onclick:stopPropagation>
+ <h3>New Ticket</h3>
+ <div class="form-group">
+ <label>Title</label>
+ <input class="form-input" @bind="newTicketTitle" />
+ </div>
+ <div class="form-group">
+ <label>Customer</label>
+ <select class="form-input" @bind="newTicketCustomer">
+ <option value="">Select customer</option>
+ @if (customers != null)
+ {
+ foreach (var c in customers)
+ {
+ <option value="@c.Name">@c.Name</option>
+ }
+ }
+ </select>
+ </div>
+ <div class="modal-actions">
+ <button class="btn" @onclick="() => ShowNewTicket(false)">Cancel</button>
+ <button class="btn primary" @onclick="CreateNewTicketAsync">Create</button>
+ </div>
+ </div>
+ </div>
+</div>
+
+@code {
+ private List<Ticket>? tickets;
+ private List<Customer>? customers;
+ private bool showNewTicketModal = false;
+ private string newTicketTitle = "";
+ private string newTicketCustomer = "";
+
+ protected override async Task OnInitializedAsync()
+ {
+ tickets = await AdminService.GetTicketsAsync();
+ customers = await AdminService.GetCustomersAsync();
+ }
+
+ private void ShowNewTicket(bool show)
+ {
+ showNewTicketModal = show;
+ StateHasChanged();
+ }
+
+ private async Task CreateNewTicketAsync()
+ {
+ if (string.IsNullOrWhiteSpace(newTicketTitle) || string.IsNullOrWhiteSpace(newTicketCustomer)) return;
+ var t = new Ticket { Title = newTicketTitle, Customer = newTicketCustomer, Priority = "Medium", Status = "Open", Created = DateTime.UtcNow };
+ await AdminService.CreateTicketAsync(t);
+ tickets = await AdminService.GetTicketsAsync();
+ ShowNewTicket(false);
+ }
+
+ private async Task DeleteTicket(string id)
+ {
+ if (string.IsNullOrEmpty(id)) return;
+ await AdminService.DeleteTicketAsync(id);
+ tickets = await AdminService.GetTicketsAsync();
+ }
+
+ private void EditTicket(string id)
+ {
+ // implement later
+ }
+
+ private string GetTimeAgo(DateTime date)
+ {
+ var span = DateTime.Now - date;
+ if (span.TotalMinutes <60) return $"{(int)span.TotalMinutes} mins ago";
+ if (span.TotalHours <24) return $"{(int)span.TotalHours} hrs ago";
+ return $"{(int)span.TotalDays} days ago";
+ }
+}

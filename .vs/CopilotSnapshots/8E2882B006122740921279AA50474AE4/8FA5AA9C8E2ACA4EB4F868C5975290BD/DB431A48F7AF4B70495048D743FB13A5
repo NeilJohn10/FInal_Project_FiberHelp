@@ -1,0 +1,214 @@
+﻿@page "/admin/agents"
+@using FiberHelp.Models
+@inject FiberHelp.Services.AdminService AdminService
+@inject FiberHelp.Services.AuthService AuthService
+@inject NavigationManager Navigation
+
+<link href="css/dashboard.css" rel="stylesheet" />
+
+<div class="dashboard-root">
+ <header class="topbar">
+ <div>
+ <p class="eyebrow">FIBERHELP · ADMIN</p>
+ <h1 class="page-title">Agents</h1>
+ </div>
+ <div class="top-actions">
+ <button class="btn primary" @onclick="ShowNewAgent">+ Add Agent</button>
+ </div>
+ </header>
+
+ <section class="panel">
+ <table class="data-table">
+ <thead>
+ <tr>
+ <th>Email</th>
+ <th>Full Name</th>
+ <th>Role</th>
+ <th>Active</th>
+ <th></th>
+ </tr>
+ </thead>
+ <tbody>
+ @if (agents != null && agents.Any())
+ {
+ @foreach (var a in agents)
+ {
+ <tr>
+ <td>@a.Email</td>
+ <td>@a.FullName</td>
+ <td>@a.Role</td>
+ <td>@(a.IsActive ? "Yes" : "No")</td>
+ <td>
+ <button class="btn subtle" @onclick="() => EditAgent(a.Id)">Edit</button>
+ <button class="btn danger" @onclick="() => DeleteAgent(a.Id)">Delete</button>
+ </td>
+ </tr>
+ }
+ }
+ else
+ {
+ <tr><td colspan="5">No agents found.</td></tr>
+ }
+ </tbody>
+ </table>
+ </section>
+
+ @if (!string.IsNullOrEmpty(notification))
+ {
+ <div class="panel" style="margin-top:12px;">
+ <strong>@notification</strong>
+ </div>
+ }
+
+ @if (showNewAgent)
+ {
+ <div class="modal-backdrop" @onclick="CloseNewAgent">
+ <div class="modal" @onclick:stopPropagation>
+ <h3>New Agent</h3>
+ @if (!string.IsNullOrEmpty(errorMessage))
+ {
+ <div class="error-message">@errorMessage</div>
+ }
+ <div class="form-group">
+ <label>Email</label>
+ <input class="form-input" @bind="newEmail" />
+ </div>
+ <div class="form-group">
+ <label>Full Name</label>
+ <input class="form-input" @bind="newFullName" />
+ </div>
+ <div class="form-group">
+ <label>Password</label>
+ <input type="password" class="form-input" @bind="NewPassword" @bind:event="oninput" />
+ </div>
+ <ul class="pw-requirements" style="margin-bottom:10px; list-style:none; padding:0;">
+ <li class="@GetReqClass(hasMinLength)">@CheckMark(hasMinLength) Minimum12 characters</li>
+ <li class="@GetReqClass(hasUpper)">@CheckMark(hasUpper) At least one uppercase letter</li>
+ <li class="@GetReqClass(hasDigit)">@CheckMark(hasDigit) At least one number</li>
+ <li class="@GetReqClass(hasAtChar)">@CheckMark(hasAtChar) Contains &#64;</li>
+ </ul>
+ <div style="display:flex;justify-content:flex-end;gap:10px;">
+ <button class="btn" @onclick="CloseNewAgent">Cancel</button>
+ <button class="btn primary" disabled="@(!IsFormValid())" @onclick="CreateAgent">Create</button>
+ </div>
+ </div>
+ </div>
+ }
+</div>
+
+@code {
+ private List<User>? agents;
+ private bool showNewAgent = false;
+ private string newEmail = string.Empty;
+ private string newFullName = string.Empty;
+ private string newPasswordBacking = string.Empty;
+ private string errorMessage = string.Empty;
+ private string notification = string.Empty;
+
+ private bool hasMinLength;
+ private bool hasUpper;
+ private bool hasDigit;
+ private bool hasAtChar;
+
+ private string NewPassword
+ {
+ get => newPasswordBacking;
+ set
+ {
+ newPasswordBacking = value ?? string.Empty;
+ ValidatePassword();
+ }
+ }
+
+ protected override async Task OnInitializedAsync()
+ {
+ if (!AuthService.IsAuthenticated || !(AuthService.Role ?? "").Equals("Administrator", StringComparison.OrdinalIgnoreCase))
+ {
+ Navigation.NavigateTo("/", true);
+ return;
+ }
+ await LoadAgents();
+ }
+
+ private async Task LoadAgents()
+ {
+ agents = await AdminService.GetAgentsAsync();
+ }
+
+ private void ShowNewAgent()
+ {
+ showNewAgent = true;
+ errorMessage = string.Empty;
+ notification = string.Empty;
+ }
+
+ private void CloseNewAgent()
+ {
+ showNewAgent = false;
+ newEmail = string.Empty;
+ newFullName = string.Empty;
+ NewPassword = string.Empty;
+ errorMessage = string.Empty;
+ ResetPasswordChecks();
+ }
+
+ private void ValidatePassword()
+ {
+ var pwd = NewPassword;
+ hasMinLength = pwd.Length >=12;
+ hasUpper = pwd.Any(char.IsUpper);
+ hasDigit = pwd.Any(char.IsDigit);
+ hasAtChar = pwd.Contains('@');
+ }
+
+ private void ResetPasswordChecks()
+ {
+ hasMinLength = hasUpper = hasDigit = hasAtChar = false;
+ }
+
+ private string CheckMark(bool ok) => ok ? "✔" : "✖";
+ private string GetReqClass(bool ok) => $"req {(ok ? "valid" : "invalid")}";
+
+ private bool IsFormValid()
+ {
+ if (string.IsNullOrWhiteSpace(newEmail)) return false;
+ if (string.IsNullOrWhiteSpace(NewPassword)) return false;
+ return hasMinLength && hasUpper && hasDigit && hasAtChar;
+ }
+
+ private async Task CreateAgent()
+ {
+ errorMessage = string.Empty;
+ notification = string.Empty;
+ if (!IsFormValid())
+ {
+ errorMessage = "Password does not meet requirements.";
+ return;
+ }
+ var user = new User { Email = newEmail.Trim().ToLowerInvariant(), FullName = newFullName, Role = "Agent", IsActive = true };
+ var ok = await AdminService.CreateAgentAsync(user, NewPassword);
+ if (ok)
+ {
+ notification = "Agent created successfully.";
+ await LoadAgents();
+ CloseNewAgent();
+ }
+ else
+ {
+ errorMessage = AdminService.LastError ?? "Failed to create agent.";
+ }
+ }
+
+ private void EditAgent(string id)
+ {
+ // future implementation
+ }
+
+ private async Task DeleteAgent(string id)
+ {
+ if (await AdminService.DeleteUserAsync(id))
+ {
+ await LoadAgents();
+ }
+ }
+}

@@ -18,7 +18,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("FiberHelp")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0+53e515a1a5c766debf1a6ff85fef183adb035348")]
 [assembly: System.Reflection.AssemblyProductAttribute("FiberHelp")]
 [assembly: System.Reflection.AssemblyTitleAttribute("FiberHelp")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

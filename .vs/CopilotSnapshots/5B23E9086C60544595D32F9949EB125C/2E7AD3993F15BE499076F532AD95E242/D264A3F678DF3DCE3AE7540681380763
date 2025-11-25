@@ -1,0 +1,115 @@
+﻿@page "/customers"
+@using FiberHelp.Models
+@inject FiberHelp.Services.AdminService AdminService
+
+<link href="css/customers.css" rel="stylesheet" />
+
+<div>
+ <header class="topbar">
+ <div>
+ <p class="eyebrow">FIBERHELP · ADMIN VIEW</p>
+ <h1 class="page-title">Customers</h1>
+ </div>
+ <div class="top-actions">
+ <button class="btn primary" @onclick="() => ShowNewCustomer(true)">+ Add Customer</button>
+ </div>
+ </header>
+
+ <section class="panel">
+ <table class="data-table">
+ <thead>
+ <tr>
+ <th>Customer ID</th>
+ <th>Name</th>
+ <th>Email</th>
+ <th>Plan</th>
+ <th>Status</th>
+ <th>Join Date</th>
+ <th></th>
+ </tr>
+ </thead>
+ <tbody>
+ @if (customers != null)
+ {
+ foreach (var customer in customers)
+ {
+ <tr>
+ <td>@customer.Id</td>
+ <td>@customer.Name</td>
+ <td>@customer.Email</td>
+ <td>@customer.Plan</td>
+ <td><span class="status-pill @customer.Status.ToLower()">@customer.Status</span></td>
+ <td>@customer.JoinDate.ToString("MMM dd, yyyy")</td>
+ <td>
+ <button class="btn subtle" @onclick="() => EditCustomer(customer.Id)">Edit</button>
+ <button class="btn danger" @onclick="() => DeleteCustomer(customer.Id)">Delete</button>
+ </td>
+ </tr>
+ }
+ }
+ </tbody>
+ </table>
+ </section>
+
+ <div class="modal-backdrop" style="display:@(showNewCustomerModal ? "grid" : "none")" @onclick="() => ShowNewCustomer(false)">
+ <div class="modal" @onclick:stopPropagation>
+ <h3>New Customer</h3>
+ <div class="form-group">
+ <label>Name</label>
+ <input class="form-input" @bind="newCustomerName" />
+ </div>
+ <div class="form-group">
+ <label>Email</label>
+ <input class="form-input" @bind="newCustomerEmail" />
+ </div>
+ <div class="form-group">
+ <label>Plan</label>
+ <input class="form-input" @bind="newCustomerPlan" />
+ </div>
+ <div class="modal-actions">
+ <button class="btn" @onclick="() => ShowNewCustomer(false)">Cancel</button>
+ <button class="btn primary" @onclick="CreateNewCustomerAsync">Add</button>
+ </div>
+ </div>
+ </div>
+</div>
+
+@code {
+ private List<Customer>? customers;
+ private bool showNewCustomerModal = false;
+ private string newCustomerName = "";
+ private string newCustomerEmail = "";
+ private string newCustomerPlan = "";
+
+ protected override async Task OnInitializedAsync()
+ {
+ customers = await AdminService.GetCustomersAsync();
+ }
+
+ private void ShowNewCustomer(bool show)
+ {
+ showNewCustomerModal = show;
+ StateHasChanged();
+ }
+
+ private async Task CreateNewCustomerAsync()
+ {
+ if (string.IsNullOrWhiteSpace(newCustomerName) || string.IsNullOrWhiteSpace(newCustomerEmail)) return;
+ var c = new Customer { Name = newCustomerName, Email = newCustomerEmail, Plan = newCustomerPlan, JoinDate = DateTime.UtcNow, Status = "Active" };
+ await AdminService.CreateCustomerAsync(c);
+ customers = await AdminService.GetCustomersAsync();
+ ShowNewCustomer(false);
+ }
+
+ private async Task DeleteCustomer(string id)
+ {
+ if (string.IsNullOrEmpty(id)) return;
+ await AdminService.DeleteCustomerAsync(id);
+ customers = await AdminService.GetCustomersAsync();
+ }
+
+ private void EditCustomer(string id)
+ {
+ // implement later
+ }
+}
