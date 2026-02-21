@@ -1,0 +1,36 @@
+﻿using System;
+using System.Collections.Generic;
+
+namespace FiberHelp.Models
+{
+    public class Account
+    {
+        public int Id { get; set; }
+        public string AccountNumber { get; set; } = string.Empty;
+
+        // Optional descriptive fields present in DB
+        public string? Name { get; set; }
+        public string? Type { get; set; }
+
+        // Service information
+        public string ServicePlan { get; set; } = string.Empty;
+        public string? ServiceStatus { get; set; } // mapped to DB column "Status"
+        public bool IsActive { get; set; } = true;
+
+        // Contact/Billing details
+        public string? ContactName { get; set; }
+        public string? ContactEmail { get; set; }
+        public string? ContactPhone { get; set; }
+        public string? BillingAddress { get; set; }
+
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+        // Archive fields
+        public bool IsArchived { get; set; } = false;
+        public DateTime? ArchivedAt { get; set; }
+        public string? ArchivedBy { get; set; }
+
+        // Relationships
+        public ICollection<Client>? Clients { get; set; }
+    }
+}

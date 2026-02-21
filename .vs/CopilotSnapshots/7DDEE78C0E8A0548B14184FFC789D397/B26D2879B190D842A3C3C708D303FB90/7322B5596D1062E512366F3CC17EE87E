@@ -1,0 +1,530 @@
+﻿using System.Collections.Generic;
+using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
+using FiberHelp.Data;
+using FiberHelp.Models;
+using System;
+using System.Linq;
+using System.Security.Cryptography;
+using System.Text;
+using FiberHelp.Services; // for DualWriteService
+
+namespace FiberHelp.Services
+{
+public class AdminService
+{
+private readonly AppDbContext _db;
+private readonly DualWriteService _dual;
+private readonly DataSyncService _sync;
+public string? LastError { get; private set; }
+public AdminService(AppDbContext db, DualWriteService dual, DataSyncService sync) { _db = db; _dual = dual; _sync = sync; }
+
+private bool IsOnlineSqlServer() => _db.Database.ProviderName?.Contains("SqlServer", StringComparison.OrdinalIgnoreCase) == true;
+private async Task MaybeSyncOrEnqueueAsync<T>(string op, T entity, string key) where T : class
+{
+    var provider = _db.Database.ProviderName ?? string.Empty;
+    if (provider.Contains("SqlServer", StringComparison.OrdinalIgnoreCase))
+    {
+        var ds = string.Empty;
+        try { ds = _db.Database.GetDbConnection().DataSource?.ToLowerInvariant() ?? string.Empty; } catch { }
+        var isLocalDev = ds.Contains("(localdb)") || ds.Contains("mssqllocaldb") || ds.Contains("localhost") || ds.Contains(".\\") || ds.Contains("sqlexpress") || ds.Contains("127.0.0.1");
+        if (isLocalDev)
+        {
+            // We already saved to LocalDB with _db; just enqueue to outbox for cloud push
+            await _dual.EnqueueOnlyAsync(op, entity, key);
+        }
+        else
+        {
+            // Connected directly to cloud SQL; keep local cache in sync
+            await _sync.SyncCloudToLocalAsync();
+        }
+    }
+    else
+    {
+        // SQLite offline: write locally and enqueue
+        await _dual.EnqueueAsync(op, entity, key);
+    }
+}
+
+public string GetDatabaseName()
+{
+    try { return _db.Database.GetDbConnection().Database; } catch { return "(unknown)"; }
+}
+
+public async Task<List<Ticket>> GetTicketsAsync()
+{
+try
+{
+return await _db.Tickets.OrderByDescending(t => t.Created).AsNoTracking().ToListAsync();
+}
+catch (Exception ex)
+{
+LastError = ex.Message;
+System.Diagnostics.Debug.WriteLine($"AdminService.GetTicketsAsync error: {ex}");
+return new List<Ticket>();
+}
+}
+
+public async Task<Ticket?> GetTicketAsync(int id)
+{
+try { return await _db.Tickets.AsNoTracking().FirstOrDefaultAsync(t => t.Id == id); }
+catch (Exception ex) { LastError = ex.Message; System.Diagnostics.Debug.WriteLine($"AdminService.GetTicketAsync error: {ex}"); return null; }
+}
+
+public async Task<bool> CreateTicketAsync(Ticket t)
+{
+try
+{
+LastError = null;
+if (t == null) { LastError = "Ticket is null"; return false; }
+if (t.Id !=0) t.Id =0;
+if (t.Created == default) t.Created = DateTime.UtcNow;
+if (string.IsNullOrWhiteSpace(t.ClientId)) t.ClientId = null;
+if (!string.IsNullOrWhiteSpace(t.ClientId))
+{
+ var cust = await _db.Clients.FirstOrDefaultAsync(c => c.Id == t.ClientId || c.Name == t.ClientId);
+ if (cust != null)
+ {
+ t.ClientName = cust.Name;
+ t.ClientId = cust.Id;
+ }
+}
+if (t.ClientId == null && t.AccountId.HasValue)
+{
+ var acctClient = await _db.Clients.FirstOrDefaultAsync(c => c.AccountId == t.AccountId.Value);
+ if (acctClient != null)
+ {
+ t.ClientId = acctClient.Id;
+ t.ClientName = acctClient.Name;
+ }
+ else
+ {
+ var acct = await _db.Accounts.FirstOrDefaultAsync(a => a.Id == t.AccountId.Value);
+ if (acct != null)
+ {
+ t.ClientName = !string.IsNullOrWhiteSpace(acct.ContactName) ? acct.ContactName : (acct.Name ?? string.Empty);
+ }
+ }
+}
+_db.Tickets.Add(t);
+var rows = await _db.SaveChangesAsync();
+await MaybeSyncOrEnqueueAsync("Create", t, t.Id.ToString());
+return rows >0;
+}
+catch (Exception ex)
+{
+LastError = ex.InnerException?.Message ?? ex.Message;
+System.Diagnostics.Debug.WriteLine($"AdminService.CreateTicketAsync error: {ex}\nInner: {ex.InnerException?.Message}");
+return false;
+}
+}
+
+public async Task UpdateTicketAsync(Ticket t)
+{
+try
+{
+LastError = null;
+if (t == null || t.Id <=0) { LastError = "Invalid ticket for update"; return; }
+var existing = await _db.Tickets.FindAsync(t.Id);
+if (existing == null) { LastError = $"Ticket not found id={t.Id}"; return; }
+existing.Title = t.Title;
+existing.ClientId = string.IsNullOrWhiteSpace(t.ClientId) ? null : t.ClientId;
+existing.Priority = t.Priority;
+existing.Status = t.Status;
+if (!string.IsNullOrWhiteSpace(existing.ClientId))
+{
+ var cust = await _db.Clients.FirstOrDefaultAsync(c => c.Id == existing.ClientId || c.Name == existing.ClientId);
+ if (cust != null)
+ {
+ existing.ClientName = cust.Name;
+ existing.ClientId = cust.Id;
+ }
+}
+else if (existing.ClientId == null && existing.AccountId.HasValue)
+{
+ var acctClient = await _db.Clients.FirstOrDefaultAsync(c => c.AccountId == existing.AccountId.Value);
+ if (acctClient != null)
+ {
+ existing.ClientId = acctClient.Id;
+ existing.ClientName = acctClient.Name;
+ }
+ else
+ {
+ var acct = await _db.Accounts.FirstOrDefaultAsync(a => a.Id == existing.AccountId.Value);
+ if (acct != null)
+ {
+ existing.ClientName = !string.IsNullOrWhiteSpace(acct.ContactName) ? acct.ContactName : (acct.Name ?? string.Empty);
+ }
+ }
+}
+_db.Tickets.Update(existing);
+var rows = await _db.SaveChangesAsync();
+if (rows <=0) LastError = "Update affected0 rows";
+await MaybeSyncOrEnqueueAsync("Update", existing, existing.Id.ToString());
+}
+catch (Exception ex)
+{
+LastError = ex.InnerException?.Message ?? ex.Message;
+System.Diagnostics.Debug.WriteLine($"AdminService.UpdateTicketAsync error: {ex}\nInner: {ex.InnerException?.Message}");
+}
+}
+
+public async Task DeleteTicketAsync(int id)
+{
+try
+{
+LastError = null;
+var t = await _db.Tickets.FindAsync(id);
+if (t != null)
+{
+ _db.Tickets.Remove(t);
+ var rows = await _db.SaveChangesAsync();
+ if (rows <=0) LastError = "Delete affected0 rows";
+ await MaybeSyncOrEnqueueAsync("Delete", t, t.Id.ToString());
+}
+}
+catch (Exception ex)
+{
+LastError = ex.Message;
+System.Diagnostics.Debug.WriteLine($"AdminService.DeleteTicketAsync error: {ex}");
+}
+}
+
+public async Task<List<Client>> GetCustomersAsync()
+{
+try { return await _db.Clients.OrderByDescending(c => c.JoinDate).AsNoTracking().ToListAsync(); }
+catch (Exception ex) { LastError = ex.Message; System.Diagnostics.Debug.WriteLine($"AdminService.GetCustomersAsync error: {ex}"); return new List<Client>(); }
+}
+public async Task<Client?> GetCustomerAsync(string id) { try { return await _db.Clients.AsNoTracking().FirstOrDefaultAsync(c=>c.Id==id); } catch (Exception ex) { LastError = ex.Message; System.Diagnostics.Debug.WriteLine($"AdminService.GetCustomerAsync error: {ex}"); return null; } }
+public async Task<bool> CreateCustomerAsync(Client c) { try { LastError = null; if (c == null) { LastError = "Client is null"; return false; } if (string.IsNullOrWhiteSpace(c.Id)) c.Id = Guid.NewGuid().ToString(); if (c.JoinDate == default) c.JoinDate = DateTime.UtcNow; _db.Clients.Add(c); var rows = await _db.SaveChangesAsync(); if (rows <=0) LastError = "Client insert returned0 rows"; await MaybeSyncOrEnqueueAsync("Create", c, c.Id); return rows >0; } catch (Exception ex) { LastError = ex.Message; System.Diagnostics.Debug.WriteLine($"AdminService.CreateCustomerAsync error: {ex}"); return false; } }
+public async Task UpdateCustomerAsync(Client c) { try { LastError = null; if (c == null || string.IsNullOrWhiteSpace(c.Id)) { LastError = "Invalid client for update"; return; } var existing = await _db.Clients.FindAsync(c.Id); if (existing == null) { LastError = $"Client not found id={c.Id}"; return; } existing.Name = c.Name; existing.Email = c.Email; existing.Plan = c.Plan; existing.Status = c.Status; _db.Clients.Update(existing); var rows = await _db.SaveChangesAsync(); if (rows <=0) LastError = "Client update affected0 rows"; await MaybeSyncOrEnqueueAsync("Update", existing, existing.Id); } catch (Exception ex) { LastError = ex.Message; System.Diagnostics.Debug.WriteLine($"AdminService.UpdateCustomerAsync error: {ex}"); } }
+public async Task DeleteCustomerAsync(string id) { try { LastError = null; var c = await _db.Clients.FindAsync(id); if (c != null) { _db.Clients.Remove(c); var rows = await _db.SaveChangesAsync(); if (rows <=0) LastError = "Client delete affected0 rows"; await MaybeSyncOrEnqueueAsync("Delete", c, c.Id); } } catch (Exception ex) { LastError = ex.Message; System.Diagnostics.Debug.WriteLine($"AdminService.DeleteCustomerAsync error: {ex}"); } }
+
+// --- User / Agent management ---
+private static string HashPassword(string password)
+{
+ using var sha = SHA256.Create();
+ var bytes = Encoding.UTF8.GetBytes(password ?? string.Empty);
+ var hash = sha.ComputeHash(bytes);
+ return Convert.ToHexString(hash);
+}
+
+public async Task<List<User>> GetAgentsAsync()
+{
+ try
+ {
+ return await _db.Users.Where(u => u.Role == "Agent").OrderBy(u => u.Email).AsNoTracking().ToListAsync();
+ }
+ catch (Exception ex)
+ {
+ LastError = ex.Message;
+ System.Diagnostics.Debug.WriteLine($"AdminService.GetAgentsAsync error: {ex}");
+ return new List<User>();
+ }
+}
+
+public async Task<bool> CreateAgentAsync(User user, string plainPassword)
+{
+ try
+ {
+ LastError = null;
+ if (user == null) { LastError = "User is null"; return false; }
+ if (string.IsNullOrWhiteSpace(user.Email)) { LastError = "Email is required"; return false; }
+ if (string.IsNullOrWhiteSpace(plainPassword)) { LastError = "Password is required"; return false; }
+ var lower = user.Email.Trim().ToLowerInvariant();
+ if (await _db.Users.AnyAsync(u => u.Email.ToLower() == lower)) { LastError = "Email already exists"; return false; }
+ user.PasswordHash = HashPassword(plainPassword);
+ if (string.IsNullOrWhiteSpace(user.Role)) user.Role = "Agent";
+ if (string.IsNullOrWhiteSpace(user.Id)) user.Id = Guid.NewGuid().ToString();
+ _db.Users.Add(user);
+ var rows = await _db.SaveChangesAsync();
+ await MaybeSyncOrEnqueueAsync("Create", user, user.Id);
+ return rows >0;
+ }
+ catch (Exception ex)
+ {
+ LastError = ex.Message;
+ System.Diagnostics.Debug.WriteLine($"AdminService.CreateAgentAsync error: {ex}");
+ return false;
+ }
+}
+
+public async Task<bool> DeleteUserAsync(string id)
+{
+ try
+ {
+ LastError = null;
+ if (string.IsNullOrWhiteSpace(id)) { LastError = "Invalid id"; return false; }
+ var u = await _db.Users.FindAsync(id);
+ if (u == null) { LastError = "User not found"; return false; }
+ _db.Users.Remove(u);
+ var rows = await _db.SaveChangesAsync();
+ await MaybeSyncOrEnqueueAsync("Delete", u, u.Id);
+ return rows >0;
+ }
+ catch (Exception ex)
+ {
+ LastError = ex.Message;
+ System.Diagnostics.Debug.WriteLine($"AdminService.DeleteUserAsync error: {ex}");
+ return false;
+ }
+}
+
+// New explicit Agents CRUD using Agents table (if using new Agents table)
+public async Task<bool> CreateAgentRecordAsync(Agent agent, string plainPassword)
+{
+ try
+ {
+ LastError = null;
+ if (agent == null) { LastError = "Agent is null"; return false; }
+ if (string.IsNullOrWhiteSpace(agent.Email)) { LastError = "Email required"; return false; }
+ if (string.IsNullOrWhiteSpace(plainPassword)) { LastError = "Password required"; return false; }
+ var lower = agent.Email.Trim().ToLowerInvariant();
+ if (await _db.Agents.AnyAsync(a => a.Email.ToLower() == lower)) { LastError = "Email already exists"; return false; }
+ agent.PasswordHash = HashPassword(plainPassword);
+ if (string.IsNullOrWhiteSpace(agent.Id)) agent.Id = Guid.NewGuid().ToString();
+ agent.CreatedAt = DateTime.UtcNow;
+ _db.Agents.Add(agent);
+ var rows = await _db.SaveChangesAsync();
+ await MaybeSyncOrEnqueueAsync("Create", agent, agent.Id);
+ return rows >0;
+ }
+ catch (Exception ex)
+ {
+ LastError = ex.Message;
+ System.Diagnostics.Debug.WriteLine($"AdminService.CreateAgentRecordAsync error: {ex}");
+ return false;
+ }
+}
+
+public async Task<List<Agent>> GetAgentRecordsAsync()
+{
+ try
+ {
+ return await _db.Agents.OrderBy(a => a.Email).AsNoTracking().ToListAsync();
+ }
+ catch (Exception ex)
+ {
+ LastError = ex.Message;
+ System.Diagnostics.Debug.WriteLine($"AdminService.GetAgentRecordsAsync error: {ex}");
+ return new List<Agent>();
+ }
+}
+
+public async Task<bool> UpdateAgentRecordAsync(Agent agent)
+{
+ return await UpdateAgentRecordAsync(agent, null);
+}
+
+public async Task<bool> UpdateAgentRecordAsync(Agent agent, string? plainPassword)
+{
+ try
+ {
+ LastError = null;
+ if (agent == null || string.IsNullOrWhiteSpace(agent.Id)) { LastError = "Invalid agent"; return false; }
+ var existing = await _db.Agents.FindAsync(agent.Id);
+ if (existing == null) { LastError = "Agent not found"; return false; }
+ if (!string.Equals(existing.Email, agent.Email, StringComparison.OrdinalIgnoreCase))
+ {
+ var lower = agent.Email?.Trim().ToLowerInvariant() ?? string.Empty;
+ if (await _db.Agents.AnyAsync(a => a.Email.ToLower() == lower && a.Id != agent.Id))
+ {
+ LastError = "Email already exists";
+ return false;
+ }
+ existing.Email = agent.Email;
+ }
+ existing.FullName = agent.FullName;
+ existing.Department = agent.Department;
+ existing.Phone = agent.Phone;
+ existing.IsActive = agent.IsActive;
+ existing.UpdatedAt = DateTime.UtcNow;
+ if (!string.IsNullOrWhiteSpace(plainPassword))
+ {
+ existing.PasswordHash = HashPassword(plainPassword);
+ existing.PasswordChangedAt = DateTime.UtcNow;
+ }
+ _db.Agents.Update(existing);
+ var rows = await _db.SaveChangesAsync();
+ await MaybeSyncOrEnqueueAsync("Update", existing, existing.Id);
+ return rows > 0;
+ }
+ catch (Exception ex)
+ {
+ LastError = ex.Message;
+ System.Diagnostics.Debug.WriteLine($"AdminService.UpdateAgentRecordAsync error: {ex}");
+ return false;
+ }
+}
+
+public async Task<bool> DeleteAgentRecordAsync(string id)
+{
+ try
+ {
+ LastError = null;
+ if (string.IsNullOrWhiteSpace(id)) { LastError = "Invalid id"; return false; }
+ var a = await _db.Agents.FindAsync(id);
+ if (a == null) { LastError = "Agent not found"; return false; }
+ _db.Agents.Remove(a);
+ var rows = await _db.SaveChangesAsync();
+ await MaybeSyncOrEnqueueAsync("Delete", a, a.Id);
+ return rows > 0;
+ }
+ catch (Exception ex)
+ {
+ LastError = ex.Message;
+ System.Diagnostics.Debug.WriteLine($"AdminService.DeleteAgentRecordAsync error: {ex}");
+ return false;
+ }
+}
+
+public async Task<List<Account>> GetAccountsAsync()
+{
+    try {
+        LastError = null;
+        var rows = await _db.Accounts
+            .AsNoTracking()
+            .OrderBy(a => a.Id)
+            .Select(a => new Account {
+                Id = a.Id,
+                AccountNumber = a.AccountNumber ?? string.Empty,
+                Name = a.Name ?? string.Empty,
+                Type = a.Type ?? string.Empty,
+                ServicePlan = a.ServicePlan ?? string.Empty,
+                ServiceStatus = a.ServiceStatus ?? "Active",
+                IsActive = a.IsActive,
+                ContactName = a.ContactName ?? string.Empty,
+                ContactEmail = a.ContactEmail ?? string.Empty,
+                ContactPhone = a.ContactPhone ?? string.Empty,
+                BillingAddress = a.BillingAddress ?? string.Empty,
+                CreatedAt = a.CreatedAt
+            })
+            .ToListAsync();
+        System.Diagnostics.Debug.WriteLine($"GetAccountsAsync: fetched {rows.Count} account(s) from DB '{_db.Database.GetDbConnection().Database}'.");
+        return rows;
+    }
+    catch (Exception ex) { LastError = ex.Message; System.Diagnostics.Debug.WriteLine($"AdminService.GetAccountsAsync error: {ex}"); return new List<Account>(); }
+}
+public async Task<Account?> GetAccountAsync(int id)
+{
+    try { return await _db.Accounts.AsNoTracking().FirstOrDefaultAsync(a=>a.Id==id); }
+    catch (Exception ex) { LastError = ex.Message; System.Diagnostics.Debug.WriteLine($"AdminService.GetAccountAsync error: {ex}"); return null; }
+}
+public async Task<bool> CreateAccountAsync(Account a)
+{
+    try {
+        LastError=null; if(a==null){ LastError="Account null"; return false; }
+        a.AccountNumber = a.AccountNumber ?? string.Empty;
+        a.ServicePlan = a.ServicePlan ?? string.Empty;
+        a.ContactName = a.ContactName ?? string.Empty;
+        a.ContactEmail = a.ContactEmail ?? string.Empty;
+        a.ContactPhone = a.ContactPhone ?? string.Empty;
+        a.BillingAddress = a.BillingAddress ?? string.Empty;
+        a.ServiceStatus = string.IsNullOrWhiteSpace(a.ServiceStatus) ? "Active" : a.ServiceStatus;
+        a.Name = a.Name ?? string.Empty;
+        a.Type = a.Type ?? string.Empty;
+        a.Id=0; if(a.CreatedAt==default) a.CreatedAt=DateTime.UtcNow; if(string.IsNullOrWhiteSpace(a.AccountNumber)) a.AccountNumber="";
+        _db.Accounts.Add(a); var rows=await _db.SaveChangesAsync(); if(rows<=0) LastError="Insert affected 0 rows"; await MaybeSyncOrEnqueueAsync("Create", a, a.Id.ToString()); return rows>0;
+    } catch(Exception ex){ LastError=ex.Message; System.Diagnostics.Debug.WriteLine($"AdminService.CreateAccountAsync error: {ex}"); return false; }
+}
+public async Task<bool> UpdateAccountAsync(Account a)
+{
+    try {
+        LastError=null; if(a==null||a.Id<=0){ LastError="Invalid account"; return false; }
+        var existing=await _db.Accounts.FindAsync(a.Id); if(existing==null){ LastError="Not found"; return false; }
+        existing.ServicePlan=a.ServicePlan ?? string.Empty; existing.IsActive=a.IsActive; existing.ContactName=a.ContactName ?? string.Empty; existing.ContactEmail=a.ContactEmail ?? string.Empty; existing.ContactPhone=a.ContactPhone ?? string.Empty; existing.BillingAddress=a.BillingAddress ?? string.Empty; existing.ServiceStatus= string.IsNullOrWhiteSpace(a.ServiceStatus)?"Active":a.ServiceStatus; existing.Name=a.Name ?? string.Empty; existing.Type=a.Type ?? string.Empty;
+        _db.Accounts.Update(existing); var rows=await _db.SaveChangesAsync(); if(rows<=0) LastError="Update affected 0 rows"; await MaybeSyncOrEnqueueAsync("Update", existing, existing.Id.ToString()); return rows>0;
+    } catch(Exception ex){ LastError=ex.Message; System.Diagnostics.Debug.WriteLine($"AdminService.UpdateAccountAsync error: {ex}"); return false; }
+}
+public async Task<bool> DeleteAccountAsync(int id)
+{
+    try {
+        LastError=null; var acc=await _db.Accounts.FindAsync(id); if(acc==null){ LastError="Not found"; return false; }
+        _db.Accounts.Remove(acc); var rows=await _db.SaveChangesAsync(); if(rows<=0) LastError="Delete affected 0 rows"; await MaybeSyncOrEnqueueAsync("Delete", acc, acc.Id.ToString()); return rows>0;
+    } catch(Exception ex){ LastError=ex.Message; System.Diagnostics.Debug.WriteLine($"AdminService.DeleteAccountAsync error: {ex}"); return false; }
+}
+
+public async Task<List<Invoice>> GetInvoicesAsync()
+{
+    try
+    {
+    return await _db.Invoices.OrderByDescending(i => i.IssueDate).ToListAsync();
+    }
+    catch (Exception ex)
+    {
+    LastError = ex.Message;
+    return new List<Invoice>();
+    }
+}
+
+public async Task<bool> CreateInvoiceAsync(Invoice inv)
+{
+    try
+    {
+    _db.Invoices.Add(inv);
+    var ok = await _db.SaveChangesAsync() > 0;
+    if (ok) await MaybeSyncOrEnqueueAsync("Create", inv, inv.Id.ToString());
+    return ok;
+    }
+    catch (Exception ex)
+    {
+    LastError = ex.Message;
+    return false;
+    }
+}
+
+public async Task<bool> UpdateInvoiceAsync(Invoice inv)
+{
+    try
+    {
+    _db.Invoices.Update(inv);
+    var ok = await _db.SaveChangesAsync() > 0;
+    if (ok) await MaybeSyncOrEnqueueAsync("Update", inv, inv.Id.ToString());
+    return ok;
+    }
+    catch (Exception ex)
+    {
+    LastError = ex.Message;
+    return false;
+    }
+}
+
+public async Task<bool> DeleteInvoiceAsync(int id)
+{
+    try
+    {
+    var entity = await _db.Invoices.FindAsync(id);
+    if (entity == null) return false;
+    _db.Invoices.Remove(entity);
+    var ok = await _db.SaveChangesAsync() > 0;
+    if (ok) await MaybeSyncOrEnqueueAsync("Delete", entity, entity.Id.ToString());
+    return ok;
+    }
+    catch (Exception ex)
+    {
+    LastError = ex.Message;
+    return false;
+    }
+}
+
+public async Task<bool> MarkInvoicePaidAsync(int id, string reference)
+{
+    try
+    {
+    var entity = await _db.Invoices.FindAsync(id);
+    if (entity == null) return false;
+    entity.Status = "Paid";
+    entity.PaymentRef = reference;
+    entity.PaidDate = DateTime.UtcNow;
+    var ok = await _db.SaveChangesAsync() > 0;
+    if (ok) await MaybeSyncOrEnqueueAsync("Update", entity, entity.Id.ToString());
+    return ok;
+    }
+    catch (Exception ex)
+    {
+    LastError = ex.Message;
+    return false;
+    }
+}
+}
+}

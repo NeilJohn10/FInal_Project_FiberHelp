@@ -8,8 +8,10 @@ namespace FiberHelp.Models
  public string Email { get; set; } = string.Empty;
  public string PasswordHash { get; set; } = string.Empty;
  public string FullName { get; set; } = string.Empty;
+ public string Role { get; set; } = "Support Agent"; // Support Agent, Technician, Supervisor
  public string Department { get; set; } = string.Empty;
  public string Phone { get; set; } = string.Empty;
+ public string? ServiceArea { get; set; } // For Technicians: assigned geographic area
  public bool IsActive { get; set; } = true;
  public bool IsLocked { get; set; } = false;
  public int FailedLoginCount { get; set; } =0;
@@ -17,5 +19,10 @@ namespace FiberHelp.Models
  public DateTime? UpdatedAt { get; set; }
  public DateTime? LastLoginAt { get; set; }
  public DateTime? PasswordChangedAt { get; set; }
+ 
+ // Archive fields
+ public bool IsArchived { get; set; } = false;
+ public DateTime? ArchivedAt { get; set; }
+ public string? ArchivedBy { get; set; }
  }
 }

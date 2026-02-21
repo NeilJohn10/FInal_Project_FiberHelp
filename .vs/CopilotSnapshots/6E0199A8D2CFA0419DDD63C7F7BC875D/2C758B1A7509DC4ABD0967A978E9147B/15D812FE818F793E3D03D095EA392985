@@ -1,0 +1,155 @@
+﻿using System;
+using System.Text.Json;
+using System.Threading;
+using System.Threading.Tasks;
+using FiberHelp.Data;
+using FiberHelp.Data.context;
+using FiberHelp.Models;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace FiberHelp.Services
+{
+    // Persists writes locally (current AppDbContext) and enqueues to Outbox.
+    // Background worker will push outbox items to cloud when online.
+    public class DualWriteService
+    {
+        private readonly IServiceScopeFactory _scopeFactory;
+
+        public DualWriteService(IServiceScopeFactory scopeFactory)
+        {
+            _scopeFactory = scopeFactory;
+        }
+
+        public async Task EnqueueAsync<T>(string operation, T entity, string? key = null) where T : class
+        {
+            using var scope = _scopeFactory.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var json = JsonSerializer.Serialize(entity);
+            db.Outbox.Add(new OutboxMessage
+            {
+                EntityName = typeof(T).Name,
+                Operation = operation,
+                Payload = json,
+                Key = key,
+                CreatedAt = DateTime.UtcNow
+            });
+            await db.SaveChangesAsync();
+        }
+    }
+
+    public class OutboxProcessor
+    {
+        private readonly IServiceScopeFactory _scopeFactory;
+        private static readonly TimeSpan Interval = TimeSpan.FromSeconds(10);
+        private CancellationTokenSource? _cts;
+
+        public OutboxProcessor(IServiceScopeFactory scopeFactory)
+        {
+            _scopeFactory = scopeFactory;
+        }
+
+        public void Start()
+        {
+            _cts = new CancellationTokenSource();
+            _ = Task.Run(() => RunAsync(_cts.Token));
+        }
+
+        public void Stop()
+        {
+            _cts?.Cancel();
+        }
+
+        private async Task RunAsync(CancellationToken token)
+        {
+            while (!token.IsCancellationRequested)
+            {
+                try
+                {
+                    using var scope = _scopeFactory.CreateScope();
+                    var online = scope.ServiceProvider.GetRequiredService<onlineContext>();
+                    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+                    // If cloud is unreachable, skip this cycle
+                    try { if (!online.Database.CanConnect()) goto Sleep; } catch { goto Sleep; }
+
+                    // Process up to N messages per cycle
+                    var batch = await db.Outbox
+                        .OrderBy(o => o.Id)
+                        .Where(o => o.ProcessedAt == null)
+                        .Take(50)
+                        .ToListAsync(token);
+
+                    if (batch.Count == 0) goto Sleep;
+
+                    foreach (var msg in batch)
+                    {
+                        switch (msg.EntityName)
+                        {
+                            case nameof(Ticket):
+                                await ApplyAsync<Ticket>(online, msg);
+                                break;
+                            case nameof(Client):
+                                await ApplyAsync<Client>(online, msg);
+                                break;
+                            case nameof(Account):
+                                await ApplyAsync<Account>(online, msg);
+                                break;
+                            case nameof(Invoice):
+                                await ApplyAsync<Invoice>(online, msg);
+                                break;
+                            case nameof(User):
+                                await ApplyAsync<User>(online, msg);
+                                break;
+                            case nameof(Agent):
+                                await ApplyAsync<Agent>(online, msg);
+                                break;
+                            default:
+                                msg.ProcessedAt = DateTime.UtcNow; // unknown type: mark processed to avoid blocking
+                                break;
+                        }
+                    }
+
+                    await online.SaveChangesAsync(token);
+                    foreach (var m in batch) m.ProcessedAt ??= DateTime.UtcNow;
+                    await db.SaveChangesAsync(token);
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"OutboxProcessor cycle error: {ex.Message}");
+                }
+
+            Sleep:
+                try { await Task.Delay(Interval, token); } catch { }
+            }
+        }
+
+        private static async Task ApplyAsync<T>(DbContext online, OutboxMessage msg) where T : class
+        {
+            try
+            {
+                var entity = System.Text.Json.JsonSerializer.Deserialize<T>(msg.Payload);
+                if (entity == null) { msg.ProcessedAt = DateTime.UtcNow; return; }
+                switch (msg.Operation)
+                {
+                    case "Create":
+                        online.Set<T>().Add(entity);
+                        break;
+                    case "Update":
+                        online.Set<T>().Update(entity);
+                        break;
+                    case "Delete":
+                        online.Set<T>().Remove(entity);
+                        break;
+                    default:
+                        msg.ProcessedAt = DateTime.UtcNow;
+                        break;
+                }
+            }
+            catch
+            {
+                // keep unprocessed; will retry later
+            }
+        }
+    }
+}

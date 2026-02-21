@@ -1,0 +1,199 @@
+﻿@page "/admin/accounts"
+@using FiberHelp.Models
+@inject FiberHelp.Services.AdminService AdminService
+@inject FiberHelp.Services.AuthService AuthService
+
+<link href="css/dashboard.css" rel="stylesheet" />
+
+@if(!AuthService.IsAuthenticated || !string.Equals(AuthService.Role,"Administrator",StringComparison.OrdinalIgnoreCase))
+{
+    <div class="panel">Access denied.</div>
+}
+else
+{
+    <header class="topbar">
+        <div>
+            <p class="eyebrow">FIBERHELP - ADMINISTRATOR</p>
+            <h1 class="page-title">Accounts</h1>
+        </div>
+        <div class="top-actions">
+            <button class="btn primary" @onclick="OpenNewAccount">+ Add Account</button>
+        </div>
+    </header>
+
+    <section class="panel">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Account ID</th>
+                    <th>Account Number</th>
+                    <th>Customer</th>
+                    <th>Plan</th>
+                    <th>Active</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (accounts != null && accounts.Count>0)
+                {
+                    @foreach(var a in accounts)
+                    {
+                        <tr>
+                            <td>@a.Id</td>
+                            <td>@a.AccountNumber</td>
+                            <td>@GetCustomerName(a.CustomerId)</td>
+                            <td>@a.ServicePlan</td>
+                            <td>@(a.IsActive?"Yes":"No")</td>
+                            <td>
+                                <button class="btn" @onclick="() => EditAccount(a)">Edit</button>
+                                <button class="btn danger" @onclick="() => DeleteAccount(a.Id)">Delete</button>
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr><td colspan="6">No accounts found.</td></tr>
+                }
+            </tbody>
+        </table>
+    </section>
+
+    @if(showForm)
+    {
+        <div class="panel" style="margin-top:12px;">
+            <h3>@(editingAccount==null?"New Account":"Edit Account")</h3>
+            <div class="form-group">
+                <label>Account Number</label>
+                <input class="form-input" @bind="formAccountNumber" />
+            </div>
+            <div class="form-group">
+                <label>Customer</label>
+                <select class="form-input" @bind="formCustomerId">
+                    <option value="">-- select customer --</option>
+                    @if(customers!=null)
+                    {
+                        @foreach(var c in customers)
+                        {
+                            <option value="@c.Id">@c.Name</option>
+                        }
+                    }
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Service Plan</label>
+                <input class="form-input" @bind="formServicePlan" />
+            </div>
+            <div style="display:flex;gap:8px;justify-content:flex-end;">
+                <button class="btn" @onclick="CancelForm">Cancel</button>
+                <button class="btn primary" @onclick="SaveAccount">Save</button>
+            </div>
+            @if(!string.IsNullOrEmpty(formMessage)) <p>@formMessage</p>
+        </div>
+    }
+}
+
+@code{
+    private List<Models.Account>? accounts;
+    private List<Customer>? customers;
+    private bool showForm=false;
+    private Models.Account? editingAccount=null;
+    private string formAccountNumber="";
+    private string formCustomerId="";
+    private string formServicePlan="";
+    private string formMessage="";
+
+    protected override async Task OnInitializedAsync()
+    {
+        customers = await AdminService.GetCustomersAsync();
+        // AdminService doesn't yet have Accounts CRUD; we'll use simple in-memory until service updated.
+        await LoadAccounts();
+    }
+
+    private async Task LoadAccounts()
+    {
+        // Try AdminService.GetAccountsAsync if implemented; fallback to build from invoices or customers
+        try
+        {
+            // If service not implemented, we'll synthesise accounts from customers for now
+            accounts = new List<Models.Account>();
+            if(customers!=null)
+            {
+                int i=1;
+                foreach(var c in customers)
+                {
+                    accounts.Add(new Models.Account { Id = i++, AccountNumber = "ACCT-"+i.ToString("000000"), CustomerId = c.Id, ServicePlan = c.Plan, IsActive = true });
+                }
+            }
+        }
+        catch(Exception ex)
+        {
+            accounts = new List<Models.Account>();
+        }
+    }
+
+    private string GetCustomerName(string id)
+    {
+        if(customers==null) return id;
+        var c = customers.FirstOrDefault(x=>x.Id==id);
+        return c?.Name ?? id;
+    }
+
+    private void OpenNewAccount()
+    {
+        editingAccount=null;
+        formAccountNumber="";
+        formCustomerId="";
+        formServicePlan="";
+        formMessage="";
+        showForm=true;
+    }
+
+    private void EditAccount(Models.Account a)
+    {
+        if(a==null) return;
+        editingAccount=a;
+        formAccountNumber=a.AccountNumber;
+        formCustomerId=a.CustomerId;
+        formServicePlan=a.ServicePlan;
+        showForm=true;
+    }
+
+    private void CancelForm()
+    {
+        showForm=false;
+        editingAccount=null;
+    }
+
+    private async Task SaveAccount()
+    {
+        // Very small validation
+        if(string.IsNullOrWhiteSpace(formAccountNumber) || string.IsNullOrWhiteSpace(formCustomerId))
+        {
+            formMessage="Account Number and Customer are required.";
+            return;
+        }
+
+        if(editingAccount==null)
+        {
+            var newId = (accounts?.Count ?? 0) + 1;
+            var a = new Models.Account { Id=newId, AccountNumber=formAccountNumber, CustomerId=formCustomerId, ServicePlan=formServicePlan, IsActive=true };
+            accounts.Add(a);
+        }
+        else
+        {
+            editingAccount.AccountNumber=formAccountNumber;
+            editingAccount.CustomerId=formCustomerId;
+            editingAccount.ServicePlan=formServicePlan;
+        }
+
+        showForm=false;
+        formMessage="";
+    }
+
+    private async Task DeleteAccount(int id)
+    {
+        var idx = accounts?.FindIndex(x=>x.Id==id) ?? -1;
+        if(idx>=0) accounts.RemoveAt(idx);
+    }
+}

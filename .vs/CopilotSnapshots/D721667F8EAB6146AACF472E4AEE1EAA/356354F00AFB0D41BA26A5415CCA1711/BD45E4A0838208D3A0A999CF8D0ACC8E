@@ -1,0 +1,559 @@
+﻿@page "/reports"
+@inject FiberHelp.Services.AuthService AuthService
+@inject NavigationManager Navigation
+@inject FiberHelp.Services.AdminService AdminService
+@inject FiberHelp.Services.TransactionService TransactionService
+@inject Microsoft.JSInterop.IJSRuntime JS
+
+@* Using global admin-theme.css; removed page-specific CSS *@
+
+<div>
+ <header class="topbar agents-header">
+   <div>
+     <p class="eyebrow">FIBERHELP • @GetRoleLabel()</p>
+     <h1 class="page-title">Reports</h1>
+   </div>
+   <div class="agents-controls top-actions">
+     <input class="agents-search" placeholder="Search by title or client" @bind="searchTerm" @oninput="async _ => await OnReportsSearchChanged(searchTerm)" />
+     <button class="btn subtle" @onclick="ExportReports">Export Tickets</button>
+     <button class="btn subtle" @onclick="ExportFeedbackReport">Export Feedback</button>
+   </div>
+ </header>
+ <style>
+ .report-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:18px; margin-bottom:28px }
+ .kpi-card { background:#fff; padding:18px 20px; border-radius:16px; box-shadow:0 12px 28px rgba(2,6,23,0.08); position:relative; overflow:hidden; }
+ .kpi-card:before { content:""; position:absolute; inset:0; background:linear-gradient(135deg,rgba(37,99,235,0.08),rgba(99,102,241,0.08)); opacity:0.6; pointer-events:none }
+ .kpi-value { font-size:34px; font-weight:700; line-height:1; margin-bottom:6px; }
+ .kpi-label { font-size:13px; text-transform:uppercase; letter-spacing:.08em; font-weight:600; color:#64748b }
+ .status-dist { display:flex; gap:6px; margin-top:10px }
+ .status-chip { flex:1; height:10px; border-radius:6px; position:relative }
+ .status-chip span { position:absolute; top:12px; left:0; font-size:11px; font-weight:600; color:#475569 }
+ .status-open { background:linear-gradient(90deg,#fcd34d,#fbbf24) }
+ .status-progress { background:linear-gradient(90deg,#93c5fd,#3b82f6) }
+ .status-resolved { background:linear-gradient(90deg,#4ade80,#16a34a) }
+ .status-closed { background:linear-gradient(90deg,#cbd5e1,#94a3b8) }
+
+ .section-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px }
+ .filter-select { padding:8px 12px; border-radius:10px; border:1px solid #e2e8f0; background:#fff }
+ .tickets-table { width:100%; border-collapse:separate; border-spacing:0 10px }
+ .tickets-table thead th { text-align:left; font-size:13px; font-weight:700; padding:10px 12px; color:#475569; border-bottom:1px solid #e5e7eb }
+ .tickets-table tbody td { background:#f9fafb; padding:14px 12px; font-size:14px; border-top:1px solid #edf2f7; border-bottom:1px solid #edf2f7 }
+ .tickets-table tbody tr td:first-child { border-left:1px solid #edf2f7; border-top-left-radius:12px; border-bottom-left-radius:12px }
+ .tickets-table tbody tr td:last-child { border-right:1px solid #edf2f7; border-top-right-radius:12px; border-bottom-right-radius:12px }
+
+ .cust-cell { display:flex; align-items:center; gap:10px }
+ .cust-avatar { width:36px; height:36px; border-radius:50%; background:linear-gradient(135deg,#6366f1,#0ea5e9); display:grid; place-items:center; font-size:12px; font-weight:700; color:#fff; box-shadow:0 6px 18px rgba(99,102,241,0.25) }
+ .status-badge { padding:6px 10px; border-radius:999px; font-size:12px; font-weight:700; }
+ .status-open-badge { background:#fef9c3; color:#92400e; border:1px solid #fde68a }
+ .status-inprogress-badge { background:#dbeafe; color:#1e3a8a; border:1px solid #bfdbfe }
+ .status-resolved-badge { background:#dcfce7; color:#065f46; border:1px solid #bbf7d0 }
+ .status-closed-badge { background:#e2e8f0; color:#475569; border:1px solid #cbd5e1 }
+ .shimmer-row { animation: shimmer 1.2s linear infinite; background:linear-gradient(90deg,#f1f5f9 0%,#e2e8f0 50%,#f1f5f9 100%); background-size:400% 100%; height:54px; border-radius:12px }
+ @@keyframes shimmer { 0%{background-position:0% 0}100%{background-position:100% 0} }
+ 
+ /* Pagination Styles */
+ .pagination-container{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:20px;padding:16px 0}
+ .pagination-btn{border:1px solid #e5e7eb;background:#fff;color:#475569;padding:8px 12px;border-radius:8px;cursor:pointer;font-size:14px;font-weight:600;transition:all 0.2s}
+ .pagination-btn:hover:not(:disabled){background:#f8fafc;border-color:#cbd5e1}
+ .pagination-btn:disabled{opacity:0.4;cursor:not-allowed}
+ .pagination-btn.active{background:#2563eb;color:#fff;border-color:#2563eb}
+ .pagination-arrow{display:flex;align-items:center;justify-content:center;width:36px;height:36px}
+ .pagination-info{color:#64748b;font-size:14px;padding:0 12px}
+ 
+ /* Feedback Report Styles */
+ .feedback-section { margin-top: 32px; }
+ .feedback-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 24px; }
+ .feedback-card { background: #fff; padding: 20px; border-radius: 14px; box-shadow: 0 8px 24px rgba(2,6,23,0.06); text-align: center; }
+ .feedback-card.highlight { background: linear-gradient(135deg, #10b981, #059669); color: #fff; }
+ .feedback-card.highlight .feedback-value { color: #fff; }
+ .feedback-card.highlight .feedback-label { color: rgba(255,255,255,0.85); }
+ .feedback-value { font-size: 32px; font-weight: 800; color: #0f172a; margin-bottom: 4px; }
+ .feedback-label { font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; color: #64748b; }
+ 
+ .rating-distribution { background: #fff; border-radius: 14px; padding: 20px; box-shadow: 0 8px 24px rgba(2,6,23,0.06); margin-bottom: 24px; }
+ .rating-row { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+ .rating-row:last-child { margin-bottom: 0; }
+ .rating-stars { width: 60px; font-weight: 700; color: #f59e0b; }
+ .rating-bar-container { flex: 1; height: 12px; background: #f1f5f9; border-radius: 6px; overflow: hidden; }
+ .rating-bar { height: 100%; border-radius: 6px; transition: width 0.3s ease; }
+ .rating-bar.star-5 { background: linear-gradient(90deg, #10b981, #059669); }
+ .rating-bar.star-4 { background: linear-gradient(90deg, #22c55e, #16a34a); }
+ .rating-bar.star-3 { background: linear-gradient(90deg, #eab308, #ca8a04); }
+ .rating-bar.star-2 { background: linear-gradient(90deg, #f97316, #ea580c); }
+ .rating-bar.star-1 { background: linear-gradient(90deg, #ef4444, #dc2626); }
+ .rating-count { width: 40px; text-align: right; font-weight: 600; color: #475569; font-size: 13px; }
+ 
+ .performance-table { width: 100%; border-collapse: separate; border-spacing: 0 8px; }
+ .performance-table thead th { text-align: left; font-size: 12px; font-weight: 700; padding: 10px 12px; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; }
+ .performance-table tbody td { background: #f9fafb; padding: 14px 12px; font-size: 14px; }
+ .performance-table tbody tr td:first-child { border-top-left-radius: 10px; border-bottom-left-radius: 10px; }
+ .performance-table tbody tr td:last-child { border-top-right-radius: 10px; border-bottom-right-radius: 10px; }
+ .rating-badge { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 999px; font-weight: 700; font-size: 13px; }
+ .rating-excellent { background: #dcfce7; color: #166534; }
+ .rating-good { background: #dbeafe; color: #1e40af; }
+ .rating-average { background: #fef3c7; color: #92400e; }
+ .rating-poor { background: #fee2e2; color: #991b1b; }
+ .positive-count { color: #16a34a; font-weight: 600; }
+ .negative-count { color: #dc2626; font-weight: 600; }
+ </style>
+
+ @* ==================== TICKET REPORTS SECTION ==================== *@
+ <section class="panel">
+   <h2 style="margin-top: 0; margin-bottom: 20px; font-size: 18px; font-weight: 700; color: #0f172a;">
+     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 8px;">
+       <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+       <line x1="16" y1="2" x2="16" y2="6"/>
+       <line x1="8" y1="2" x2="8" y2="6"/>
+       <line x1="3" y1="10" x2="21" y2="10"/>
+     </svg>
+     Ticket Statistics
+   </h2>
+   
+   <div class="report-grid">
+     <div class="kpi-card">
+       <div class="kpi-value">@totalTickets</div>
+       <div class="kpi-label">Total Tickets</div>
+     </div>
+     <div class="kpi-card">
+       <div class="kpi-value">@openTickets</div>
+       <div class="kpi-label">Open</div>
+     </div>
+     <div class="kpi-card">
+       <div class="kpi-value">@resolvedTickets</div>
+       <div class="kpi-label">Resolved</div>
+     </div>
+     <div class="kpi-card" style="display:flex;flex-direction:column;justify-content:center">
+       <div style="font-size:14px;font-weight:600;color:#475569;margin-bottom:6px">Status Distribution</div>
+       <div class="status-dist">
+         <div class="status-chip status-open" style="flex:@(openTickets > 0 ? openTickets : 1)"><span>Open</span></div>
+         <div class="status-chip status-resolved" style="flex:@(resolvedTickets > 0 ? resolvedTickets : 1)"><span>Resolved</span></div>
+       </div>
+     </div>
+   </div>
+
+   <div class="section-head" style="margin-top:4px">
+     <h3 style="margin:0">Recent Tickets</h3>
+     <select class="filter-select" value="@periodFilter" @onchange="OnPeriodChanged">
+       <option value="7">Last 7 days</option>
+       <option value="30">Last 30 days</option>
+       <option value="90">Last 90 days</option>
+     </select>
+   </div>
+   <table class="tickets-table">
+     <thead><tr><th style="width:70px">#</th><th style="width:340px">Subject</th><th style="width:240px">Client</th><th style="width:140px">Status</th><th style="width:180px">Created (Local)</th></tr></thead>
+     <tbody>
+       @if(loadingRecent)
+       {
+         <tr><td colspan="5"><div class="shimmer-row"></div></td></tr>
+       }
+       else if(PaginatedTickets!=null && PaginatedTickets.Any())
+       {
+         @foreach(var t in PaginatedTickets)
+         {
+           var custName = string.IsNullOrWhiteSpace(t.ClientName)? t.ClientId : t.ClientName;
+           <tr>
+             <td>@t.Id</td>
+             <td style="font-weight:600">@t.Title</td>
+             <td>
+               <div class="cust-cell">
+                 <div class="cust-avatar">@GetInitial(custName)</div>
+                 <div>
+                   <div style="font-weight:600">@custName</div>
+                   <div style="font-size:11px;color:#64748b">@t.ClientId</div>
+                 </div>
+               </div>
+             </td>
+             <td>
+               <span class="status-badge @(GetStatusBadgeClass(t.Status))">@t.Status</span>
+             </td>
+             <td>@t.Created.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</td>
+           </tr>
+         }
+       }
+       else
+       {
+         <tr><td colspan="5" style="text-align:center;padding:20px;color:#64748b">No tickets in selected period.</td></tr>
+       }
+     </tbody>
+   </table>
+   
+   @* Pagination Controls *@
+   @if (TotalPages > 1)
+   {
+    <div class="pagination-container">
+      <button class="pagination-btn pagination-arrow" @onclick="PreviousPage" disabled="@(CurrentPage == 1)">
+        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+        </svg>
+      </button>
+      
+      @for (int i = 1; i <= TotalPages; i++)
+      {
+        int pageNum = i;
+        <button class="pagination-btn @(CurrentPage == pageNum ? "active" : "")" @onclick="() => GoToPage(pageNum)">
+          @pageNum
+        </button>
+      }
+      
+      <button class="pagination-btn pagination-arrow" @onclick="NextPage" disabled="@(CurrentPage == TotalPages)">
+        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+        </svg>
+      </button>
+      
+      <span class="pagination-info">Page @CurrentPage of @TotalPages</span>
+    </div>
+   }
+ </section>
+
+ @* ==================== CLIENT FEEDBACK REPORTS SECTION ==================== *@
+ <section class="panel feedback-section">
+   <h2 style="margin-top: 0; margin-bottom: 20px; font-size: 18px; font-weight: 700; color: #0f172a;">
+     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 8px;">
+       <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+     </svg>
+     Client Feedback Report
+   </h2>
+   
+   @if (loadingFeedback)
+   {
+     <div class="shimmer-row" style="height: 120px; margin-bottom: 16px;"></div>
+   }
+   else if (feedbackStats != null)
+   {
+     <div class="feedback-grid">
+       <div class="feedback-card highlight">
+         <div class="feedback-value">@feedbackStats.AverageRating.ToString("F1") ★</div>
+         <div class="feedback-label">Average Rating</div>
+       </div>
+       <div class="feedback-card">
+         <div class="feedback-value">@feedbackStats.TotalCount</div>
+         <div class="feedback-label">Total Feedback</div>
+       </div>
+       <div class="feedback-card">
+         <div class="feedback-value">@feedbackStats.PendingCount</div>
+         <div class="feedback-label">Pending Review</div>
+       </div>
+       <div class="feedback-card">
+         <div class="feedback-value">@feedbackStats.RequiresFollowUpCount</div>
+         <div class="feedback-label">Needs Follow-up</div>
+       </div>
+       <div class="feedback-card">
+         <div class="feedback-value">@feedbackStats.WouldRecommendPercentage%</div>
+         <div class="feedback-label">Would Recommend</div>
+       </div>
+     </div>
+     
+     @* Rating Distribution Chart *@
+     <div class="rating-distribution">
+       <h3 style="margin: 0 0 16px 0; font-size: 15px; font-weight: 700; color: #374151;">Rating Distribution</h3>
+       @for (int star = 5; star >= 1; star--)
+       {
+         var count = feedbackStats.RatingDistribution.GetValueOrDefault(star, 0);
+         var percentage = feedbackStats.TotalCount > 0 ? (double)count / feedbackStats.TotalCount * 100 : 0;
+         <div class="rating-row">
+           <span class="rating-stars">@star ★</span>
+           <div class="rating-bar-container">
+             <div class="rating-bar star-@star" style="width: @percentage.ToString("F1")%"></div>
+           </div>
+           <span class="rating-count">@count</span>
+         </div>
+       }
+     </div>
+   }
+   else
+   {
+     <div style="text-align: center; padding: 40px; color: #64748b;">
+       <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin-bottom: 12px; opacity: 0.5;">
+         <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+       </svg>
+       <p style="margin: 0;">No feedback data available yet.</p>
+       <p style="margin: 8px 0 0 0; font-size: 13px;">Feedback will appear here after clients submit reviews.</p>
+     </div>
+   }
+ </section>
+
+ @* ==================== TECHNICIAN PERFORMANCE SECTION ==================== *@
+ <section class="panel">
+   <h2 style="margin-top: 0; margin-bottom: 20px; font-size: 18px; font-weight: 700; color: #0f172a;">
+     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 8px;">
+       <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+       <circle cx="9" cy="7" r="4"/>
+       <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+       <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+     </svg>
+     Technician Performance (Based on Feedback)
+   </h2>
+   
+   @if (loadingFeedback)
+   {
+     <div class="shimmer-row"></div>
+   }
+   else if (staffPerformance != null && staffPerformance.Any())
+   {
+     <table class="performance-table">
+       <thead>
+         <tr>
+           <th>Technician</th>
+           <th>Feedback Count</th>
+           <th>Avg Rating</th>
+           <th>Positive (4-5★)</th>
+           <th>Negative (1-2★)</th>
+         </tr>
+       </thead>
+       <tbody>
+         @foreach (var staff in staffPerformance)
+         {
+           <tr>
+             <td>
+               <div style="display: flex; align-items: center; gap: 10px;">
+                 <div class="cust-avatar" style="width: 32px; height: 32px; font-size: 11px;">@GetInitial(staff.StaffName)</div>
+                 <span style="font-weight: 600;">@staff.StaffName</span>
+               </div>
+             </td>
+             <td>@staff.FeedbackCount</td>
+             <td>
+               <span class="rating-badge @GetRatingBadgeClass(staff.AverageRating)">
+                 @staff.AverageRating.ToString("F1") ★
+               </span>
+             </td>
+             <td class="positive-count">@staff.PositiveFeedbackCount</td>
+             <td class="negative-count">@staff.NegativeFeedbackCount</td>
+           </tr>
+         }
+       </tbody>
+     </table>
+   }
+   else
+   {
+     <div style="text-align: center; padding: 40px; color: #64748b;">
+       <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin-bottom: 12px; opacity: 0.5;">
+         <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+         <circle cx="9" cy="7" r="4"/>
+       </svg>
+       <p style="margin: 0;">No technician performance data yet.</p>
+       <p style="margin: 8px 0 0 0; font-size: 13px;">Performance metrics will appear after technicians receive feedback.</p>
+     </div>
+   }
+ </section>
+
+ <Toast Message="@toast" />
+</div>
+
+@code {
+ private int totalTickets = 0;
+ private int openTickets = 0;
+ private int resolvedTickets = 0;
+ private List<FiberHelp.Models.Ticket>? recentTickets;
+ private string searchTerm = string.Empty;
+ private string toast = string.Empty;
+ private bool loadingRecent = false;
+ private bool loadingFeedback = false;
+ private int periodFilter = 7;
+
+ // Feedback data
+ private TransactionService.FeedbackStatistics? feedbackStats;
+ private List<TransactionService.StaffPerformance>? staffPerformance;
+
+ // Pagination
+ private int CurrentPage = 1;
+ private int PageSize = 10;
+ private int TotalPages => recentTickets == null || !recentTickets.Any() ? 1 : (int)Math.Ceiling(recentTickets.Count / (double)PageSize);
+ private IEnumerable<FiberHelp.Models.Ticket>? PaginatedTickets => recentTickets?.Skip((CurrentPage - 1) * PageSize).Take(PageSize);
+
+ // Pagination Methods
+ private void GoToPage(int page)
+ {
+   if (page >= 1 && page <= TotalPages)
+   {
+     CurrentPage = page;
+     StateHasChanged();
+   }
+ }
+ 
+ private void NextPage()
+ {
+   if (CurrentPage < TotalPages)
+   {
+     CurrentPage++;
+     StateHasChanged();
+   }
+ }
+ 
+ private void PreviousPage()
+ {
+   if (CurrentPage > 1)
+   {
+     CurrentPage--;
+     StateHasChanged();
+   }
+ }
+
+ protected override async Task OnInitializedAsync()
+ {
+     try
+     {
+         if (!AuthService.IsAuthenticated) { Navigation.NavigateTo("/login", true); return; }
+         if (!(AuthService.Role ?? "").Equals("Administrator", StringComparison.OrdinalIgnoreCase))
+         {
+             Navigation.NavigateTo("/tickets", true);
+             return;
+         }
+         
+         var tickets = await AdminService.GetTicketsAsync();
+         totalTickets = tickets?.Count ?? 0;
+         openTickets = tickets?.Count(t => string.Equals(t.Status, "Open", StringComparison.OrdinalIgnoreCase)) ?? 0;
+         resolvedTickets = tickets?.Count(t => string.Equals(t.Status, "Resolved", StringComparison.OrdinalIgnoreCase)) ?? 0;
+
+         await ReloadRecentAsync();
+         await LoadFeedbackDataAsync();
+     }
+     catch (Exception ex)
+     {
+         System.Diagnostics.Debug.WriteLine($"Error in OnInitializedAsync: {ex.Message}");
+     }
+ }
+
+ private async Task LoadFeedbackDataAsync()
+ {
+     try
+     {
+         loadingFeedback = true;
+         StateHasChanged();
+
+         feedbackStats = await TransactionService.GetFeedbackStatisticsAsync();
+         staffPerformance = await TransactionService.GetStaffPerformanceAsync();
+     }
+     catch (Exception ex)
+     {
+         System.Diagnostics.Debug.WriteLine($"Error loading feedback data: {ex.Message}");
+         feedbackStats = null;
+         staffPerformance = null;
+     }
+     finally
+     {
+         loadingFeedback = false;
+         StateHasChanged();
+     }
+ }
+
+ private string GetRoleLabel()
+ {
+   var role = AuthService?.Role;
+   if (string.IsNullOrWhiteSpace(role)) return "GUEST";
+   return role.ToUpperInvariant();
+ }
+
+ private string GetRatingBadgeClass(double rating)
+ {
+     return rating switch
+     {
+         >= 4.5 => "rating-excellent",
+         >= 3.5 => "rating-good",
+         >= 2.5 => "rating-average",
+         _ => "rating-poor"
+     };
+ }
+
+ private async void ExportReports()
+ {
+   var rows = recentTickets ?? new List<FiberHelp.Models.Ticket>();
+   var csv = new System.Text.StringBuilder();
+   csv.AppendLine("Id,Title,Client,Status,Created");
+   foreach(var t in rows)
+     csv.AppendLine($"{t.Id},{Escape(t.Title)},{Escape(t.ClientName ?? t.ClientId)},{t.Status},{t.Created:yyyy-MM-dd HH:mm}");
+   await JS.InvokeAsync<bool>("FiberExport.saveFile", "reports.csv", csv.ToString());
+   toast = "Ticket reports exported"; StateHasChanged(); await Task.Delay(2000); toast = string.Empty; StateHasChanged();
+ }
+
+ private async void ExportFeedbackReport()
+ {
+   try
+   {
+     var feedbacks = await TransactionService.GetAllFeedbackAsync();
+     var csv = new System.Text.StringBuilder();
+     csv.AppendLine("TicketId,ClientId,ClientName,Rating,ServiceQuality,ResponseTime,Professionalism,Communication,WouldRecommend,Category,Comments,HandledBy,SubmittedAt,Status");
+     
+     foreach (var f in feedbacks)
+     {
+       csv.AppendLine($"{f.TicketId},{f.ClientId},{Escape(f.ClientName)},{f.Rating},{f.ServiceQualityRating},{f.ResponseTimeRating},{f.ProfessionalismRating},{f.CommunicationRating},{f.WouldRecommend},{Escape(f.FeedbackCategory)},{Escape(f.Comments)},{Escape(f.HandledByName)},{f.SubmittedAt:yyyy-MM-dd HH:mm:ss},{f.Status}");
+     }
+     
+     await JS.InvokeAsync<bool>("FiberExport.saveFile", "feedback_report.csv", csv.ToString());
+     toast = "Feedback report exported"; StateHasChanged(); await Task.Delay(2000); toast = string.Empty; StateHasChanged();
+   }
+   catch (Exception ex)
+   {
+     toast = $"Export failed: {ex.Message}"; StateHasChanged(); await Task.Delay(3000); toast = string.Empty; StateHasChanged();
+   }
+ }
+
+ private string Escape(string? s)
+ {
+     if (string.IsNullOrEmpty(s)) return string.Empty;
+     return "\"" + s.Replace("\"", "\"\"") + "\"";
+ }
+
+ private Task OnReportsSearchChanged(string val)
+ {
+   searchTerm = val;
+   CurrentPage = 1; // Reset to first page on search
+   StateHasChanged();
+   _ = ReloadRecentAsync();
+   return Task.CompletedTask;
+ }
+
+ private string GetStatusBadgeClass(string status)
+ {
+   if(string.IsNullOrWhiteSpace(status)) return "status-open-badge";
+   var s = status.ToLowerInvariant();
+   return s switch {
+     "open" => "status-open-badge",
+     "in progress" => "status-inprogress-badge",
+     "resolved" => "status-resolved-badge",
+     "closed" => "status-closed-badge",
+     _ => "status-open-badge"
+   };
+ }
+
+ private async Task OnPeriodChanged(ChangeEventArgs e)
+ {
+   if(int.TryParse(e.Value?.ToString(), out var days)) periodFilter = days; else periodFilter = 7;
+   CurrentPage = 1; // Reset to first page on filter change
+   await ReloadRecentAsync();
+ }
+
+ private async Task ReloadRecentAsync()
+ {
+   try
+   {
+       loadingRecent = true; 
+       StateHasChanged();
+       
+       var tickets = await AdminService.GetTicketsAsync();
+       var since = DateTime.UtcNow.AddDays(-periodFilter);
+       var filtered = tickets.Where(t => t.Created >= since).OrderByDescending(t => t.Created).ToList();
+       recentTickets = string.IsNullOrWhiteSpace(searchTerm) ? filtered : filtered.Where(t => (t.Title ?? string.Empty).Contains(searchTerm, StringComparison.OrdinalIgnoreCase) || ((t.ClientName ?? t.ClientId) ?? string.Empty).Contains(searchTerm, StringComparison.OrdinalIgnoreCase)).ToList();
+       
+       // Reset to page 1 if current page exceeds total
+       if (CurrentPage > TotalPages) CurrentPage = 1;
+   }
+   catch (Exception ex)
+   {
+       System.Diagnostics.Debug.WriteLine($"Error loading tickets: {ex.Message}");
+       recentTickets = new List<FiberHelp.Models.Ticket>();
+   }
+   finally
+   {
+       loadingRecent = false; 
+       StateHasChanged();
+   }
+ }
+
+ private string GetInitial(string? s)
+ {
+   if (string.IsNullOrWhiteSpace(s)) return "?";
+   var ch = s.Trim()[0];
+   return char.ToUpperInvariant(ch).ToString();
+ }
+}

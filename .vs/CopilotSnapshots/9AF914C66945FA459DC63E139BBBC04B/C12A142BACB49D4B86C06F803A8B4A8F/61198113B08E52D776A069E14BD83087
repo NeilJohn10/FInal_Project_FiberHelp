@@ -1,0 +1,134 @@
+﻿using System;
+using System.Threading.Tasks;
+using FiberHelp.Data;
+using Microsoft.EntityFrameworkCore;
+using System.Security.Cryptography;
+using System.Text;
+using Microsoft.Extensions.DependencyInjection;
+using FiberHelp.Data.context;
+using System.Linq;
+
+namespace FiberHelp.Services
+{
+    public class AuthService
+    {
+        private readonly IServiceProvider _serviceProvider;
+     
+        public AuthService(IServiceProvider serviceProvider) 
+    { 
+         _serviceProvider = serviceProvider; 
+        }
+
+        public bool IsAuthenticated { get; private set; }
+        public string? Email { get; private set; }
+        public string? Role { get; private set; }
+        public string? FullName { get; private set; }
+
+        public event Action? AuthenticationStateChanged;
+
+        private static string HashPassword(string password)
+        {
+            using var sha = SHA256.Create();
+            var bytes = Encoding.UTF8.GetBytes(password ?? string.Empty);
+            var hash = sha.ComputeHash(bytes);
+            return Convert.ToHexString(hash);
+        }
+
+        public async Task<bool> SignInAsync(string email, string password)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
+                {
+                    return false;
+                }
+
+                using var scope = _serviceProvider.CreateScope();
+                var _db = scope.ServiceProvider.GetRequiredService<localContext>();
+
+                // Ensure local database exists and seeded before querying
+                try
+                {
+                    await _db.Database.EnsureCreatedAsync();
+                    DbInitializer.Initialize(_db);
+                }
+                catch { }
+
+                var lowered = email.Trim().ToLowerInvariant();
+                var hashed = HashPassword(password);
+
+                // Fetch all small user/agent sets once to avoid provider translation quirks
+                var users = await _db.Users.AsNoTracking().ToListAsync();
+                var agents = await _db.Agents.AsNoTracking().ToListAsync();
+
+                var user = users.FirstOrDefault(u => string.Equals(u.Email?.Trim(), lowered, StringComparison.OrdinalIgnoreCase));
+                if (user != null)
+                {
+                    if (!string.Equals(user.PasswordHash, hashed, StringComparison.Ordinal))
+                    {
+                        return false;
+                    }
+
+                    IsAuthenticated = true;
+                    Email = user.Email;
+                    Role = user.Role;
+                    FullName = user.FullName;
+                    AuthenticationStateChanged?.Invoke();
+                    return true;
+                }
+
+                var agent = agents.FirstOrDefault(a => string.Equals(a.Email?.Trim(), lowered, StringComparison.OrdinalIgnoreCase));
+                if (agent != null)
+                {
+                    if (!agent.IsActive || agent.IsLocked)
+                    {
+                        return false;
+                    }
+
+                    if (!string.Equals(agent.PasswordHash, hashed, StringComparison.Ordinal))
+                    {
+                        // track failed attempts on a tracked entity
+                        var tracked = await _db.Agents.FirstOrDefaultAsync(a => a.Id == agent.Id);
+                        if (tracked != null)
+                        {
+                            tracked.FailedLoginCount++;
+                            if (tracked.FailedLoginCount >= 5) tracked.IsLocked = true;
+                            await _db.SaveChangesAsync();
+                        }
+                        return false;
+                    }
+
+                    var trackedSuccess = await _db.Agents.FirstOrDefaultAsync(a => a.Id == agent.Id);
+                    if (trackedSuccess != null)
+                    {
+                        trackedSuccess.FailedLoginCount = 0;
+                        trackedSuccess.LastLoginAt = DateTime.UtcNow;
+                        await _db.SaveChangesAsync();
+                    }
+
+                    IsAuthenticated = true;
+                    Email = agent.Email;
+                    Role = "Agent";
+                    FullName = agent.FullName;
+                    AuthenticationStateChanged?.Invoke();
+                    return true;
+                }
+
+                return false;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        public void SignOut()
+        {
+            IsAuthenticated = false;
+            Email = null;
+            Role = null;
+            FullName = null;
+            AuthenticationStateChanged?.Invoke();
+        }
+    }
+}

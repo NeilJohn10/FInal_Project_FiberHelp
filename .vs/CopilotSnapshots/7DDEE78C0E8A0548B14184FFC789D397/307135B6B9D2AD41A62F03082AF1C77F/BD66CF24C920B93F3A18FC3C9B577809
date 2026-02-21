@@ -1,0 +1,602 @@
+﻿@page "/clients"
+@using FiberHelp.Models
+@inject FiberHelp.Services.AuthService AuthService
+@inject FiberHelp.Services.AdminService AdminService
+@inject NavigationManager Navigation
+@inject Microsoft.JSInterop.IJSRuntime JS
+
+<style>
+  .customers-header{display:flex;align-items:center;justify-content:space-between;padding-bottom:20px;margin-bottom:22px;border-bottom:1px solid #e5e7eb}
+  .customers-header .page-title{font-size:42px;line-height:1.1;margin:0 0 4px}
+  .customers-controls{display:flex;gap:14px;align-items:center}
+  .customers-search{width:360px;padding:12px 18px;border-radius:14px;border:1px solid #e5e7eb;background:#fff;box-shadow:0 8px 22px rgba(2,6,23,0.08);font-size:15px}
+  .customers-controls .btn.subtle{background:#fff;color:#0f172a;border:1px solid #e5e7eb;border-radius:14px;padding:10px 22px;box-shadow:0 4px 10px rgba(2,6,23,0.04)}
+  .customers-controls .btn.primary{background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;border:none;border-radius:14px;padding:10px 26px;box-shadow:0 14px 32px rgba(29,78,216,0.30);font-weight:600}
+  .customers-table{width:100%;border-collapse:separate;border-spacing:0 10px}
+  .customers-table thead th{font-size:13px;font-weight:700;padding:10px 12px;color:#475569;text-align:left;border-bottom:1px solid #e5e7eb;position:sticky;top:0;background:#fff;z-index:1}
+  .customers-table tbody td{background:#f9fafb;padding:14px 12px;font-size:14px;border-top:1px solid #edf2f7;border-bottom:1px solid #edf2f7}
+  .customers-table tbody tr td:first-child{border-left:1px solid #edf2f7;border-top-left-radius:12px;border-bottom-left-radius:12px}
+  .customers-table tbody tr td:last-child{border-right:1px solid #edf2f7;border-top-right-radius:12px;border-bottom-right-radius:12px}
+  .cust-cell{display:flex;align-items:center;gap:12px}
+  .cust-avatar{width:40px;height:40px;border-radius:999px;background:linear-gradient(135deg,#6366f1,#0ea5e9);display:grid;place-items:center;font-weight:800;color:#fff;font-size:14px;box-shadow:0 8px 18px rgba(99,102,241,0.25)}
+  .cust-name{font-weight:600}
+  .cust-email{font-size:11px;color:#64748b}
+  .badge{display:inline-block;padding:6px 10px;border-radius:999px;font-size:12px;font-weight:700}
+  .badge-active{background:#dcfce7;color:#065f46;border:1px solid #bbf7d0}
+  .badge-inactive{background:#fee2e2;color:#7f1d1d;border:1px solid #fecaca}
+  .plan-chip{display:inline-block;padding:6px 10px;border-radius:999px;font-size:12px;font-weight:600;background:#eef2ff;color:#1e40af;border:1px solid #c7d2fe}
+  .action-btn{border:none;background:transparent;padding:6px 8px;border-radius:10px;cursor:pointer}
+  .action-btn:hover{background:#eef2ff}
+  .modal-bg { position:fixed; inset:0; background:rgba(2,6,23,0.45); display:grid; place-items:center; z-index:20000 }
+  .modal-card { width:520px; max-width:94vw; background:#fff; border-radius:14px; padding:20px; box-shadow:0 24px 56px rgba(2,6,23,0.18); position:relative }
+  .modal-header { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:8px }
+  .modal-header h3 { margin:0; font-size:22px }
+  .modal-desc { margin:6px 0 0; color:#64748b; font-size:0.9rem }
+  .modal-close { position:absolute; right:14px; top:12px; border:none; background:transparent; cursor:pointer; font-size:18px; color:#64748b; padding:6px; border-radius:8px }
+  .modal-close:hover { background:rgba(2,6,23,0.06) }
+  .form-group { display:flex; flex-direction:column; gap:6px; margin-top:8px }
+  .form-input { padding:10px 12px; border:1px solid #e6edf3; border-radius:8px; font-size:14px; background:#fff }
+  .modal-actions { display:flex; justify-content:flex-end; gap:10px; margin-top:16px }
+  .btn.primary { padding:8px 18px; border-radius:10px }
+  .account-preview{margin-top:6px;font-size:12px;color:#64748b}
+  .disabled{opacity:0.6;pointer-events:none}
+  @@media (max-width:600px){ .modal-card{width:94vw;padding:14px} .modal-header h3{font-size:18px} }
+</style>
+
+<div>
+ <header class="customers-header">
+   <div>
+     <p class="eyebrow">FIBERHELP · @GetRoleLabel()</p>
+     <h1 class="page-title">Clients</h1>
+   </div>
+   <div class="customers-controls">
+     <input class="customers-search" placeholder="Search by name or email" @bind="searchTerm" @oninput="async _ => await OnCustomersSearchChanged(searchTerm)" />
+     <button class="btn subtle" @onclick="ExportCustomers">Export</button>
+     <button class="btn primary" @onclick="(()=> ShowNewCustomer(true))">+ Add Client</button>
+   </div>
+ </header>
+
+ <section class="panel">
+ <table class="customers-table">
+ <thead>
+ <tr>
+ <th>Client ID</th>
+ <th>Name</th>
+ <th>Email</th>
+ <th>Plan</th>
+ <th>Status</th>
+ <th>Join Date</th>
+ <th></th>
+ </tr>
+ </thead>
+ <tbody>
+ @if (customers != null)
+ {
+ @foreach (var customer in customers)
+ {
+ <tr>
+ <td>@customer.Id</td>
+ <td>
+   <div class="cust-cell">
+     <div class="cust-avatar">@((customer.Name ?? "?").Substring(0,1).ToUpper())</div>
+     <div>
+       <div class="cust-name">@customer.Name</div>
+       <div class="cust-email">@customer.Email</div>
+     </div>
+   </div>
+ </td>
+ <td>@customer.Email</td>
+ <td><span class="plan-chip">@customer.Plan</span></td>
+ <td><span class="badge @(string.Equals(customer.Status,"Active",StringComparison.OrdinalIgnoreCase)?"badge-active":"badge-inactive")">@customer.Status</span></td>
+ <td>@customer.JoinDate.ToString("MMM dd, yyyy")</td>
+ <td style="text-align:right">
+   <button class="action-btn edit" title="Edit" @onclick="() => EditCustomer(customer.Id)">
+     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+       <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25z" fill="#2563eb" />
+       <path d="M20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" fill="#2563eb" />
+     </svg>
+   </button>
+   @if (!(AuthService.Role ?? "").Equals("Agent", StringComparison.OrdinalIgnoreCase))
+   {
+     <button class="action-btn delete" title="Delete" @onclick="() => DeleteCustomer(customer.Id)">
+       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+         <path d="M3 6h18" stroke="#ef4444" stroke-width="1.5" stroke-linecap="round" />
+         <path d="M8 6v12a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2V6" stroke="#ef4444" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+         <path d="M10 11v6" stroke="#ef4444" stroke-width="1.5" stroke-linecap="round" />
+         <path d="M14 11v6" stroke="#ef4444" stroke-width="1.5" stroke-linecap="round" />
+         <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" stroke="#ef4444" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+       </svg>
+     </button>
+   }
+ </td>
+ </tr>
+ }
+ }
+ </tbody>
+ </table>
+ </section>
+
+ @* Centered modal with dim backdrop *@
+ @if (showNewCustomerModal)
+ {
+ <div class="modal-bg" @onclick="() => ShowNewCustomer(false)">
+ <div @onclick:stopPropagation class="modal-card">
+   <button class="modal-close" @onclick="() => ShowNewCustomer(false)" aria-label="Close">
+     <svg width="18" height="18" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M18.3 5.7a1 1 0 0 0-1.4 0L12 10.6 7.1 5.7a1 1 0 1 0-1.4 1.4L10.6 12l-4.9 4.9a1 1 0 1 0 1.4 1.4L12 13.4l4.9 4.9a1 1 0 0 0 1.4-1.4L13.4 12l4.9-4.9a1 1 0 0 0 0-1.4z" fill="#64748b"/></svg>
+   </button>
+   <div class="modal-header">
+     <div>
+       <h3>@(isEditing ? "Edit Client" : "New Client")</h3>
+       <div class="modal-desc">@(isEditing ? "Modify the client details and save changes." : "Create a new client record. Select an account first.")</div>
+     </div>
+   </div>
+   <div class="form-group">
+   <label>Account</label>
+   <input class="form-input" placeholder="Type to search account (id, name, or email)" list="accountList" @bind="accountText" @bind:event="onchange" @bind:after="OnAccountTextChanged" />
+   <datalist id="accountList">
+     @if(accounts != null)
+     {
+       foreach(var a in accounts)
+       {
+         <option value="@a.Id">@a.Id - @(string.IsNullOrWhiteSpace(a.Name)?"(no name)":a.Name) (@(a.ContactEmail ?? "no email"))</option>
+       }
+     }
+   </datalist>
+   @if(selectedAccount != null)
+   {
+     <div class="account-preview">Plan: @selectedAccount.ServicePlan · Status: @(selectedAccount.ServiceStatus ?? "Active")</div>
+   }
+   </div>
+   <div class="form-group">
+   <label>Name</label>
+   <input class="form-input" @bind="newCustomerName" placeholder="Client name" />
+   </div>
+   <div class="form-group">
+   <label>Email</label>
+   <input class="form-input" @bind="newCustomerEmail" placeholder="Email address" />
+   </div>
+   <div class="form-group">
+   <label>Plan</label>
+   <input class="form-input" @bind="newCustomerPlan" placeholder="Plan name (prefilled from account)" />
+   </div>
+   <div class="modal-actions">
+   <button class="btn" @onclick="() => ShowNewCustomer(false)">Cancel</button>
+   <button class="btn primary @(CanSubmit?"":"disabled")" @onclick="OnCreateCustomerClicked" disabled="@(!CanSubmit)">@(isEditing ? "Save" : "Add")</button>
+   </div>
+ </div>
+ </div>
+ }
+
+ @if (!string.IsNullOrEmpty(toastMessage))
+ {
+ <Toast Message="@toastMessage" />
+ }
+
+ 
+</div>
+
+@code {
+ private List<Client>? customers;
+ private bool showNewCustomerModal = false;
+ private bool isEditing = false;
+ private string editingCustomerId = string.Empty;
+ private string newCustomerName = "";
+ private string newCustomerEmail = "";
+ private string newCustomerPlan = "";
+ private string newCustomerAccountId = "";
+ private Account? selectedAccount = null;
+ private string toastMessage = string.Empty;
+ private string searchTerm = string.Empty;
+ private List<Account>? accounts;
+ private string accountSearch = string.Empty;
+ private List<Account>? filteredAccounts;
+ private string accountText = string.Empty;
+
+ protected override async Task OnInitializedAsync()
+ {
+ try
+ {
+   // Check if user is authenticated
+   if (!AuthService.IsAuthenticated)
+   {
+     Navigation.NavigateTo("/login", true);
+     return;
+   }
+   
+   accounts = await AdminService.GetAccountsAsync();
+   if (!string.IsNullOrEmpty(AdminService.LastError))
+   {
+     toastMessage = $"⚠️ Error loading accounts: {AdminService.LastError}";
+     accounts = new List<Account>();
+   }
+   
+   filteredAccounts = accounts;
+   await LoadCustomersAsync();
+ }
+ catch (Exception ex)
+ {
+   toastMessage = $"⚠️ Failed to initialize: {ex.Message}";
+   System.Diagnostics.Debug.WriteLine($"[Clients] OnInitializedAsync error: {ex}");
+   accounts = new List<Account>();
+   customers = new List<Client>();
+ }
+ }
+
+ private async Task LoadCustomersAsync()
+ {
+ try
+ {
+   var all = await AdminService.GetCustomersAsync();
+   
+   if (!string.IsNullOrEmpty(AdminService.LastError))
+   {
+     toastMessage = $"⚠️ Error loading clients: {AdminService.LastError}";
+     customers = new List<Client>();
+     StateHasChanged();
+     return;
+   }
+   
+   customers = string.IsNullOrWhiteSpace(searchTerm)
+     ? all
+     : all.Where(c => (c.Name ?? string.Empty).Contains(searchTerm, StringComparison.OrdinalIgnoreCase)
+                  || (c.Email ?? string.Empty).Contains(searchTerm, StringComparison.OrdinalIgnoreCase)).ToList();
+   StateHasChanged();
+ }
+ catch (Exception ex)
+ {
+   toastMessage = $"⚠️ Error loading clients: {ex.Message}";
+   System.Diagnostics.Debug.WriteLine($"[Clients] LoadCustomersAsync error: {ex}");
+   customers = new List<Client>();
+   StateHasChanged();
+ }
+ }
+
+ // show = true -> open modal for create; show = false -> close; id != null -> edit specific customer
+ private void ShowNewCustomer(bool show, string? id = null)
+ {
+ try
+ {
+   showNewCustomerModal = show;
+   if (!show)
+   {
+     // reset
+     newCustomerName = "";
+     newCustomerEmail = "";
+     newCustomerPlan = "";
+     newCustomerAccountId = "";
+     selectedAccount = null;
+     isEditing = false;
+     editingCustomerId = string.Empty;
+     accountText = "";
+   }
+   else if (!string.IsNullOrEmpty(id))
+   {
+     // populate for edit
+     var c = customers?.FirstOrDefault(x => x.Id == id);
+     if (c != null)
+     {
+       isEditing = true;
+       editingCustomerId = c.Id;
+       newCustomerName = c.Name ?? string.Empty;
+       newCustomerEmail = c.Email ?? string.Empty;
+       newCustomerPlan = c.Plan ?? string.Empty;
+       newCustomerAccountId = c.AccountId?.ToString() ?? "";
+       selectedAccount = accounts?.FirstOrDefault(a => a.Id.ToString() == newCustomerAccountId);
+       accountText = newCustomerAccountId;
+     }
+   }
+   StateHasChanged();
+ }
+ catch (Exception ex)
+ {
+   toastMessage = $"⚠️ Error: {ex.Message}";
+   System.Diagnostics.Debug.WriteLine($"[Clients] ShowNewCustomer error: {ex}");
+   StateHasChanged();
+ }
+ }
+
+ private void OnAccountChanged()
+ {
+   try
+   {
+     selectedAccount = accounts?.FirstOrDefault(a => a.Id.ToString() == newCustomerAccountId);
+     if (selectedAccount != null && string.IsNullOrWhiteSpace(newCustomerPlan))
+     {
+       newCustomerPlan = selectedAccount.ServicePlan ?? string.Empty;
+     }
+     StateHasChanged();
+   }
+   catch (Exception ex)
+   {
+     System.Diagnostics.Debug.WriteLine($"[Clients] OnAccountChanged error: {ex}");
+   }
+ }
+
+ private void OnAccountChanged(ChangeEventArgs e)
+ {
+   try
+   {
+     newCustomerAccountId = e.Value?.ToString() ?? string.Empty;
+     selectedAccount = accounts?.FirstOrDefault(a => a.Id.ToString() == newCustomerAccountId);
+     if (selectedAccount != null && string.IsNullOrWhiteSpace(newCustomerPlan))
+     {
+       newCustomerPlan = selectedAccount.ServicePlan ?? string.Empty;
+     }
+     StateHasChanged();
+   }
+   catch (Exception ex)
+   {
+     System.Diagnostics.Debug.WriteLine($"[Clients] OnAccountChanged(ChangeEventArgs) error: {ex}");
+   }
+ }
+
+ private void OnAccountTextChanged()
+ {
+   try
+   {
+     var idPart = accountText.Split('-').FirstOrDefault()?.Trim();
+     if (int.TryParse(idPart, out var parsedId))
+     {
+       var acc = accounts?.FirstOrDefault(a => a.Id == parsedId);
+       if (acc != null)
+       {
+         selectedAccount = acc;
+         newCustomerAccountId = acc.Id.ToString();
+         var fallbackName = !string.IsNullOrWhiteSpace(acc.Name) ? acc.Name : newCustomerName;
+         newCustomerName = !string.IsNullOrWhiteSpace(acc.ContactName) ? acc.ContactName : fallbackName;
+         var fallbackEmail = !string.IsNullOrWhiteSpace(acc.ContactEmail) ? acc.ContactEmail : newCustomerEmail;
+         newCustomerEmail = fallbackEmail;
+         newCustomerPlan = !string.IsNullOrWhiteSpace(acc.ServicePlan) ? acc.ServicePlan : newCustomerPlan;
+       }
+     }
+     StateHasChanged();
+   }
+   catch (Exception ex)
+   {
+     System.Diagnostics.Debug.WriteLine($"[Clients] OnAccountTextChanged error: {ex}");
+   }
+ }
+
+ private bool CanSubmit => !string.IsNullOrWhiteSpace(newCustomerAccountId)
+   && !string.IsNullOrWhiteSpace(newCustomerName)
+   && !string.IsNullOrWhiteSpace(newCustomerEmail);
+
+ private async Task OnCreateCustomerClicked()
+ {
+   try
+   {
+     if ((AuthService.Role ?? "").Equals("Agent", StringComparison.OrdinalIgnoreCase)) 
+     {
+       toastMessage = "⚠️ Agents cannot modify clients";
+       StateHasChanged();
+       return;
+     }
+     
+     if (!CanSubmit)
+     {
+       toastMessage = "📝 Account, Name and Email are required";
+       StateHasChanged();
+       await Task.Delay(2000);
+       toastMessage = string.Empty;
+       StateHasChanged();
+       return;
+     }
+
+     if (isEditing)
+     {
+       var existing = await AdminService.GetCustomerAsync(editingCustomerId);
+       if (existing == null)
+       {
+         toastMessage = "🔍 Client not found";
+         StateHasChanged();
+         await Task.Delay(2000);
+         toastMessage = string.Empty;
+         StateHasChanged();
+         ShowNewCustomer(false);
+         return;
+       }
+       
+       existing.Name = newCustomerName;
+       existing.Email = newCustomerEmail;
+       existing.Plan = string.IsNullOrWhiteSpace(newCustomerPlan) ? (selectedAccount?.ServicePlan ?? existing.Plan) : newCustomerPlan;
+       existing.AccountId = int.TryParse(newCustomerAccountId, out var accId) ? accId : existing.AccountId;
+       
+       await AdminService.UpdateCustomerAsync(existing);
+       
+       if (!string.IsNullOrEmpty(AdminService.LastError))
+       {
+         toastMessage = $"❌ Update failed: {AdminService.LastError}";
+       }
+       else
+       {
+         toastMessage = "✅ Client updated successfully";
+       }
+     }
+     else
+     {
+       var c = new Client {
+         Name = newCustomerName,
+         Email = newCustomerEmail,
+         Plan = string.IsNullOrWhiteSpace(newCustomerPlan) ? (selectedAccount?.ServicePlan ?? string.Empty) : newCustomerPlan,
+         JoinDate = DateTime.UtcNow,
+         Status = "Active",
+         AccountId = int.TryParse(newCustomerAccountId, out var accId) ? accId : null
+       };
+       
+       var ok = await AdminService.CreateCustomerAsync(c);
+       
+       if (!ok || !string.IsNullOrEmpty(AdminService.LastError))
+       {
+         toastMessage = $"❌ Failed to add client: {AdminService.LastError ?? "Unknown error"}";
+       }
+       else
+       {
+         toastMessage = "✅ Client added successfully";
+       }
+     }
+     
+     await LoadCustomersAsync();
+     ShowNewCustomer(false);
+     StateHasChanged();
+     await Task.Delay(2000);
+     toastMessage = string.Empty;
+     StateHasChanged();
+   }
+   catch (Exception ex)
+   {
+     toastMessage = $"❌ Error: {ex.Message}";
+     System.Diagnostics.Debug.WriteLine($"[Clients] OnCreateCustomerClicked error: {ex}");
+     StateHasChanged();
+     await Task.Delay(3000);
+     toastMessage = string.Empty;
+     StateHasChanged();
+   }
+ }
+
+ private async Task DeleteCustomer(string id)
+ {
+   try
+   {
+     if ((AuthService.Role ?? "").Equals("Agent", StringComparison.OrdinalIgnoreCase))
+     {
+       toastMessage = "⚠️ Agents cannot delete clients";
+       StateHasChanged();
+       await Task.Delay(2000);
+       toastMessage = string.Empty;
+       StateHasChanged();
+       return;
+     }
+     
+     if (string.IsNullOrEmpty(id))
+     {
+       toastMessage = "⚠️ Invalid client ID";
+       StateHasChanged();
+       return;
+     }
+     
+     await AdminService.DeleteCustomerAsync(id);
+     
+     if (!string.IsNullOrEmpty(AdminService.LastError))
+     {
+       toastMessage = $"❌ Delete failed: {AdminService.LastError}";
+     }
+     else
+     {
+       toastMessage = "✅ Client deleted successfully";
+     }
+     
+     await LoadCustomersAsync();
+     StateHasChanged();
+     await Task.Delay(2000);
+     toastMessage = string.Empty;
+     StateHasChanged();
+   }
+   catch (Exception ex)
+   {
+     toastMessage = $"❌ Delete error: {ex.Message}";
+     System.Diagnostics.Debug.WriteLine($"[Clients] DeleteCustomer error: {ex}");
+     StateHasChanged();
+     await Task.Delay(3000);
+     toastMessage = string.Empty;
+     StateHasChanged();
+   }
+ }
+
+ private void EditCustomer(string id)
+ {
+   ShowNewCustomer(true, id);
+ }
+
+ private string GetRoleLabel()
+ {
+   var role = AuthService?.Role;
+   if (string.IsNullOrWhiteSpace(role)) return "GUEST";
+   return role.ToUpperInvariant();
+ }
+
+ private string GetAvatarLetters()
+ {
+   var name = AuthService?.Email ?? "";
+   if (string.IsNullOrWhiteSpace(name)) return "FH";
+   var parts = name.Split('@');
+   var left = parts[0];
+   if (left.Length >=2) return left.Substring(0,2).ToUpperInvariant();
+   return left.ToUpperInvariant();
+ }
+
+ private async Task ExportCustomers()
+ {
+   try
+   {
+     var rows = customers ?? new List<Client>();
+     
+     if (rows.Count == 0)
+     {
+       toastMessage = "⚠️ No clients to export";
+       StateHasChanged();
+       await Task.Delay(2000);
+       toastMessage = string.Empty;
+       StateHasChanged();
+       return;
+     }
+     
+     var csv = new System.Text.StringBuilder();
+     csv.AppendLine("Id,Name,Email,Plan,Status,JoinDate");
+     
+     foreach(var c in rows)
+       csv.AppendLine($"{c.Id},{Escape(c.Name)},{Escape(c.Email)},{Escape(c.Plan)},{Escape(c.Status)},{c.JoinDate:yyyy-MM-dd}");
+     
+     await JS.InvokeAsync<bool>("FiberExport.saveFile", "clients.csv", csv.ToString());
+     
+     toastMessage = $"✅ Exported {rows.Count} client(s)";
+     StateHasChanged();
+     await Task.Delay(2000);
+     toastMessage = string.Empty;
+     StateHasChanged();
+   }
+   catch (Exception ex)
+   {
+     toastMessage = $"❌ Export failed: {ex.Message}";
+     System.Diagnostics.Debug.WriteLine($"[Clients] ExportCustomers error: {ex}");
+     StateHasChanged();
+     await Task.Delay(3000);
+     toastMessage = string.Empty;
+     StateHasChanged();
+   }
+ }
+
+ string Escape(string? s) => string.IsNullOrEmpty(s) ? "" : s!.Replace("\"", "\"\"");
+ 
+ private async Task OnCustomersSearchChanged(string val)
+ {
+   try
+   {
+     searchTerm = val;
+     await LoadCustomersAsync();
+   }
+   catch (Exception ex)
+   {
+     toastMessage = $"⚠️ Search error: {ex.Message}";
+     System.Diagnostics.Debug.WriteLine($"[Clients] OnCustomersSearchChanged error: {ex}");
+     StateHasChanged();
+   }
+ }
+
+ private void FilterAccounts()
+ {
+   try
+   {
+     if (string.IsNullOrWhiteSpace(accountSearch)) { filteredAccounts = accounts; return; }
+     var term = accountSearch.Trim();
+     filteredAccounts = accounts?.Where(a =>
+       (!string.IsNullOrEmpty(a.Name) && a.Name.Contains(term, StringComparison.OrdinalIgnoreCase)) ||
+       (!string.IsNullOrEmpty(a.ContactEmail) && a.ContactEmail.Contains(term, StringComparison.OrdinalIgnoreCase))
+     ).ToList();
+     StateHasChanged();
+   }
+   catch (Exception ex)
+   {
+     System.Diagnostics.Debug.WriteLine($"[Clients] FilterAccounts error: {ex}");
+   }
+ }
+}

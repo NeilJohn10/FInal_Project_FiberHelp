@@ -1,0 +1,109 @@
+﻿using Microsoft.Extensions.Logging;
+using FiberHelp.Services;
+using Microsoft.EntityFrameworkCore;
+using FiberHelp.Data.context;
+using Microsoft.Extensions.DependencyInjection;
+using FiberHelp.Data;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Maui.Storage;
+using System.IO;
+
+namespace FiberHelp
+{
+    public static class MauiProgram
+    {
+        public static MauiApp CreateMauiApp()
+        {
+            var builder = MauiApp.CreateBuilder();
+            builder
+                .UseMauiApp<App>()
+                .ConfigureFonts(fonts =>
+                {
+                    fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
+                });
+
+            // Load configuration from appsettings.json (copied to output via csproj)
+            builder.Configuration
+                   .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true);
+
+            builder.Services.AddMauiBlazorWebView();
+            
+            // Change AuthService to Singleton to persist authentication state across navigations
+            builder.Services.AddSingleton<AuthService>();
+            builder.Services.AddScoped<AdminService>();
+            builder.Services.AddScoped<BillingService>();
+
+            var localDbPath = Path.Combine(FileSystem.AppDataDirectory, "fiberhelp_local.db");
+            var sqliteConn = $"Data Source={localDbPath}";
+
+            var sqlLocal = builder.Configuration.GetConnectionString("DefaultConnection")
+                ?? "Server=(localdb)\\mssqllocaldb;Database=FiberhelpDB;Trusted_Connection=True;MultipleActiveResultSets=true";
+            var sqlOnline = builder.Configuration.GetConnectionString("OnlineConnection") ?? string.Empty;
+            var mode = builder.Configuration["Database:Mode"] ?? "Online";
+            var preferOnline = string.Equals(mode, "Online", StringComparison.OrdinalIgnoreCase);
+
+            // Register contexts: SQLite (offline), SqlServer (online), SqlServer local dev
+            builder.Services.AddDbContext<localContext>(o => o.UseSqlite(sqliteConn));
+            builder.Services.AddDbContext<onlineContext>(o => {
+                if (!string.IsNullOrWhiteSpace(sqlOnline))
+                    o.UseSqlServer(sqlOnline, sql => sql.EnableRetryOnFailure());
+            });
+            builder.Services.AddDbContext<devLocalContext>(o => o.UseSqlServer(sqlLocal));
+
+            // Resolve AppDbContext with fallback chain: Online -> DevLocal -> SQLite
+            builder.Services.AddScoped<AppDbContext>(sp =>
+            {
+                var cfg = sp.GetRequiredService<IConfiguration>();
+                var online = sp.GetRequiredService<onlineContext>();
+                if (preferOnline)
+                {
+                    try { if (online.Database.CanConnect()) return online; } catch { }
+                }
+                // try developer local SQL Server
+                var dev = sp.GetRequiredService<devLocalContext>();
+                try { if (dev.Database.CanConnect()) return dev; } catch { }
+                // fallback to embedded SQLite
+                return sp.GetRequiredService<localContext>();
+            });
+
+#if DEBUG
+            builder.Services.AddBlazorWebViewDeveloperTools();
+            builder.Logging.AddDebug();
+#endif
+
+            var app = builder.Build();
+
+            // Migrate only selected active context; avoid seeding online automatically
+            using (var scope = app.Services.CreateScope())
+            {
+                var ctx = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+                try
+                {
+                    ctx.Database.Migrate();
+                    // Seed only if database is empty and it is not the online cloud (heuristic)
+                    var isSqlite = ctx.Database.ProviderName?.Contains("Sqlite") == true;
+                    var isLocalDb = ctx.Database.GetDbConnection().DataSource?.Contains("(localdb)") == true;
+                    if (isSqlite || isLocalDb)
+                    {
+                        DbInitializer.Initialize(ctx);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"DB init error: {ex.Message}");
+                }
+            }
+
+            return app;
+        }
+    }
+
+    // Extra context for developer local SQL Server
+    namespace FiberHelp.Data.context
+    {
+        public class devLocalContext : AppDbContext
+        {
+            public devLocalContext(DbContextOptions<devLocalContext> options) : base(options) { }
+        }
+    }
+}

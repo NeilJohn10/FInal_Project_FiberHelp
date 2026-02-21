@@ -1,0 +1,381 @@
+﻿using System.Collections.Generic;
+using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
+using FiberHelp.Data;
+using FiberHelp.Models;
+using System;
+using System.Linq;
+using System.Security.Cryptography;
+using System.Text;
+
+namespace FiberHelp.Services
+{
+public class AdminService
+{
+private readonly AppDbContext _db;
+public string? LastError { get; private set; }
+public AdminService(AppDbContext db) { _db = db; }
+
+public async Task<List<Ticket>> GetTicketsAsync()
+{
+try
+{
+return await _db.Tickets.OrderByDescending(t => t.Created).ToListAsync();
+}
+catch (Exception ex)
+{
+LastError = ex.Message;
+System.Diagnostics.Debug.WriteLine($"AdminService.GetTicketsAsync error: {ex}");
+return new List<Ticket>();
+}
+}
+
+public async Task<Ticket?> GetTicketAsync(int id)
+{
+try { return await _db.Tickets.FindAsync(id); }
+catch (Exception ex) { LastError = ex.Message; System.Diagnostics.Debug.WriteLine($"AdminService.GetTicketAsync error: {ex}"); return null; }
+}
+
+public async Task<bool> CreateTicketAsync(Ticket t)
+{
+try
+{
+LastError = null;
+if (t == null) { LastError = "Ticket is null"; return false; }
+// Ensure identity key left at default (0) so SQL Server generates TicketId
+if (t.Id !=0)
+{
+ System.Diagnostics.Debug.WriteLine($"CreateTicketAsync: WARNING incoming ticket Id={t.Id} will be ignored (should be0 for identity).");
+ t.Id =0;
+}
+if (t.Created == default) t.Created = DateTime.UtcNow;
+
+// If Customer provided as Id or name, attempt to populate CustomerName
+if (!string.IsNullOrWhiteSpace(t.Customer))
+{
+ var cust = await _db.Customers.FirstOrDefaultAsync(c => c.Id == t.Customer || c.Name == t.Customer);
+ if (cust != null)
+ {
+ t.CustomerName = cust.Name;
+ t.Customer = cust.Id; // normalize to Id
+ }
+}
+
+_db.Tickets.Add(t);
+var rows = await _db.SaveChangesAsync();
+System.Diagnostics.Debug.WriteLine($"CreateTicketAsync: SaveChanges affected {rows} rows. New TicketId={t.Id}");
+if (rows <=0)
+{
+ LastError = "SaveChanges returned0 rows";
+ return false;
+}
+return true;
+}
+catch (Exception ex)
+{
+LastError = ex.Message;
+System.Diagnostics.Debug.WriteLine($"AdminService.CreateTicketAsync error: {ex}");
+return false;
+}
+}
+
+public async Task UpdateTicketAsync(Ticket t)
+{
+try
+{
+LastError = null;
+if (t == null || t.Id <=0) { LastError = "Invalid ticket for update"; return; }
+
+var existing = await _db.Tickets.FindAsync(t.Id);
+if (existing == null)
+{
+LastError = $"Ticket not found id={t.Id}";
+System.Diagnostics.Debug.WriteLine($"AdminService.UpdateTicketAsync: ticket not found id={t.Id}");
+return;
+}
+
+// Update only editable fields and preserve original Created timestamp
+existing.Title = t.Title;
+existing.Customer = t.Customer;
+existing.Priority = t.Priority;
+existing.Status = t.Status;
+if (!string.IsNullOrWhiteSpace(t.Customer))
+{
+ var cust = await _db.Customers.FirstOrDefaultAsync(c => c.Id == t.Customer || c.Name == t.Customer);
+ if (cust != null)
+ {
+ existing.CustomerName = cust.Name;
+ existing.Customer = cust.Id;
+ }
+}
+
+_db.Tickets.Update(existing);
+var rows = await _db.SaveChangesAsync();
+if (rows <=0) LastError = "Update affected0 rows";
+}
+catch (Exception ex)
+{
+LastError = ex.Message;
+System.Diagnostics.Debug.WriteLine($"AdminService.UpdateTicketAsync error: {ex}");
+}
+}
+
+public async Task DeleteTicketAsync(int id)
+{
+try
+{
+LastError = null;
+var t = await _db.Tickets.FindAsync(id);
+if (t != null)
+{
+ _db.Tickets.Remove(t);
+ var rows = await _db.SaveChangesAsync();
+ if (rows <=0) LastError = "Delete affected0 rows";
+}
+}
+catch (Exception ex)
+{
+LastError = ex.Message;
+System.Diagnostics.Debug.WriteLine($"AdminService.DeleteTicketAsync error: {ex}");
+}
+}
+
+public async Task<List<Customer>> GetCustomersAsync()
+{
+try { return await _db.Customers.OrderByDescending(c => c.JoinDate).ToListAsync(); }
+catch (Exception ex) { LastError = ex.Message; System.Diagnostics.Debug.WriteLine($"AdminService.GetCustomersAsync error: {ex}"); return new List<Customer>(); }
+}
+public async Task<Customer?> GetCustomerAsync(string id) { try { return await _db.Customers.FindAsync(id); } catch (Exception ex) { LastError = ex.Message; System.Diagnostics.Debug.WriteLine($"AdminService.GetCustomerAsync error: {ex}"); return null; } }
+public async Task<bool> CreateCustomerAsync(Customer c) { try { LastError = null; if (c == null) { LastError = "Customer is null"; return false; } if (string.IsNullOrWhiteSpace(c.Id)) c.Id = Guid.NewGuid().ToString(); if (c.JoinDate == default) c.JoinDate = DateTime.UtcNow; _db.Customers.Add(c); var rows = await _db.SaveChangesAsync(); if (rows <=0) LastError = "Customer insert returned0 rows"; return rows >0; } catch (Exception ex) { LastError = ex.Message; System.Diagnostics.Debug.WriteLine($"AdminService.CreateCustomerAsync error: {ex}"); return false; } }
+public async Task UpdateCustomerAsync(Customer c) { try { LastError = null; if (c == null || string.IsNullOrWhiteSpace(c.Id)) { LastError = "Invalid customer for update"; return; } var existing = await _db.Customers.FindAsync(c.Id); if (existing == null) { LastError = $"Customer not found id={c.Id}"; System.Diagnostics.Debug.WriteLine($"AdminService.UpdateCustomerAsync: customer not found id={c.Id}"); return; } existing.Name = c.Name; existing.Email = c.Email; existing.Plan = c.Plan; existing.Status = c.Status; _db.Customers.Update(existing); var rows = await _db.SaveChangesAsync(); if (rows <=0) LastError = "Customer update affected0 rows"; } catch (Exception ex) { LastError = ex.Message; System.Diagnostics.Debug.WriteLine($"AdminService.UpdateCustomerAsync error: {ex}"); } }
+public async Task DeleteCustomerAsync(string id) { try { LastError = null; var c = await _db.Customers.FindAsync(id); if (c != null) { _db.Customers.Remove(c); var rows = await _db.SaveChangesAsync(); if (rows <=0) LastError = "Customer delete affected0 rows"; } } catch (Exception ex) { LastError = ex.Message; System.Diagnostics.Debug.WriteLine($"AdminService.DeleteCustomerAsync error: {ex}"); } }
+
+// --- User / Agent management ---
+private static string HashPassword(string password)
+{
+ using var sha = SHA256.Create();
+ var bytes = Encoding.UTF8.GetBytes(password ?? string.Empty);
+ var hash = sha.ComputeHash(bytes);
+ return Convert.ToHexString(hash);
+}
+
+public async Task<List<User>> GetAgentsAsync()
+{
+ try
+ {
+ // Legacy: agents stored in Users with Role == Agent
+ return await _db.Users.Where(u => u.Role == "Agent").OrderBy(u => u.Email).ToListAsync();
+ }
+ catch (Exception ex)
+ {
+ LastError = ex.Message;
+ System.Diagnostics.Debug.WriteLine($"AdminService.GetAgentsAsync error: {ex}");
+ return new List<User>();
+ }
+}
+
+public async Task<bool> CreateAgentAsync(User user, string plainPassword)
+{
+ try
+ {
+ LastError = null;
+ if (user == null) { LastError = "User is null"; return false; }
+ if (string.IsNullOrWhiteSpace(user.Email)) { LastError = "Email is required"; return false; }
+ if (string.IsNullOrWhiteSpace(plainPassword)) { LastError = "Password is required"; return false; }
+ var lower = user.Email.Trim().ToLowerInvariant();
+ if (await _db.Users.AnyAsync(u => u.Email.ToLower() == lower)) { LastError = "Email already exists"; return false; }
+ user.PasswordHash = HashPassword(plainPassword);
+ if (string.IsNullOrWhiteSpace(user.Role)) user.Role = "Agent";
+ if (string.IsNullOrWhiteSpace(user.Id)) user.Id = Guid.NewGuid().ToString();
+ _db.Users.Add(user);
+ var rows = await _db.SaveChangesAsync();
+ return rows >0;
+ }
+ catch (Exception ex)
+ {
+ LastError = ex.Message;
+ System.Diagnostics.Debug.WriteLine($"AdminService.CreateAgentAsync error: {ex}");
+ return false;
+ }
+}
+
+public async Task<bool> DeleteUserAsync(string id)
+{
+ try
+ {
+ LastError = null;
+ if (string.IsNullOrWhiteSpace(id)) { LastError = "Invalid id"; return false; }
+ var u = await _db.Users.FindAsync(id);
+ if (u == null) { LastError = "User not found"; return false; }
+ _db.Users.Remove(u);
+ var rows = await _db.SaveChangesAsync();
+ return rows >0;
+ }
+ catch (Exception ex)
+ {
+ LastError = ex.Message;
+ System.Diagnostics.Debug.WriteLine($"AdminService.DeleteUserAsync error: {ex}");
+ return false;
+ }
+}
+
+// New explicit Agents CRUD using Agents table (if using new Agents table)
+public async Task<bool> CreateAgentRecordAsync(Agent agent, string plainPassword)
+{
+ try
+ {
+ LastError = null;
+ if (agent == null) { LastError = "Agent is null"; return false; }
+ if (string.IsNullOrWhiteSpace(agent.Email)) { LastError = "Email required"; return false; }
+ if (string.IsNullOrWhiteSpace(plainPassword)) { LastError = "Password required"; return false; }
+ var lower = agent.Email.Trim().ToLowerInvariant();
+ if (await _db.Agents.AnyAsync(a => a.Email.ToLower() == lower)) { LastError = "Email already exists"; return false; }
+ agent.PasswordHash = HashPassword(plainPassword);
+ if (string.IsNullOrWhiteSpace(agent.Id)) agent.Id = Guid.NewGuid().ToString();
+ agent.CreatedAt = DateTime.UtcNow;
+ _db.Agents.Add(agent);
+ var rows = await _db.SaveChangesAsync();
+ return rows >0;
+ }
+ catch (Exception ex)
+ {
+ LastError = ex.Message;
+ System.Diagnostics.Debug.WriteLine($"AdminService.CreateAgentRecordAsync error: {ex}");
+ return false;
+ }
+}
+
+public async Task<List<Agent>> GetAgentRecordsAsync()
+{
+ try
+ {
+ return await _db.Agents.OrderBy(a => a.Email).ToListAsync();
+ }
+ catch (Exception ex)
+ {
+ LastError = ex.Message;
+ System.Diagnostics.Debug.WriteLine($"AdminService.GetAgentRecordsAsync error: {ex}");
+ return new List<Agent>();
+ }
+}
+
+public async Task<bool> UpdateAgentRecordAsync(Agent agent)
+{
+ // backward compatible: no password change
+ return await UpdateAgentRecordAsync(agent, null);
+}
+
+public async Task<bool> UpdateAgentRecordAsync(Agent agent, string? plainPassword)
+{
+ try
+ {
+ LastError = null;
+ if (agent == null || string.IsNullOrWhiteSpace(agent.Id)) { LastError = "Invalid agent"; return false; }
+ var existing = await _db.Agents.FindAsync(agent.Id);
+ if (existing == null) { LastError = "Agent not found"; return false; }
+
+ // If email is changing, ensure uniqueness
+ if (!string.Equals(existing.Email, agent.Email, StringComparison.OrdinalIgnoreCase))
+ {
+ var lower = agent.Email?.Trim().ToLowerInvariant() ?? string.Empty;
+ if (await _db.Agents.AnyAsync(a => a.Email.ToLower() == lower && a.Id != agent.Id))
+ {
+ LastError = "Email already exists";
+ return false;
+ }
+ existing.Email = agent.Email;
+ }
+
+ existing.FullName = agent.FullName;
+ existing.Department = agent.Department;
+ existing.Phone = agent.Phone;
+ existing.IsActive = agent.IsActive;
+ existing.UpdatedAt = DateTime.UtcNow;
+
+ if (!string.IsNullOrWhiteSpace(plainPassword))
+ {
+ existing.PasswordHash = HashPassword(plainPassword);
+ existing.PasswordChangedAt = DateTime.UtcNow;
+ }
+
+ _db.Agents.Update(existing);
+ var rows = await _db.SaveChangesAsync();
+ return rows > 0;
+ }
+ catch (Exception ex)
+ {
+ LastError = ex.Message;
+ System.Diagnostics.Debug.WriteLine($"AdminService.UpdateAgentRecordAsync error: {ex}");
+ return false;
+ }
+}
+
+public async Task<bool> DeleteAgentRecordAsync(string id)
+{
+ try
+ {
+ LastError = null;
+ if (string.IsNullOrWhiteSpace(id)) { LastError = "Invalid id"; return false; }
+ var a = await _db.Agents.FindAsync(id);
+ if (a == null) { LastError = "Agent not found"; return false; }
+ _db.Agents.Remove(a);
+ var rows = await _db.SaveChangesAsync();
+ return rows > 0;
+ }
+ catch (Exception ex)
+ {
+ LastError = ex.Message;
+ System.Diagnostics.Debug.WriteLine($"AdminService.DeleteAgentRecordAsync error: {ex}");
+ return false;
+ }
+}
+
+public async Task<List<Account>> GetAccountsAsync()
+{
+    try { return await _db.Accounts.OrderBy(a => a.Id).ToListAsync(); }
+    catch (Exception ex) { LastError = ex.Message; System.Diagnostics.Debug.WriteLine($"AdminService.GetAccountsAsync error: {ex}"); return new List<Account>(); }
+}
+public async Task<Account?> GetAccountAsync(int id)
+{
+    try { return await _db.Accounts.FindAsync(id); }
+    catch (Exception ex) { LastError = ex.Message; System.Diagnostics.Debug.WriteLine($"AdminService.GetAccountAsync error: {ex}"); return null; }
+}
+public async Task<bool> CreateAccountAsync(Account a)
+{
+    try {
+        LastError=null; if(a==null){ LastError="Account null"; return false; }
+        // Ensure required fields present
+        a.Name = string.IsNullOrWhiteSpace(a.Name) ? "Unnamed Account" : a.Name.Trim();
+        a.Type = string.IsNullOrWhiteSpace(a.Type) ? "Residential" : a.Type.Trim();
+        a.ServicePlan = a.ServicePlan?.Trim() ?? string.Empty;
+        a.ContactName = string.IsNullOrWhiteSpace(a.ContactName) ? null : a.ContactName.Trim();
+        a.ContactEmail = string.IsNullOrWhiteSpace(a.ContactEmail) ? null : a.ContactEmail.Trim();
+        a.ContactPhone = string.IsNullOrWhiteSpace(a.ContactPhone) ? null : a.ContactPhone.Trim();
+        a.BillingAddress = string.IsNullOrWhiteSpace(a.BillingAddress) ? null : a.BillingAddress.Trim();
+        a.ServiceStatus = string.IsNullOrWhiteSpace(a.ServiceStatus) ? (a.IsActive?"Active":"Inactive") : a.ServiceStatus.Trim();
+        a.Id=0; if(a.CreatedAt==default) a.CreatedAt=DateTime.UtcNow;
+        if(string.IsNullOrWhiteSpace(a.AccountNumber)) a.AccountNumber=""; // AutoFill will generate
+        _db.Accounts.Add(a);
+        var rows=await _db.SaveChangesAsync();
+        if(rows<=0) { LastError="Insert affected 0 rows"; return false; }
+        return true;
+    } catch(Exception ex){ LastError=ex.Message; System.Diagnostics.Debug.WriteLine($"AdminService.CreateAccountAsync error: {ex}"); return false; }
+}
+public async Task<bool> UpdateAccountAsync(Account a)
+{
+    try {
+        LastError=null; if(a==null||a.Id<=0){ LastError="Invalid account"; return false; }
+        var existing=await _db.Accounts.FindAsync(a.Id); if(existing==null){ LastError="Not found"; return false; }
+        existing.ServicePlan=a.ServicePlan; existing.IsActive=a.IsActive; existing.ContactName=a.ContactName; existing.ContactEmail=a.ContactEmail; existing.ContactPhone=a.ContactPhone; existing.BillingAddress=a.BillingAddress; existing.ServiceStatus=a.ServiceStatus; existing.Name=a.Name; existing.Type=a.Type;
+        _db.Accounts.Update(existing); var rows=await _db.SaveChangesAsync(); if(rows<=0) LastError="Update affected 0 rows"; return rows>0;
+    } catch(Exception ex){ LastError=ex.Message; System.Diagnostics.Debug.WriteLine($"AdminService.UpdateAccountAsync error: {ex}"); return false; }
+}
+public async Task<bool> DeleteAccountAsync(int id)
+{
+    try {
+        LastError=null; var acc=await _db.Accounts.FindAsync(id); if(acc==null){ LastError="Not found"; return false; }
+        _db.Accounts.Remove(acc); var rows=await _db.SaveChangesAsync(); if(rows<=0) LastError="Delete affected 0 rows"; return rows>0;
+    } catch(Exception ex){ LastError=ex.Message; System.Diagnostics.Debug.WriteLine($"AdminService.DeleteAccountAsync error: {ex}"); return false; }
+}
+}
+}

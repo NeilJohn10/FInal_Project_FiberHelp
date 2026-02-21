@@ -1,0 +1,127 @@
+﻿@page "/billing"
+@inject FiberHelp.Services.AuthService AuthService
+@inject NavigationManager Navigation
+@inject FiberHelp.Services.BillingService BillingService
+
+<link href="css/billing.css" rel="stylesheet" />
+
+<div>
+  <AdminHeader Title="Billing" RoleLabel="@GetRoleLabel()" ShowSearch="true" SearchPlaceholder="Search invoices"
+               SearchTerm="@searchTerm" SearchTermChanged="@OnSearchChanged"
+               ShowExport="true" Export="@ExportInvoices"
+               ShowPrimary="@(!(AuthService.Role ?? "").Equals("Agent", StringComparison.OrdinalIgnoreCase))" PrimaryText="+ New Invoice" PrimaryClick="@NewInvoice" />
+  <section class="panel">
+    <h3>Invoices</h3>
+    @if (!string.IsNullOrEmpty(pageError))
+    {
+      <div class="error-message" style="color:#b91c1c;margin-bottom:12px;">Error: @pageError</div>
+    }
+    <table class="data-table">
+      <thead>
+        <tr><th>Invoice #</th><th>Account</th><th>Amount</th><th>Issue Date</th><th>Status</th><th style="text-align:right">Actions</th></tr>
+      </thead>
+      <tbody>
+        @if (invoices != null && invoices.Any())
+        {
+          foreach (var inv in invoices)
+          {
+            <tr>
+              <td>@inv.Id</td>
+              <td>@(inv.AccountId?.ToString() ?? "-")</td>
+              <td>@inv.AmountDue.ToString("C")</td>
+              <td>@inv.IssueDate.ToLocalTime().ToString("yyyy-MM-dd")</td>
+              <td>@inv.Status</td>
+              <td style="text-align:right">
+                @if (!string.Equals(inv.Status, "Paid", StringComparison.OrdinalIgnoreCase) && !(AuthService.Role ?? "").Equals("Agent", StringComparison.OrdinalIgnoreCase))
+                {
+                  <button class="action-btn edit" title="Mark Paid" @onclick="() => MarkPaid(inv.Id)">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                      <path d="M9 12l2 2 4-4" stroke="#2563eb" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                      <circle cx="12" cy="12" r="9" stroke="#2563eb" stroke-width="1.2" />
+                    </svg>
+                  </button>
+                }
+              </td>
+            </tr>
+          }
+        }
+        else
+        {
+          <tr><td colspan="6" class="muted-text">No invoices available.</td></tr>
+        }
+      </tbody>
+    </table>
+  </section>
+</div>
+
+@code {
+  private List<FiberHelp.Models.Invoice>? invoices;
+  private string pageError = string.Empty;
+  private string searchTerm = string.Empty;
+
+  protected override async Task OnInitializedAsync()
+  {
+    try
+    {
+      if (!AuthService.IsAuthenticated) { Navigation.NavigateTo("/login", true); return; }
+      invoices = await BillingService.GetInvoicesAsync();
+      if (!string.IsNullOrEmpty(BillingService.LastError)) pageError = BillingService.LastError!;
+    }
+    catch (Exception ex)
+    {
+      pageError = ex.Message;
+      System.Diagnostics.Debug.WriteLine($"Billing page initialization error: {ex}");
+    }
+  }
+
+  private async Task MarkPaid(int id)
+  {
+    try
+    {
+      var ok = await BillingService.MarkPaidAsync(id);
+      if (!ok) pageError = BillingService.LastError ?? "Failed to mark invoice paid";
+      invoices = await BillingService.GetInvoicesAsync();
+      await ReloadFiltered();
+    }
+    catch (Exception ex)
+    {
+      pageError = ex.Message;
+      System.Diagnostics.Debug.WriteLine($"Billing.MarkPaid error: {ex}");
+    }
+    StateHasChanged();
+  }
+
+  private async Task OnSearchChanged(string val)
+  {
+    searchTerm = val;
+    await ReloadFiltered();
+  }
+
+  private async Task ReloadFiltered()
+  {
+    var all = await BillingService.GetInvoicesAsync();
+    if (!string.IsNullOrEmpty(BillingService.LastError)) pageError = BillingService.LastError!;
+    invoices = string.IsNullOrWhiteSpace(searchTerm) ? all : all.Where(i => (i.Id.ToString()).Contains(searchTerm, StringComparison.OrdinalIgnoreCase) || (i.AccountId?.ToString() ?? string.Empty).Contains(searchTerm, StringComparison.OrdinalIgnoreCase) || i.Status.Contains(searchTerm, StringComparison.OrdinalIgnoreCase)).ToList();
+    StateHasChanged();
+  }
+
+  private void ExportInvoices() { /* placeholder */ }
+  private void NewInvoice() { /* placeholder for modal */ }
+
+  private string GetRoleLabel()
+  {
+    var role = AuthService?.Role;
+    if (string.IsNullOrWhiteSpace(role)) return "GUEST";
+    return role.ToUpperInvariant();
+  }
+
+  private string GetAvatarLetters()
+  {
+    var name = AuthService?.Email ?? "";
+    if (string.IsNullOrWhiteSpace(name)) return "FH";
+    var parts = name.Split('@');
+    var left = parts[0];
+    if (left.Length >=2) return left.Substring(0,2).ToUpperInvariant();
+    return left.ToUpperInvariant();
+  }
+}

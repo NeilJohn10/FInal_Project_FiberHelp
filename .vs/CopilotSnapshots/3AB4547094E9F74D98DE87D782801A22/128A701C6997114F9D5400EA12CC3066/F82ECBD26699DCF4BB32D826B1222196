@@ -1,0 +1,160 @@
+﻿using System;
+using System.Threading.Tasks;
+using FiberHelp.Data;
+using Microsoft.EntityFrameworkCore;
+using System.Security.Cryptography;
+using System.Text;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace FiberHelp.Services
+{
+    public class AuthService
+    {
+        private readonly IServiceProvider _serviceProvider;
+     
+        public AuthService(IServiceProvider serviceProvider) 
+    { 
+         _serviceProvider = serviceProvider; 
+        }
+
+        public bool IsAuthenticated { get; private set; }
+        public string? Email { get; private set; }
+        public string? Role { get; private set; }
+        public string? FullName { get; private set; }
+
+    public event Action? AuthenticationStateChanged;
+
+        private static string HashPassword(string password)
+        {
+  using var sha = SHA256.Create();
+      var bytes = Encoding.UTF8.GetBytes(password ?? string.Empty);
+            var hash = sha.ComputeHash(bytes);
+  return Convert.ToHexString(hash);
+        }
+
+  public async Task<bool> SignInAsync(string email, string password)
+        {
+            try
+  {
+       if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
+     {
+        System.Diagnostics.Debug.WriteLine("AuthService.SignInAsync: empty email or password");
+        return false;
+                }
+
+        using var scope = _serviceProvider.CreateScope();
+                var _db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+           // Ensure DB has users seeded (best-effort)
+                try
+             {
+      if (!await _db.Users.AnyAsync())
+         {
+         System.Diagnostics.Debug.WriteLine("AuthService.SignInAsync: no users found, running DbInitializer.Initialize");
+        DbInitializer.Initialize(_db);
+      }
+    }
+        catch (Exception ex)
+    {
+     System.Diagnostics.Debug.WriteLine($"AuthServiceSignIn: user table check/seed failed: {ex}");
+   }
+
+    var lowered = email.ToLower();
+  var hashed = HashPassword(password);
+      
+     System.Diagnostics.Debug.WriteLine($"AuthService.SignInAsync: attempting lookup for {lowered}");
+       
+      // FIRST: Check Users table
+var user = await _db.Users.FirstOrDefaultAsync(u => u.Email.ToLower() == lowered);
+   
+        if (user != null)
+     {
+         System.Diagnostics.Debug.WriteLine($"AuthService.SignInAsync: found in Users table");
+           
+     if (user.PasswordHash != hashed)
+   {
+        System.Diagnostics.Debug.WriteLine($"AuthService.SignInAsync: password mismatch in Users table");
+     return false;
+  }
+
+ IsAuthenticated = true;
+  Email = user.Email;
+ Role = user.Role;
+           FullName = user.FullName;
+                AuthenticationStateChanged?.Invoke();
+        System.Diagnostics.Debug.WriteLine($"AuthService.SignInAsync: success from Users table, role={user.Role}");
+         return true;
+       }
+   
+        // SECOND: Check Agents table
+            var agent = await _db.Agents.FirstOrDefaultAsync(a => a.Email.ToLower() == lowered);
+ 
+            if (agent != null)
+ {
+    System.Diagnostics.Debug.WriteLine($"AuthService.SignInAsync: found in Agents table");
+        
+  // Check if agent is active
+            if (!agent.IsActive)
+         {
+      System.Diagnostics.Debug.WriteLine($"AuthService.SignInAsync: agent account is inactive");
+       return false;
+           }
+       
+        // Check if agent is locked
+       if (agent.IsLocked)
+      {
+    System.Diagnostics.Debug.WriteLine($"AuthService.SignInAsync: agent account is locked");
+      return false;
+   }
+               
+    if (agent.PasswordHash != hashed)
+   {
+      System.Diagnostics.Debug.WriteLine($"AuthService.SignInAsync: password mismatch in Agents table");
+     
+         // Increment failed login count
+  agent.FailedLoginCount++;
+                  if (agent.FailedLoginCount >= 5)
+   {
+       agent.IsLocked = true;
+       System.Diagnostics.Debug.WriteLine($"AuthService.SignInAsync: agent locked after 5 failed attempts");
+   }
+            await _db.SaveChangesAsync();
+
+  return false;
+     }
+
+  // Successful login - reset failed attempts and update last login
+       agent.FailedLoginCount = 0;
+                  agent.LastLoginAt = DateTime.UtcNow;
+  await _db.SaveChangesAsync();
+    
+       IsAuthenticated = true;
+     Email = agent.Email;
+       Role = "Agent";
+      FullName = agent.FullName;
+             AuthenticationStateChanged?.Invoke();
+       System.Diagnostics.Debug.WriteLine($"AuthService.SignInAsync: success from Agents table");
+      return true;
+            }
+    
+    // Not found in either table
+  System.Diagnostics.Debug.WriteLine($"AuthService.SignInAsync: user/agent not found in either table");
+      return false;
+ }
+     catch (Exception ex)
+   {
+           System.Diagnostics.Debug.WriteLine($"AuthService.SignInAsync error: {ex}");
+        return false;
+            }
+  }
+
+        public void SignOut()
+        {
+   IsAuthenticated = false;
+            Email = null;
+     Role = null;
+     FullName = null;
+            AuthenticationStateChanged?.Invoke();
+     }
+    }
+}

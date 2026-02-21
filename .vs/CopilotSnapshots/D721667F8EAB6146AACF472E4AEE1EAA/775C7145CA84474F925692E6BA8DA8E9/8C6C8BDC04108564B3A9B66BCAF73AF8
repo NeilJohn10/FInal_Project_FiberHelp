@@ -1,0 +1,1089 @@
+﻿using System;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using System.Threading;
+using System.Threading.Tasks;
+using FiberHelp.Data;
+using FiberHelp.Data.context;
+using FiberHelp.Models;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace FiberHelp.Services
+{
+    public class DualWriteService
+    {
+        private readonly IServiceScopeFactory _scopeFactory;
+        
+        // Safe JSON options that handle reference cycles
+        private static readonly JsonSerializerOptions _jsonOptions = new()
+        {
+            ReferenceHandler = ReferenceHandler.IgnoreCycles,
+            WriteIndented = false
+        };
+
+        public DualWriteService(IServiceScopeFactory scopeFactory)
+        {
+            _scopeFactory = scopeFactory;
+        }
+            
+        public async Task EnqueueAsync<T>(string operation, T entity, string? key = null) where T : class
+        {
+            using var scope = _scopeFactory.CreateScope();
+            var local = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+            await EnsureOutboxTableAsync(local);
+            try { await local.Database.EnsureCreatedAsync(); } catch { }
+
+            // 1) Apply change to LOCAL DB immediately
+            await ApplyLocalAsync(local, operation, entity);
+            await local.SaveChangesAsync();
+
+            // 2) Enqueue message so the cloud gets the change (using safe serialization)
+            var json = JsonSerializer.Serialize(entity, _jsonOptions);
+            local.Outbox.Add(new OutboxMessage
+            {
+                EntityName = typeof(T).Name,
+                Operation = operation,
+                Payload = json,
+                Key = key,
+                CreatedAt = DateTime.UtcNow
+            });
+            await local.SaveChangesAsync();
+        }
+
+        // New: Only enqueue to Outbox (no second local write)
+        public async Task EnqueueOnlyAsync<T>(string operation, T entity, string? key = null) where T : class
+        {
+            using var scope = _scopeFactory.CreateScope();
+            var local = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+            await EnsureOutboxTableAsync(local);
+            try { await local.Database.EnsureCreatedAsync(); } catch { }
+
+            // Use safe serialization options
+            var json = JsonSerializer.Serialize(entity, _jsonOptions);
+            local.Outbox.Add(new OutboxMessage
+            {
+                EntityName = typeof(T).Name,
+                Operation = operation,
+                Payload = json,
+                Key = key,
+                CreatedAt = DateTime.UtcNow
+            });
+            await local.SaveChangesAsync();
+        }
+
+        private static Task ApplyLocalAsync<T>(DbContext local, string operation, T entity) where T : class
+        {
+            try
+            {
+                var payload = JsonSerializer.Serialize(entity, _jsonOptions);
+                var copy = JsonSerializer.Deserialize<T>(payload);
+                if (copy == null) return Task.CompletedTask;
+
+                switch (operation)
+                {
+                    case "Create":
+                        local.Set<T>().Add(copy);
+                        break;
+                    case "Update":
+                        local.Set<T>().Update(copy);
+                        break;
+                    case "Delete":
+                        local.Set<T>().Remove(copy);
+                        break;
+                }
+            }
+            catch { }
+            return Task.CompletedTask;
+        }
+
+        public static async Task EnsureOutboxTableAsync(DbContext local)
+        {
+            try
+            {
+                var provider = local.Database.ProviderName ?? string.Empty;
+                if (provider.Contains("Sqlite", StringComparison.OrdinalIgnoreCase))
+                {
+                    await local.Database.ExecuteSqlRawAsync(
+                        "CREATE TABLE IF NOT EXISTS OutboxMessages (\n" +
+                        " Id INTEGER PRIMARY KEY AUTOINCREMENT,\n" +
+                        " EntityName TEXT NOT NULL,\n" +
+                        " Operation TEXT NOT NULL,\n" +
+                        " Payload TEXT NOT NULL,\n" +
+                        " Key TEXT NULL,\n" +
+                        " CreatedAt TEXT NOT NULL,\n" +
+                        " ProcessedAt TEXT NULL\n" +
+                        ")");
+                }
+                else if (provider.Contains("SqlServer", StringComparison.OrdinalIgnoreCase))
+                {
+                    await local.Database.ExecuteSqlRawAsync(@"
+IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = 'dbo' AND TABLE_NAME = 'OutboxMessages')
+BEGIN
+    CREATE TABLE [dbo].[OutboxMessages](
+        [Id] INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+        [EntityName] NVARCHAR(100) NOT NULL,
+        [Operation] NVARCHAR(20) NOT NULL,
+        [Payload] NVARCHAR(MAX) NOT NULL,
+        [Key] NVARCHAR(100) NULL,
+        [CreatedAt] DATETIME2 NOT NULL,
+        [ProcessedAt] DATETIME2 NULL
+    );
+END");
+                }
+                else
+                {
+                    await local.Database.EnsureCreatedAsync();
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"EnsureOutboxTableAsync error: {ex.Message}");
+            }
+        }
+    }
+
+    public class OutboxProcessor
+    {
+        private readonly IServiceScopeFactory _scopeFactory;
+        private static readonly TimeSpan Interval = TimeSpan.FromSeconds(10);
+        private CancellationTokenSource? _cts;
+        private static DateTime? _lastSuccessfulSync;
+        private static int _consecutiveFailures;
+
+        public OutboxProcessor(IServiceScopeFactory scopeFactory)
+        {
+            _scopeFactory = scopeFactory;
+        }
+
+        public void Start()
+        {
+            _cts = new CancellationTokenSource();
+            _ = Task.Run(() => RunAsync(_cts.Token));
+            System.Diagnostics.Debug.WriteLine("OutboxProcessor started - will sync to cloud every 5 seconds");
+        }
+
+        public void Stop()
+        {
+            _cts?.Cancel();
+            System.Diagnostics.Debug.WriteLine("OutboxProcessor stopped");
+        }
+
+        private async Task RunAsync(CancellationToken token)
+        {
+            while (!token.IsCancellationRequested)
+            {
+                try
+                {
+                    using var scope = _scopeFactory.CreateScope();
+                    var online = scope.ServiceProvider.GetRequiredService<onlineContext>();
+                    var local = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+                    // Test cloud connection with detailed logging
+                    bool canConnect = false;
+                    try 
+                    { 
+                        canConnect = online.Database.CanConnect();
+                        if (!canConnect)
+                        {
+                            _consecutiveFailures++;
+                            if (_consecutiveFailures % 12 == 1) // Log every minute (12 * 5 seconds)
+                            {
+                                System.Diagnostics.Debug.WriteLine($"OutboxProcessor: Cannot connect to cloud database. Failures: {_consecutiveFailures}");
+                            }
+                            goto Sleep;
+                        }
+                    } 
+                    catch (Exception connEx) 
+                    { 
+                        _consecutiveFailures++;
+                        if (_consecutiveFailures % 12 == 1)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"OutboxProcessor: Cloud connection error: {connEx.Message}");
+                        }
+                        goto Sleep; 
+                    }
+
+                    // Reset failure counter on successful connection
+                    if (_consecutiveFailures > 0)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"OutboxProcessor: Cloud connection restored after {_consecutiveFailures} failures");
+                        _consecutiveFailures = 0;
+                    }
+
+                    await DualWriteService.EnsureOutboxTableAsync(local);
+
+                    var batch = await local.Outbox
+                        .OrderBy(o => o.Id)
+                        .Where(o => o.ProcessedAt == null)
+                        .Take(200)
+                        .ToListAsync(token);
+
+                    if (batch.Count == 0) 
+                    {
+                        goto Sleep;
+                    }
+
+                    System.Diagnostics.Debug.WriteLine($"OutboxProcessor: Processing {batch.Count} pending messages...");
+
+                    // Reorder by dependency to reduce FK issues
+                    int Priority(OutboxMessage m) => m.EntityName switch
+                    {
+                        nameof(Account) => 0,
+                        nameof(Client) => 1,
+                        nameof(User) => 2,
+                        nameof(Agent) => 3,
+                        nameof(Technician) => 3,  // Same priority as Agent
+                        nameof(Invoice) => 4,
+                        nameof(Ticket) => 5,
+                        nameof(Expense) => 6,     // Expenses have no FK dependencies
+                        _ => 9
+                    };
+                    var ordered = batch.OrderBy(Priority).ThenBy(m => m.Id).ToList();
+
+                    foreach (var msg in ordered)
+                    {
+                        try
+                        {
+                            switch (msg.EntityName)
+                            {
+                                case nameof(Ticket):
+                                    await ApplyTicketAsync(online, msg);
+                                    break;
+                                case nameof(Client):
+                                    await ApplyClientAsync(online, msg);
+                                    break;
+                                case nameof(Account):
+                                    await ApplyAccountAsync(online, msg);
+                                    break;
+                                case nameof(Invoice):
+                                    await ApplyInvoiceAsync(online, msg);
+                                    break;
+                                case nameof(User):
+                                    await ApplyAsync<User>(online, msg);
+                                    break;
+                                case nameof(Agent):
+                                    await ApplyAgentAsync(online, msg);
+                                    break;
+                                case nameof(Technician):
+                                    await ApplyTechnicianAsync(online, msg);
+                                    break;
+                                case nameof(Expense):
+                                    await ApplyExpenseAsync(online, msg);
+                                    break;
+                                case nameof(TransactionProof):
+                                    await ApplyTransactionProofAsync(online, msg);
+                                    break;
+                                case nameof(ClientFeedback):
+                                    await ApplyClientFeedbackAsync(online, msg);
+                                    break;
+                                default:
+                                    msg.ProcessedAt = DateTime.UtcNow;
+                                    break;
+                            }
+
+                            // Try saving just this change
+                            var changed = online.ChangeTracker.HasChanges();
+                            if (changed)
+                            {
+                                await online.SaveChangesAsync(token);
+                                System.Diagnostics.Debug.WriteLine($"OutboxProcessor: Synced {msg.EntityName} {msg.Operation} Id={msg.Key ?? msg.Id.ToString()} to cloud");
+                            }
+                            // Mark processed on success
+                            msg.ProcessedAt = DateTime.UtcNow;
+                            await local.SaveChangesAsync(token);
+                        }
+                        catch (Exception ex)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"OutboxProcessor message error Id={msg.Id} Entity={msg.EntityName} Op={msg.Operation}: {ex.Message}");
+                            // leave ProcessedAt null to retry next cycle
+                            // Clear pending changes to avoid blocking subsequent messages
+                            try
+                            {
+                                foreach (var entry in online.ChangeTracker.Entries().ToList())
+                                {
+                                    switch (entry.State)
+                                    {
+                                        case EntityState.Added:
+                                        case EntityState.Modified:
+                                        case EntityState.Deleted:
+                                            entry.State = EntityState.Detached;
+                                            break;
+                                    }
+                                }
+                            }
+                            catch { }
+                        }
+                    }
+                    
+                    // Log sync summary
+                    var processedCount = ordered.Count(m => m.ProcessedAt != null);
+                    var failedCount = ordered.Count - processedCount;
+                    _lastSuccessfulSync = DateTime.UtcNow;
+                    System.Diagnostics.Debug.WriteLine($"OutboxProcessor: Batch complete - {processedCount} synced, {failedCount} failed/pending retry");
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"OutboxProcessor cycle error: {ex.Message}");
+                }
+
+            Sleep:
+                try { await Task.Delay(TimeSpan.FromSeconds(5), token); } catch { }
+            }
+        }
+
+        private static async Task ApplyAsync<T>(DbContext online, OutboxMessage msg) where T : class
+        {
+            try
+            {
+                var entity = System.Text.Json.JsonSerializer.Deserialize<T>(msg.Payload);
+                if (entity == null) { msg.ProcessedAt = DateTime.UtcNow; return; }
+                switch (msg.Operation)
+                {
+                    case "Create":
+                        // reset int identity key to allow cloud to generate new id
+                        try
+                        {
+                            var prop = typeof(T).GetProperty("Id");
+                            if (prop != null && prop.PropertyType == typeof(int))
+                            {
+                                prop.SetValue(entity, 0);
+							}
+                        }
+                        catch { }
+                        online.Set<T>().Add(entity);
+                        break;
+                    case "Update":
+                        online.Set<T>().Update(entity);
+                        break;
+                    case "Delete":
+                        online.Set<T>().Remove(entity);
+                        break;
+                    default:
+                        msg.ProcessedAt = DateTime.UtcNow;
+                        break;
+                }
+            }
+            catch { }
+        }
+
+        private static async Task ApplyClientAsync(DbContext online, OutboxMessage msg)
+        {
+            try
+            {
+                var entity = System.Text.Json.JsonSerializer.Deserialize<Client>(msg.Payload);
+                if (entity == null) { msg.ProcessedAt = DateTime.UtcNow; return; }
+
+                // Normalize fields to avoid null/whitespace issues
+                entity.Name = entity.Name?.Trim() ?? string.Empty;
+                entity.Email = string.IsNullOrWhiteSpace(entity.Email) ? null : entity.Email.Trim();
+
+                if (string.Equals(msg.Operation, "Delete", StringComparison.OrdinalIgnoreCase))
+                {
+                    var hasTickets = await online.Set<Ticket>().AnyAsync(t => t.ClientId == entity.Id);
+                    if (hasTickets) { msg.ProcessedAt = DateTime.UtcNow; return; }
+                    var existing = await online.Set<Client>().FindAsync(entity.Id);
+                    if (existing != null)
+                    {
+                        online.Set<Client>().Remove(existing);
+                    }
+                    else
+                    {
+                        // Nothing to delete
+                        msg.ProcessedAt = DateTime.UtcNow; return;
+                    }
+                }
+                else if (string.Equals(msg.Operation, "Create", StringComparison.OrdinalIgnoreCase))
+                {
+                    // Upsert: if exists, update; else add
+                    var existing = await online.Set<Client>().FindAsync(entity.Id);
+                    if (existing != null)
+                    {
+                        existing.Name = entity.Name;
+                        existing.Email = entity.Email;
+                        existing.Plan = entity.Plan;
+                        existing.Status = entity.Status;
+                        existing.JoinDate = entity.JoinDate == default ? existing.JoinDate : entity.JoinDate;
+                        existing.AccountId = entity.AccountId;
+                        online.Set<Client>().Update(existing);
+                    }
+                    else
+                    {
+                        online.Set<Client>().Add(entity);
+                    }
+                }
+                else if (string.Equals(msg.Operation, "Update", StringComparison.OrdinalIgnoreCase))
+                {
+                    var existing = await online.Set<Client>().FindAsync(entity.Id);
+                    if (existing != null)
+                    {
+                        existing.Name = entity.Name;
+                        existing.Email = entity.Email;
+                        existing.Plan = entity.Plan;
+                        existing.Status = entity.Status;
+                        existing.AccountId = entity.AccountId;
+                        online.Set<Client>().Update(existing);
+                    }
+                    else
+                    {
+                        // If not found, add as new
+                        online.Set<Client>().Add(entity);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"ApplyClientAsync error: {ex.Message}");
+            }
+        }
+
+        private static async Task ApplyAccountAsync(DbContext online, OutboxMessage msg)
+        {
+            try
+            {
+                var entity = System.Text.Json.JsonSerializer.Deserialize<Account>(msg.Payload);
+                if (entity == null) { msg.ProcessedAt = DateTime.UtcNow; return; }
+                if (string.Equals(msg.Operation, "Delete", StringComparison.OrdinalIgnoreCase))
+                {
+                    var hasClients = await online.Set<Client>().AnyAsync(c => c.AccountId == entity.Id);
+                    var hasTickets = await online.Set<Ticket>().AnyAsync(t => t.AccountId == entity.Id);
+                    if (hasClients || hasTickets) { msg.ProcessedAt = DateTime.UtcNow; return; }
+                    online.Set<Account>().Remove(entity);
+                }
+                else if (string.Equals(msg.Operation, "Create", StringComparison.OrdinalIgnoreCase))
+                {
+                    entity.Id = 0; // let cloud generate identity
+                    online.Set<Account>().Add(entity);
+                }
+                else if (string.Equals(msg.Operation, "Update", StringComparison.OrdinalIgnoreCase))
+                {
+                    online.Set<Account>().Update(entity);
+                }
+            }
+            catch { }
+        }
+
+        private static async Task ApplyTechnicianAsync(DbContext online, OutboxMessage msg)
+        {
+            try
+            {
+                var entity = System.Text.Json.JsonSerializer.Deserialize<Technician>(msg.Payload);
+                if (entity == null) { msg.ProcessedAt = DateTime.UtcNow; return; }
+
+                // Normalize fields
+                entity.Email = entity.Email?.Trim().ToLowerInvariant() ?? string.Empty;
+                entity.FullName = entity.FullName?.Trim() ?? string.Empty;
+
+                if (string.Equals(msg.Operation, "Delete", StringComparison.OrdinalIgnoreCase))
+                {
+                    // Check if technician has assigned tickets
+                    var hasAssignedTickets = await online.Set<Ticket>().AnyAsync(t => t.AssignedTechnicianId == entity.Id);
+                    if (hasAssignedTickets) 
+                    { 
+                        // Skip delete if has tickets - mark as processed to avoid retry loop
+                        msg.ProcessedAt = DateTime.UtcNow; 
+                        return; 
+                    }
+                    
+                    var existing = await online.Set<Technician>().FindAsync(entity.Id);
+                    if (existing != null)
+                    {
+                        online.Set<Technician>().Remove(existing);
+                    }
+                    else
+                    {
+                        msg.ProcessedAt = DateTime.UtcNow;
+                        return;
+                    }
+                }
+                else if (string.Equals(msg.Operation, "Create", StringComparison.OrdinalIgnoreCase))
+                {
+                    // Upsert: if exists, update; else add
+                    var existing = await online.Set<Technician>().FindAsync(entity.Id);
+                    if (existing != null)
+                    {
+                        existing.Email = entity.Email;
+                        existing.PasswordHash = entity.PasswordHash;
+                        existing.FullName = entity.FullName;
+                        existing.Phone = entity.Phone;
+                        existing.ServiceArea = entity.ServiceArea;
+                        existing.Department = entity.Department;
+                        existing.Specialization = entity.Specialization;
+                        existing.IsActive = entity.IsActive;
+                        existing.IsLocked = entity.IsLocked;
+                        existing.FailedLoginCount = entity.FailedLoginCount;
+                        existing.LastLoginAt = entity.LastLoginAt;
+                        existing.UpdatedAt = DateTime.UtcNow;
+                        existing.PasswordChangedAt = entity.PasswordChangedAt;
+                        existing.Notes = entity.Notes;
+                        online.Set<Technician>().Update(existing);
+                    }
+                    else
+                    {
+                        online.Set<Technician>().Add(entity);
+                    }
+                }
+                else if (string.Equals(msg.Operation, "Update", StringComparison.OrdinalIgnoreCase))
+                {
+                    var existing = await online.Set<Technician>().FindAsync(entity.Id);
+                    if (existing != null)
+                    {
+                        existing.Email = entity.Email;
+                        existing.PasswordHash = entity.PasswordHash;
+                        existing.FullName = entity.FullName;
+                        existing.Phone = entity.Phone;
+                        existing.ServiceArea = entity.ServiceArea;
+                        existing.Department = entity.Department;
+                        existing.Specialization = entity.Specialization;
+                        existing.IsActive = entity.IsActive;
+                        existing.IsLocked = entity.IsLocked;
+                        existing.FailedLoginCount = entity.FailedLoginCount;
+                        existing.LastLoginAt = entity.LastLoginAt;
+                        existing.UpdatedAt = DateTime.UtcNow;
+                        existing.PasswordChangedAt = entity.PasswordChangedAt;
+                        existing.Notes = entity.Notes;
+                        online.Set<Technician>().Update(existing);
+                    }
+                    else
+                    {
+                        // If not found in cloud, add as new
+                        online.Set<Technician>().Add(entity);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"ApplyTechnicianAsync error: {ex.Message}");
+            }
+        }
+
+        private static async Task ApplyAgentAsync(DbContext online, OutboxMessage msg)
+        {
+            try
+            {
+                var entity = System.Text.Json.JsonSerializer.Deserialize<Agent>(msg.Payload);
+                if (entity == null) { msg.ProcessedAt = DateTime.UtcNow; return; }
+
+                // Normalize fields
+                entity.Email = entity.Email?.Trim().ToLowerInvariant() ?? string.Empty;
+                entity.FullName = entity.FullName?.Trim() ?? string.Empty;
+
+                if (string.Equals(msg.Operation, "Delete", StringComparison.OrdinalIgnoreCase))
+                {
+                    var existing = await online.Set<Agent>().FindAsync(entity.Id);
+                    if (existing != null)
+                    {
+                        online.Set<Agent>().Remove(existing);
+                    }
+                    else
+                    {
+                        msg.ProcessedAt = DateTime.UtcNow;
+                        return;
+                    }
+                }
+                else if (string.Equals(msg.Operation, "Create", StringComparison.OrdinalIgnoreCase))
+                {
+                    // Upsert: if exists, update; else add
+                    var existing = await online.Set<Agent>().FindAsync(entity.Id);
+                    if (existing != null)
+                    {
+                        existing.Email = entity.Email;
+                        existing.PasswordHash = entity.PasswordHash;
+                        existing.FullName = entity.FullName;
+                        existing.Role = entity.Role;
+                        existing.Phone = entity.Phone;
+                        existing.Department = entity.Department;
+                        existing.ServiceArea = entity.ServiceArea;
+                        existing.IsActive = entity.IsActive;
+                        existing.IsLocked = entity.IsLocked;
+                        existing.FailedLoginCount = entity.FailedLoginCount;
+                        existing.LastLoginAt = entity.LastLoginAt;
+                        existing.UpdatedAt = DateTime.UtcNow;
+                        existing.PasswordChangedAt = entity.PasswordChangedAt;
+                        online.Set<Agent>().Update(existing);
+                    }
+                    else
+                    {
+                        online.Set<Agent>().Add(entity);
+                    }
+                }
+                else if (string.Equals(msg.Operation, "Update", StringComparison.OrdinalIgnoreCase))
+                {
+                    var existing = await online.Set<Agent>().FindAsync(entity.Id);
+                    if (existing != null)
+                    {
+                        existing.Email = entity.Email;
+                        existing.PasswordHash = entity.PasswordHash;
+                        existing.FullName = entity.FullName;
+                        existing.Role = entity.Role;
+                        existing.Phone = entity.Phone;
+                        existing.Department = entity.Department;
+                        existing.ServiceArea = entity.ServiceArea;
+                        existing.IsActive = entity.IsActive;
+                        existing.IsLocked = entity.IsLocked;
+                        existing.FailedLoginCount = entity.FailedLoginCount;
+                        existing.LastLoginAt = entity.LastLoginAt;
+                        existing.UpdatedAt = DateTime.UtcNow;
+                        existing.PasswordChangedAt = entity.PasswordChangedAt;
+                        online.Set<Agent>().Update(existing);
+                    }
+                    else
+                    {
+                        // If not found in cloud, add as new
+                        online.Set<Agent>().Add(entity);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"ApplyAgentAsync error: {ex.Message}");
+            }
+        }
+
+        private static async Task ApplyTicketAsync(DbContext online, OutboxMessage msg)
+        {
+            try
+            {
+                var entity = System.Text.Json.JsonSerializer.Deserialize<Ticket>(msg.Payload);
+                if (entity == null) { msg.ProcessedAt = DateTime.UtcNow; return; }
+
+                // Normalize fields
+                entity.Title = entity.Title?.Trim() ?? string.Empty;
+                entity.Status = entity.Status?.Trim() ?? "Open";
+
+                if (string.Equals(msg.Operation, "Delete", StringComparison.OrdinalIgnoreCase))
+                {
+                    var existing = await online.Set<Ticket>().FindAsync(entity.Id);
+                    if (existing != null)
+                    {
+                        online.Set<Ticket>().Remove(existing);
+                    }
+                    else
+                    {
+                        msg.ProcessedAt = DateTime.UtcNow;
+                        return;
+                    }
+                }
+                else if (string.Equals(msg.Operation, "Create", StringComparison.OrdinalIgnoreCase))
+                {
+                    // Upsert: if exists, update; else add
+                    var existing = await online.Set<Ticket>().FindAsync(entity.Id);
+                    if (existing != null)
+                    {
+                        // Update all fields
+                        existing.Title = entity.Title;
+                        existing.Status = entity.Status;
+                        existing.Priority = entity.Priority;
+                        existing.ClientId = entity.ClientId;
+                        existing.ClientName = entity.ClientName;
+                        existing.AccountId = entity.AccountId;
+                        existing.AssignedAgentId = entity.AssignedAgentId;
+                        existing.AssignedTechnicianId = entity.AssignedTechnicianId;
+                        existing.AssignedAt = entity.AssignedAt;
+                        existing.ResolvedByTechnicianId = entity.ResolvedByTechnicianId;
+                        existing.ResolvedAt = entity.ResolvedAt;
+                        existing.ResolutionNotes = entity.ResolutionNotes;
+                        existing.IsArchived = entity.IsArchived;
+                        existing.ArchivedAt = entity.ArchivedAt;
+                        existing.ArchivedByUserId = entity.ArchivedByUserId;
+                        existing.ClosedAt = entity.ClosedAt;
+                        online.Set<Ticket>().Update(existing);
+                    }
+                    else
+                    {
+                        entity.Id = 0; // Let cloud generate identity
+                        online.Set<Ticket>().Add(entity);
+                    }
+                }
+                else if (string.Equals(msg.Operation, "Update", StringComparison.OrdinalIgnoreCase))
+                {
+                    var existing = await online.Set<Ticket>().FindAsync(entity.Id);
+                    if (existing != null)
+                    {
+                        // Update all fields including resolution data
+                        existing.Title = entity.Title;
+                        existing.Status = entity.Status;
+                        existing.Priority = entity.Priority;
+                        existing.ClientId = entity.ClientId;
+                        existing.ClientName = entity.ClientName;
+                        existing.AccountId = entity.AccountId;
+                        existing.AssignedAgentId = entity.AssignedAgentId;
+                        existing.AssignedTechnicianId = entity.AssignedTechnicianId;
+                        existing.AssignedAt = entity.AssignedAt;
+                        existing.ResolvedByTechnicianId = entity.ResolvedByTechnicianId;
+                        existing.ResolvedAt = entity.ResolvedAt;
+                        existing.ResolutionNotes = entity.ResolutionNotes;
+                        existing.IsArchived = entity.IsArchived;
+                        existing.ArchivedAt = entity.ArchivedAt;
+                        existing.ArchivedByUserId = entity.ArchivedByUserId;
+                        existing.ClosedAt = entity.ClosedAt;
+                        online.Set<Ticket>().Update(existing);
+                    }
+                    else
+                    {
+                        // If not found in cloud, add as new (with cloud-generated ID)
+                        entity.Id = 0;
+                        online.Set<Ticket>().Add(entity);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"ApplyTicketAsync error: {ex.Message}");
+            }
+        }
+
+        private static async Task ApplyExpenseAsync(DbContext online, OutboxMessage msg)
+        {
+            try
+            {
+                var entity = System.Text.Json.JsonSerializer.Deserialize<Expense>(msg.Payload);
+                if (entity == null) { msg.ProcessedAt = DateTime.UtcNow; return; }
+
+                // Normalize fields
+                entity.Description = entity.Description?.Trim() ?? string.Empty;
+                entity.Category = entity.Category?.Trim() ?? "General";
+
+                if (string.Equals(msg.Operation, "Delete", StringComparison.OrdinalIgnoreCase))
+                {
+                    var existing = await online.Set<Expense>().FindAsync(entity.Id);
+                    if (existing != null)
+                    {
+                        online.Set<Expense>().Remove(existing);
+                    }
+                    else
+                    {
+                        msg.ProcessedAt = DateTime.UtcNow;
+                        return;
+                    }
+                }
+                else if (string.Equals(msg.Operation, "Create", StringComparison.OrdinalIgnoreCase))
+                {
+                    // Upsert: if exists, update; else add
+                    var existing = await online.Set<Expense>().FindAsync(entity.Id);
+                    if (existing != null)
+                    {
+                        // Update all fields
+                        existing.Date = entity.Date;
+                        existing.Category = entity.Category;
+                        existing.Description = entity.Description;
+                        existing.Amount = entity.Amount;
+                        existing.Reference = entity.Reference;
+                        online.Set<Expense>().Update(existing);
+                    }
+                    else
+                    {
+                        entity.Id = 0; // Let cloud generate identity
+                        online.Set<Expense>().Add(entity);
+                    }
+                }
+                else if (string.Equals(msg.Operation, "Update", StringComparison.OrdinalIgnoreCase))
+                {
+                    var existing = await online.Set<Expense>().FindAsync(entity.Id);
+                    if (existing != null)
+                    {
+                        // Update all fields
+                        existing.Date = entity.Date;
+                        existing.Category = entity.Category;
+                        existing.Description = entity.Description;
+                        existing.Amount = entity.Amount;
+                        existing.Reference = entity.Reference;
+                        online.Set<Expense>().Update(existing);
+                    }
+                    else
+                    {
+                        // If not found in cloud, add as new
+                        entity.Id = 0;
+                        online.Set<Expense>().Add(entity);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"ApplyExpenseAsync error: {ex.Message}");
+            }
+        }
+
+        private static async Task ApplyInvoiceAsync(DbContext online, OutboxMessage msg)
+        {
+            try
+            {
+                var entity = System.Text.Json.JsonSerializer.Deserialize<Invoice>(msg.Payload);
+                if (entity == null) { msg.ProcessedAt = DateTime.UtcNow; return; }
+
+                // Normalize fields
+                entity.Status = entity.Status?.Trim() ?? "Unpaid";
+                entity.InvoiceType = entity.InvoiceType?.Trim() ?? "Subscription";
+
+                if (string.Equals(msg.Operation, "Delete", StringComparison.OrdinalIgnoreCase))
+                {
+                    var existing = await online.Set<Invoice>().FindAsync(entity.Id);
+                    if (existing != null)
+                    {
+                        online.Set<Invoice>().Remove(existing);
+                    }
+                    else
+                    {
+                        msg.ProcessedAt = DateTime.UtcNow;
+                        return;
+                    }
+                }
+                else if (string.Equals(msg.Operation, "Create", StringComparison.OrdinalIgnoreCase))
+                {
+                    // Check by Key (which contains the local ID) to avoid duplicates
+                    // Also check if invoice with same AccountId, ClientId, IssueDate, and Amount exists
+                    Invoice? existing = null;
+                    
+                    // First try to find by local ID (if already synced before)
+                    if (entity.Id > 0)
+                    {
+                        existing = await online.Set<Invoice>().FindAsync(entity.Id);
+                    }
+                    
+                    // If not found, check for duplicate by unique characteristics
+                    if (existing == null)
+                    {
+                        existing = await online.Set<Invoice>()
+                            .FirstOrDefaultAsync(i => 
+                                i.ClientId == entity.ClientId &&
+                                i.AccountId == entity.AccountId &&
+                                i.IssueDate.Date == entity.IssueDate.Date &&
+                                i.AmountDue == entity.AmountDue &&
+                                i.InvoiceType == entity.InvoiceType);
+                    }
+
+                    if (existing != null)
+                    {
+                        // Update existing invoice
+                        existing.AccountName = entity.AccountName;
+                        existing.ClientName = entity.ClientName;
+                        existing.AmountDue = entity.AmountDue;
+                        existing.DueDate = entity.DueDate;
+                        existing.Status = entity.Status;
+                        existing.PaymentRef = entity.PaymentRef;
+                        existing.PaidDate = entity.PaidDate;
+                        existing.Notes = entity.Notes;
+                        existing.InvoiceType = entity.InvoiceType;
+                        existing.RelatedTicketId = entity.RelatedTicketId;
+                        online.Set<Invoice>().Update(existing);
+                    }
+                    else
+                    {
+                        // Add new - let cloud generate ID
+                        entity.Id = 0;
+                        online.Set<Invoice>().Add(entity);
+                    }
+                }
+                else if (string.Equals(msg.Operation, "Update", StringComparison.OrdinalIgnoreCase))
+                {
+                    // Try to find by ID first
+                    var existing = await online.Set<Invoice>().FindAsync(entity.Id);
+                    
+                    // If not found, search by unique characteristics
+                    if (existing == null)
+                    {
+                        existing = await online.Set<Invoice>()
+                            .FirstOrDefaultAsync(i => 
+                                i.ClientId == entity.ClientId &&
+                                i.AccountId == entity.AccountId &&
+                                i.IssueDate.Date == entity.IssueDate.Date &&
+                                i.AmountDue == entity.AmountDue);
+                    }
+
+                    if (existing != null)
+                    {
+                        // Update all fields
+                        existing.AccountName = entity.AccountName;
+                        existing.ClientName = entity.ClientName;
+                        existing.AmountDue = entity.AmountDue;
+                        existing.DueDate = entity.DueDate;
+                        existing.Status = entity.Status;
+                        existing.PaymentRef = entity.PaymentRef;
+                        existing.PaidDate = entity.PaidDate;
+                        existing.Notes = entity.Notes;
+                        existing.InvoiceType = entity.InvoiceType;
+                        existing.RelatedTicketId = entity.RelatedTicketId;
+                        online.Set<Invoice>().Update(existing);
+                    }
+                    else
+                    {
+                        // If not found in cloud, add as new
+                        entity.Id = 0;
+                        online.Set<Invoice>().Add(entity);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"ApplyInvoiceAsync error: {ex.Message}");
+            }
+        }
+
+        private static async Task ApplyTransactionProofAsync(DbContext online, OutboxMessage msg)
+        {
+            try
+            {
+                var entity = System.Text.Json.JsonSerializer.Deserialize<TransactionProof>(msg.Payload);
+                if (entity == null) { msg.ProcessedAt = DateTime.UtcNow; return; }
+
+                if (string.Equals(msg.Operation, "Delete", StringComparison.OrdinalIgnoreCase))
+                {
+                    var existing = await online.Set<TransactionProof>().FindAsync(entity.Id);
+                    if (existing != null)
+                    {
+                        online.Set<TransactionProof>().Remove(existing);
+                    }
+                    else
+                    {
+                        msg.ProcessedAt = DateTime.UtcNow;
+                        return;
+                    }
+                }
+                else if (string.Equals(msg.Operation, "Create", StringComparison.OrdinalIgnoreCase))
+                {
+                    // Check for existing by reference number
+                    var existing = await online.Set<TransactionProof>()
+                        .FirstOrDefaultAsync(p => p.ReferenceNumber == entity.ReferenceNumber);
+
+                    if (existing != null)
+                    {
+                        existing.Status = entity.Status;
+                        existing.AcknowledgedAt = entity.AcknowledgedAt;
+                        existing.Notes = entity.Notes;
+                        online.Set<TransactionProof>().Update(existing);
+                    }
+                    else
+                    {
+                        entity.Id = 0;
+                        online.Set<TransactionProof>().Add(entity);
+                    }
+                }
+                else if (string.Equals(msg.Operation, "Update", StringComparison.OrdinalIgnoreCase))
+                {
+                    var existing = await online.Set<TransactionProof>().FindAsync(entity.Id);
+                    if (existing == null)
+                    {
+                        existing = await online.Set<TransactionProof>()
+                            .FirstOrDefaultAsync(p => p.ReferenceNumber == entity.ReferenceNumber);
+                    }
+
+                    if (existing != null)
+                    {
+                        existing.Status = entity.Status;
+                        existing.AcknowledgedAt = entity.AcknowledgedAt;
+                        existing.Notes = entity.Notes;
+                        online.Set<TransactionProof>().Update(existing);
+                    }
+                    else
+                    {
+                        entity.Id = 0;
+                        online.Set<TransactionProof>().Add(entity);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"ApplyTransactionProofAsync error: {ex.Message}");
+            }
+        }
+
+        private static async Task ApplyClientFeedbackAsync(DbContext online, OutboxMessage msg)
+        {
+            try
+            {
+                var entity = System.Text.Json.JsonSerializer.Deserialize<ClientFeedback>(msg.Payload);
+                if (entity == null) { msg.ProcessedAt = DateTime.UtcNow; return; }
+
+                if (string.Equals(msg.Operation, "Delete", StringComparison.OrdinalIgnoreCase))
+                {
+                    var existing = await online.Set<ClientFeedback>().FindAsync(entity.Id);
+                    if (existing != null)
+                    {
+                        online.Set<ClientFeedback>().Remove(existing);
+                    }
+                    else
+                    {
+                        msg.ProcessedAt = DateTime.UtcNow;
+                        return;
+                    }
+                }
+                else if (string.Equals(msg.Operation, "Create", StringComparison.OrdinalIgnoreCase))
+                {
+                    // Check for duplicate feedback (same client, same ticket)
+                    ClientFeedback? existing = null;
+                    if (entity.TicketId.HasValue)
+                    {
+                        existing = await online.Set<ClientFeedback>()
+                            .FirstOrDefaultAsync(f => f.TicketId == entity.TicketId && f.ClientId == entity.ClientId);
+                    }
+
+                    if (existing != null)
+                    {
+                        // Update existing feedback
+                        existing.Rating = entity.Rating;
+                        existing.ServiceQualityRating = entity.ServiceQualityRating;
+                        existing.ResponseTimeRating = entity.ResponseTimeRating;
+                        existing.ProfessionalismRating = entity.ProfessionalismRating;
+                        existing.CommunicationRating = entity.CommunicationRating;
+                        existing.WouldRecommend = entity.WouldRecommend;
+                        existing.Comments = entity.Comments;
+                        existing.Status = entity.Status;
+                        existing.IsReviewed = entity.IsReviewed;
+                        existing.ReviewedAt = entity.ReviewedAt;
+                        existing.ReviewedById = entity.ReviewedById;
+                        existing.ReviewNotes = entity.ReviewNotes;
+                        existing.RequiresFollowUp = entity.RequiresFollowUp;
+                        existing.FollowUpNotes = entity.FollowUpNotes;
+                        existing.FollowUpCompletedAt = entity.FollowUpCompletedAt;
+                        online.Set<ClientFeedback>().Update(existing);
+                    }
+                    else
+                    {
+                        entity.Id = 0;
+                        online.Set<ClientFeedback>().Add(entity);
+                    }
+                }
+                else if (string.Equals(msg.Operation, "Update", StringComparison.OrdinalIgnoreCase))
+                {
+                    var existing = await online.Set<ClientFeedback>().FindAsync(entity.Id);
+                    if (existing == null && entity.TicketId.HasValue)
+                    {
+                        existing = await online.Set<ClientFeedback>()
+                            .FirstOrDefaultAsync(f => f.TicketId == entity.TicketId && f.ClientId == entity.ClientId);
+                    }
+
+                    if (existing != null)
+                    {
+                        existing.Rating = entity.Rating;
+                        existing.ServiceQualityRating = entity.ServiceQualityRating;
+                        existing.ResponseTimeRating = entity.ResponseTimeRating;
+                        existing.ProfessionalismRating = entity.ProfessionalismRating;
+                        existing.CommunicationRating = entity.CommunicationRating;
+                        existing.WouldRecommend = entity.WouldRecommend;
+                        existing.Comments = entity.Comments;
+                        existing.Status = entity.Status;
+                        existing.IsReviewed = entity.IsReviewed;
+                        existing.ReviewedAt = entity.ReviewedAt;
+                        existing.ReviewedById = entity.ReviewedById;
+                        existing.ReviewNotes = entity.ReviewNotes;
+                        existing.RequiresFollowUp = entity.RequiresFollowUp;
+                        existing.FollowUpNotes = entity.FollowUpNotes;
+                        existing.FollowUpCompletedAt = entity.FollowUpCompletedAt;
+                        online.Set<ClientFeedback>().Update(existing);
+                    }
+                    else
+                    {
+                        entity.Id = 0;
+                        online.Set<ClientFeedback>().Add(entity);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"ApplyClientFeedbackAsync error: {ex.Message}");
+            }
+        }
+    }
+}

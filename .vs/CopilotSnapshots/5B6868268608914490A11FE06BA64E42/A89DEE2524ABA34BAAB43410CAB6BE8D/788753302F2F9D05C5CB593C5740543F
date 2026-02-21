@@ -1,0 +1,174 @@
+﻿using FiberHelp.Models;
+using System.Security.Cryptography;
+using System.Text;
+using System;
+using System.Linq;
+using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore;
+
+namespace FiberHelp.Data
+{
+    public static class DbInitializer
+    {
+        private static string HashPassword(string password)
+        {
+            using var sha = SHA256.Create();
+            var bytes = Encoding.UTF8.GetBytes(password ?? string.Empty);
+            var hash = sha.ComputeHash(bytes);
+            return Convert.ToHexString(hash); // uppercase hex
+        }
+
+        public static void Initialize(AppDbContext context)
+        {
+            try
+            {
+                context.Database.EnsureCreated();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"DbInitializer: EnsureCreated error: {ex.Message}");
+            }
+
+            var adminEmail = "admin@fiberhelp.com";
+            var agentEmail = "agent@fiberhelp.com";
+            var techEmail = "tech@fiberhelp.com";
+            var adminPassword = "Adminlogin123@";
+            var agentPassword = "Agentlogin123@";
+            var techPassword = "Techlogin123@";
+            var adminHash = HashPassword(adminPassword);
+            var agentHash = HashPassword(agentPassword);
+            var techHash = HashPassword(techPassword);
+
+            System.Diagnostics.Debug.WriteLine($"DbInitializer: Admin hash = {adminHash}");
+            System.Diagnostics.Debug.WriteLine($"DbInitializer: Agent hash = {agentHash}");
+            System.Diagnostics.Debug.WriteLine($"DbInitializer: Tech hash = {techHash}");
+
+            // Users table seeding (for Administrator role)
+            try
+            {
+                var admin = context.Users.FirstOrDefault(u => u.Email == adminEmail);
+                if (admin == null)
+                {
+                    admin = new User { Email = adminEmail, PasswordHash = adminHash, Role = "Administrator", FullName = "System Admin" };
+                    context.Users.Add(admin);
+                    System.Diagnostics.Debug.WriteLine("DbInitializer: Created admin in Users table");
+                }
+                else
+                {
+                    // Always update to ensure correct password hash
+                    admin.PasswordHash = adminHash;
+                    admin.Role = "Administrator";
+                    context.Users.Update(admin);
+                    System.Diagnostics.Debug.WriteLine("DbInitializer: Updated admin in Users table");
+                }
+
+                // Also add agent to Users table (for backward compatibility)
+                var agentUser = context.Users.FirstOrDefault(u => u.Email == agentEmail);
+                if (agentUser == null)
+                {
+                    agentUser = new User { Email = agentEmail, PasswordHash = agentHash, Role = "Agent", FullName = "Support Agent" };
+                    context.Users.Add(agentUser);
+                    System.Diagnostics.Debug.WriteLine("DbInitializer: Created agent in Users table");
+                }
+                else
+                {
+                    agentUser.PasswordHash = agentHash;
+                    agentUser.Role = "Agent";
+                    context.Users.Update(agentUser);
+                    System.Diagnostics.Debug.WriteLine("DbInitializer: Updated agent in Users table");
+                }
+                
+                context.SaveChanges();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"DbInitializer: Users table error: {ex.Message}");
+            }
+
+            // Agents table seeding
+            try
+            {
+                // Remove admin from Agents table if exists (to prevent role confusion)
+                var aAdmin = context.Agents.FirstOrDefault(a => a.Email == adminEmail);
+                if (aAdmin != null)
+                {
+                    context.Agents.Remove(aAdmin);
+                    System.Diagnostics.Debug.WriteLine("DbInitializer: Removed admin from Agents table (admin uses Users table)");
+                }
+
+                var aAgent = context.Agents.FirstOrDefault(a => a.Email == agentEmail);
+                if (aAgent == null)
+                {
+                    context.Agents.Add(new Agent 
+                    { 
+                        Email = agentEmail, 
+                        PasswordHash = agentHash, 
+                        FullName = "Support Agent", 
+                        Role = "Support Agent",
+                        Department = "Support", 
+                        IsActive = true, 
+                        IsLocked = false,
+                        IsArchived = false
+                    });
+                    System.Diagnostics.Debug.WriteLine("DbInitializer: Created agent in Agents table");
+                }
+                else
+                {
+                    aAgent.PasswordHash = agentHash;
+                    aAgent.Role = "Support Agent";
+                    aAgent.IsActive = true;
+                    aAgent.IsLocked = false;
+                    aAgent.IsArchived = false;
+                    context.Agents.Update(aAgent);
+                    System.Diagnostics.Debug.WriteLine("DbInitializer: Updated agent in Agents table");
+                }
+
+                context.SaveChanges();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"DbInitializer: Agents table error: {ex.Message}");
+            }
+
+            // Technicians table seeding
+            try
+            {
+                var tech = context.Technicians.FirstOrDefault(t => t.Email == techEmail);
+                if (tech == null)
+                {
+                    context.Technicians.Add(new Technician
+                    {
+                        Email = techEmail,
+                        PasswordHash = techHash,
+                        FullName = "Field Technician",
+                        Department = "Field Operations",
+                        ServiceArea = "Metro Manila",
+                        Specialization = "Fiber Installation",
+                        IsActive = true,
+                        IsLocked = false,
+                        IsArchived = false
+                    });
+                    System.Diagnostics.Debug.WriteLine("DbInitializer: Created technician in Technicians table");
+                }
+                else
+                {
+                    tech.PasswordHash = techHash;
+                    tech.IsActive = true;
+                    tech.IsLocked = false;
+                    tech.IsArchived = false;
+                    context.Technicians.Update(tech);
+                    System.Diagnostics.Debug.WriteLine("DbInitializer: Updated technician in Technicians table");
+                }
+
+                context.SaveChanges();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"DbInitializer: Technicians table error: {ex.Message}");
+            }
+
+            System.Diagnostics.Debug.WriteLine("DbInitializer: Initialization complete");
+            System.Diagnostics.Debug.WriteLine($"DbInitializer: Default logins - Admin: {adminEmail}/{adminPassword}, Agent: {agentEmail}/{agentPassword}, Tech: {techEmail}/{techPassword}");
+        }
+    }
+}

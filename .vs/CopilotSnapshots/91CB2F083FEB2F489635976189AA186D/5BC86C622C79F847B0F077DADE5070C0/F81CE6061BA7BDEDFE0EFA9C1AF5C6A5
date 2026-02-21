@@ -1,0 +1,23 @@
+﻿using System;
+
+namespace FiberHelp.Models
+{
+    public class Account
+    {
+        public int Id { get; set; }
+        public string AccountNumber { get; set; } = string.Empty;
+        public string CustomerId { get; set; } = string.Empty;
+        public Customer? Customer { get; set; }
+        public string ServicePlan { get; set; } = string.Empty;
+        public bool IsActive { get; set; } = true;
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+        // New fields
+        public string? ContactName { get; set; }
+        public string? ContactEmail { get; set; }
+        public string? ContactPhone { get; set; }
+        public string? BillingAddress { get; set; }
+        // e.g., Active, Suspended, Cancelled
+        public string? ServiceStatus { get; set; }
+    }
+}

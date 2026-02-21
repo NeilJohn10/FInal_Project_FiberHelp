@@ -1,0 +1,10 @@
+```css
+/* Global toast */
+.toast-global{ position:fixed; right:24px; bottom:24px; background:#111827; color:#fff; padding:10px 16px; border-radius:10px; box-shadow:0 10px 26px rgba(0,0,0,0.2); z-index:30000; }
+/* Normalize topbar styles across pages */
+.topbar{ display:flex; align-items:center; justify-content:space-between; padding-bottom:16px; border-bottom:1px solid #e5e7eb; margin-bottom:16px }
+.top-actions{ display:flex; gap:12px; align-items:center }
+.agents-search{ padding:10px 14px; border-radius:10px; border:1px solid #e5e7eb; background:#fff }
+/* Remove old header leftovers by neutralizing conflicting rules (if any) */
+.user-pill{ display:flex; align-items:center; gap:10px }
+```

@@ -1,0 +1,382 @@
+﻿@page "/"
+@using FiberHelp.Models
+@inject FiberHelp.Services.AuthService AuthService
+@inject FiberHelp.Services.AdminService AdminService
+@inject NavigationManager Navigation
+
+<link href="css/dashboard.css" rel="stylesheet" />
+<style>
+/* Clean-room styles inspired by modern admin dashboards */
+.toolbar {display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}
+.toolbar-left{display:flex;gap:8px;align-items:center}
+.chip{border:1px solid #e5e7eb;border-radius:999px;padding:6px 10px;font-size:12.5px;color:#334155;background:#fff}
+.chip.primary{border-color:#c7d2fe;color:#4338ca;background:#eef2ff}
+.chip .dot{width:8px;height:8px;border-radius:999px;background:#6366f1;margin-right:6px;display:inline-block}
+
+.grid-2{display:grid;grid-template-columns:2fr 1.3fr;gap:16px;margin-bottom:16px}
+.card{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:14px}
+.card h4{margin:0 0 6px 0;font-weight:800;color:#0f172a}
+.muted{color:#64748b;font-size:12.5px}
+
+/* small KPI row */
+.mini-kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:16px}
+.mini{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:12px}
+.mini .label{font-weight:700;color:#334155;font-size:12.5px;margin-bottom:6px}
+.mini .value{font-weight:900;font-size:18px;color:#0f172a}
+.mini .sub{font-size:12px;color:#94a3b8}
+
+/* simple charts */
+.bars{height:170px;display:flex;align-items:flex-end;gap:10px}
+.bar{flex:1;background:linear-gradient(180deg,#c7d2fe,#e0e7ff);border:1px solid #c7d2fe;border-radius:6px}
+.months{display:flex;justify-content:space-between;font-size:11.5px;color:#64748b;margin-top:6px}
+
+.gauge-wrap{display:flex;align-items:center;justify-content:center;height:200px}
+
+.line-wrap{height:220px}
+.line-canvas{width:100%;height:160px}
+.line-legend{display:flex;gap:12px;font-size:12px;color:#64748b;margin-top:6px}
+.legend-dot{width:10px;height:10px;border-radius:50%;display:inline-block;margin-right:6px}
+</style>
+
+<div class="dashboard-root">
+ <header class="topbar">
+ <div class="topbar-left">
+ <p class="eyebrow">FIBERHELP · @GetRoleLabel()</p>
+ <h1 class="page-title">Dashboard</h1>
+ <p class="welcome-text">Welcome back, @(AuthService.FullName ?? "User")! Here's what's happening today.</p>
+ </div>
+ <div class="top-actions">
+ @if (!(AuthService.Role ?? "").Equals("Agent", StringComparison.OrdinalIgnoreCase))
+ {
+ <button class="btn-icon" @onclick="() => {}">
+ <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+ <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+ </svg>
+ </button>
+ <button class="btn subtle" @onclick="ExportData">
+ <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+ <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+ </svg>
+ Export
+ </button>
+ }
+ <UserPill />
+ </div>
+ </header>
+
+ <!-- Unified dashboard content (visible to all roles) -->
+ <section class="kpi-grid">
+ <article class="kpi-card card-gradient-red">
+ <div class="kpi-icon">
+ <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+ <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+ </svg>
+ </div>
+ <div class="kpi-content">
+ <div class="kpi-header">Open Tickets</div>
+ <h2>@(tickets?.Count(t => t.Status == "Open") ?? 0)</h2>
+ <p class="kpi-sub">Need attention</p>
+ </div>
+ <div class="kpi-trend"><span class="trend-badge trend-up">+12%</span></div>
+ </article>
+ <article class="kpi-card card-gradient-blue">
+ <div class="kpi-icon">
+ <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+ <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+ </svg>
+ </div>
+ <div class="kpi-content">
+ <div class="kpi-header">Total Tickets</div>
+ <h2>@(tickets?.Count ?? 0)</h2>
+ <p class="kpi-sub">Visible in system</p>
+ </div>
+ <div class="kpi-trend"><span class="trend-badge trend-neutral">Same</span></div>
+ </article>
+ <article class="kpi-card card-gradient-purple">
+ <div class="kpi-icon">
+ <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+ <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+ </svg>
+ </div>
+ <div class="kpi-content">
+ <div class="kpi-header">Avg Response</div>
+ <h2>~@((tickets?.Any() == true) ? Math.Max(1, tickets.Count / Math.Max(1, tickets.Count / 3)) : 0) hrs</h2>
+ <p class="kpi-sub">Estimated</p>
+ </div>
+ <div class="kpi-trend"><span class="trend-badge trend-down">-5%</span></div>
+ </article>
+ <article class="kpi-card card-gradient-green">
+ <div class="kpi-icon">
+ <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+ <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+ </svg>
+ </div>
+ <div class="kpi-content">
+ <div class="kpi-header">Resolved</div>
+ <h2>@(tickets?.Count(t => t.Status == "Resolved" || t.Status == "Closed") ?? 0)</h2>
+ <p class="kpi-sub">This week</p>
+ </div>
+ <div class="kpi-trend"><span class="trend-badge trend-up">+8%</span></div>
+ </article>
+ </section>
+
+ <div class="grid-2">
+ <div class="card">
+ <h4>Sales Pipeline</h4>
+ <div class="muted">Rates increased by ~2% in last 7 days</div>
+ <div class="bars">
+ @foreach (var v in PipelineData)
+ {
+ var h = Math.Clamp(v, 10, 100);
+ <div class="bar" style="height:@h%"></div>
+ }
+ </div>
+ <div class="months">
+ @foreach (var m in Months) { <span>@m</span> }
+ </div>
+ </div>
+ <div class="card">
+ <h4>Revenue</h4>
+ <div class="muted">Rates decreased by 3% in last 7 days</div>
+ <div class="gauge-wrap">
+ <svg width="260" height="160" viewBox="0 0 260 160" role="img" aria-label="Revenue gauge">
+ <defs>
+ <linearGradient id="g1" x1="0" x2="0" y1="0" y2="1">
+ <stop offset="0%" stop-color="#6366f1"/>
+ <stop offset="100%" stop-color="#a5b4fc"/>
+ </linearGradient>
+ </defs>
+ @{
+ // draw semicircle gauge
+ var cx = 130; var cy = 150; var r = 110; var start = Math.PI; var end = 0.0; var steps = 26; var pct = 0.73; var filled = (int)(steps * pct);
+ for (int i=0;i<steps;i++)
+ {
+ var t = start + (end-start) * (i/(double)steps);
+ var x1 = cx + (r-6) * Math.Cos(t);
+ var y1 = cy + (r-6) * Math.Sin(t);
+ var x2 = cx + r * Math.Cos(t);
+ var y2 = cy + r * Math.Sin(t);
+ var color = i < filled ? "url(#g1)" : "#e5e7eb";
+ <line x1="@x1" y1="@y1" x2="@x2" y2="@y2" stroke="@color" stroke-width="8" stroke-linecap="round" />
+ }
+ }
+ <text x="130" y="120" text-anchor="middle" font-size="14" fill="#64748b">vs. Last period</text>
+ <text x="130" y="88" text-anchor="middle" font-size="22" font-weight="800" fill="#111827">$@RevenueThisWeek.ToString("N0")</text>
+ </svg>
+ </div>
+ </div>
+ </div>
+
+ <div class="mini-kpis">
+ <div class="mini"><div class="label">Product Revenue</div><div class="value">$@RevenueThisWeek.ToString("N0")</div><div class="sub">vs. last period</div></div>
+ <div class="mini"><div class="label">Active Sales</div><div class="value">@ActiveSales</div><div class="sub">+2.7%</div></div>
+ <div class="mini"><div class="label">Total Deals</div><div class="value">@TotalDeals</div><div class="sub">vs. last period</div></div>
+ <div class="mini"><div class="label">Reply Rate</div><div class="value">86.5%</div><div class="sub">vs. last period</div></div>
+ <div class="mini"><div class="label">Churn</div><div class="value">1.4%</div><div class="sub">last 30 days</div></div>
+ </div>
+
+ <div class="card">
+ <h4>Average Ticket</h4>
+ <div class="muted">Last 6 months</div>
+ <div class="line-wrap">
+ <svg class="line-canvas" viewBox="0 0 600 180" preserveAspectRatio="none" role="img" aria-label="Average Ticket line">
+ <defs>
+ <linearGradient id="l1" x1="0" y1="0" x2="0" y2="1">
+ <stop offset="0%" stop-color="#60a5fa"/>
+ <stop offset="100%" stop-color="#dbeafe"/>
+ </linearGradient>
+ </defs>
+ @{
+ string PathFrom(double[] pts){
+ if (pts.Length == 0) return string.Empty;
+ double max = Math.Max(1, pts.Max());
+ double step = 600.0 / (pts.Length-1);
+ var d = $"M 0 {180 - (pts[0]/max)*160}";
+ for(int i=1;i<pts.Length;i++){ d += $" L {i*step} {180 - (pts[i]/max)*160}"; }
+ return d;
+ }
+ }
+ <path d="@PathFrom(Line1)" fill="none" stroke="#3b82f6" stroke-width="3" />
+ <path d="@PathFrom(Line2)" fill="none" stroke="#94a3b8" stroke-width="2" />
+ </svg>
+ <div class="line-legend">
+ <span><span class="legend-dot" style="background:#3b82f6"></span>Checkout</span>
+ <span><span class="legend-dot" style="background:#94a3b8"></span>Viewing</span>
+ </div>
+ </div>
+ </div>
+ </div>
+
+ <!-- Keep original charts section (status donut + priority bars) removed for compactness -->
+
+ <!-- LATEST TICKETS TABLE -->
+ <section class="tickets-section">
+ <div class="panel modern-panel">
+ <div class="panel-head">
+ <div>
+ <h2>Latest Tickets</h2>
+ <p class="muted-text">Most recent customer issues</p>
+ </div>
+ <div class="panel-actions">
+ <div class="filter-pill">This week</div>
+ <button class="btn-text" @onclick="NavigateToTickets">View all ?</button>
+ </div>
+ </div>
+
+ <div class="table-wrapper">
+ <table class="data-table modern-table">
+ <thead>
+ <tr>
+ <th>Ticket #</th>
+ <th>Customer</th>
+ <th>Subject</th>
+ <th>Status</th>
+ <th>Priority</th>
+ <th>Created</th>
+ <th></th>
+ </tr>
+ </thead>
+ <tbody>
+ @if (tickets != null && tickets.Any())
+ {
+ foreach (var t in tickets.Take(5))
+ {
+ <tr>
+ <td><span class="ticket-id">#@t.Id</span></td>
+ <td>
+ <div class="customer-cell">
+ <div class="customer-avatar">@GetInitials(t.Customer)</div>
+ <span>@t.Customer</span>
+ </div>
+ </td>
+ <td><span class="ticket-subject">@t.Title</span></td>
+ <td><span class="status-pill @GetStatusClass(t.Status)">@t.Status</span></td>
+ <td><span class="priority-badge @GetPriorityClass(t.Priority)">@t.Priority</span></td>
+ <td><span class="time-ago">@GetTimeAgo(t.Created)</span></td>
+ <td>
+ <button class="btn-action" @onclick="NavigateToTickets">
+ <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+ <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+ </svg>
+ </button>
+ </td>
+ </tr>
+ }
+ }
+ else
+ {
+ <tr>
+ <td colspan="7" class="no-data">
+ <svg width="48" height="48" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+ <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/>
+ </svg>
+ <p>No tickets available</p>
+ </td>
+ </tr>
+ }
+ </tbody>
+ </table>
+ </div>
+ </div>
+ </section>
+ </div>
+
+@code {
+ private List<Ticket>? tickets;
+ private List<Customer>? customers;
+ private int RevenueThisWeek => 15723; // sample metric
+ private int ActiveSales => 24064;
+ private int TotalDeals => 827;
+ private readonly int[] PipelineData = new [] {65,45,50,42,60,70,55};
+ private readonly string[] Months = new [] {"Jan","Feb","Mar","Apr","May","Jun","Jul"};
+ private readonly double[] Line1 = new double[] {250,520,780,820,900,980};
+ private readonly double[] Line2 = new double[] {200,480,640,760,740,720};
+
+ protected override async Task OnInitializedAsync()
+ {
+ AuthService.AuthenticationStateChanged += OnAuthChanged;
+ if (!AuthService.IsAuthenticated)
+ {
+ Navigation.NavigateTo("/login", true);
+ return;
+ }
+ await LoadDataAsync();
+ }
+
+ private async void OnAuthChanged()
+ {
+ if (AuthService.IsAuthenticated)
+ {
+ await LoadDataAsync();
+ }
+ else
+ {
+ Navigation.NavigateTo("/login", true);
+ }
+ StateHasChanged();
+ }
+
+ private async Task LoadDataAsync()
+ {
+ tickets = await AdminService.GetTicketsAsync();
+ customers = await AdminService.GetCustomersAsync();
+ StateHasChanged();
+ }
+
+ private string GetTimeAgo(DateTime date)
+ {
+ var span = DateTime.UtcNow - date;
+ if (span.TotalMinutes < 1) return "Just now";
+ if (span.TotalMinutes < 60) return $"{(int)span.TotalMinutes}m ago";
+ if (span.TotalHours < 24) return $"{(int)span.TotalHours}h ago";
+ if (span.TotalDays < 7) return $"{(int)span.TotalDays}d ago";
+ return date.ToString("MMM dd");
+ }
+
+ private void ExportData() => Navigation.NavigateTo("/customers");
+ private void NavigateToTickets() => Navigation.NavigateTo("/tickets");
+
+ private string GetColorForStatus(string status)
+ {
+ return status?.Trim().ToLowerInvariant() switch
+ {
+ "open" => "#ef4444",
+ "in progress" or "inprogress" => "#f59e0b",
+ "resolved" => "#10b981",
+ "closed" => "#64748b",
+ _ => "#2563eb"
+ };
+ }
+
+ private string GetColorForPriority(string priority)
+ {
+ return priority?.Trim().ToLowerInvariant() switch
+ {
+ "critical" => "#dc2626",
+ "high" => "#f59e0b",
+ "medium" => "#3b82f6",
+ "low" => "#10b981",
+ _ => "#64748b"
+ };
+ }
+
+ private string GetStatusClass(string status) => status?.ToLower().Replace(" ", "") ?? "unknown";
+ private string GetPriorityClass(string priority) => "priority-" + (priority?.ToLower() ?? "medium");
+
+ private string GetInitials(string name)
+ {
+ if (string.IsNullOrWhiteSpace(name)) return "?";
+ var parts = name.Split(new[] { ' ', '@', '.' }, StringSplitOptions.RemoveEmptyEntries);
+ if (parts.Length >= 2) return (parts[0][0].ToString() + parts[1][0].ToString()).ToUpper();
+ return parts[0].Length >= 2 ? parts[0].Substring(0, 2).ToUpper() : parts[0][0].ToString().ToUpper();
+ }
+
+ private string GetRoleLabel()
+ {
+ var role = AuthService?.Role;
+ if (string.IsNullOrWhiteSpace(role)) return "GUEST";
+ return role.ToUpperInvariant() + " VIEW";
+ }
+
+ public void Dispose() => AuthService.AuthenticationStateChanged -= OnAuthChanged;
+}

@@ -1,0 +1,42 @@
+﻿-- Reset OutboxMessages ProcessedAt to NULL to force re-sync to cloud
+-- Run this on your LOCAL database (FiberhelpDB on localdb\MSSQLLocalDB)
+-- This will cause the OutboxProcessor to retry syncing all messages to the cloud
+
+-- WARNING: Only run this if your cloud database is missing data that exists in local!
+
+-- First, check current state
+SELECT 
+    EntityName,
+    Operation,
+    COUNT(*) as TotalCount,
+    SUM(CASE WHEN ProcessedAt IS NOT NULL THEN 1 ELSE 0 END) as ProcessedCount,
+    SUM(CASE WHEN ProcessedAt IS NULL THEN 1 ELSE 0 END) as PendingCount
+FROM [dbo].[OutboxMessages]
+GROUP BY EntityName, Operation
+ORDER BY EntityName, Operation;
+
+-- To reset ALL messages for re-sync (uncomment the line below):
+-- UPDATE [dbo].[OutboxMessages] SET ProcessedAt = NULL;
+
+-- To reset only Invoice and Expense messages for re-sync:
+UPDATE [dbo].[OutboxMessages] 
+SET ProcessedAt = NULL 
+WHERE EntityName IN ('Invoice', 'Expense');
+
+-- To reset messages from today only:
+-- UPDATE [dbo].[OutboxMessages] 
+-- SET ProcessedAt = NULL 
+-- WHERE CAST(CreatedAt AS DATE) = CAST(GETDATE() AS DATE);
+
+-- Verify the reset
+SELECT 
+    EntityName,
+    Operation,
+    COUNT(*) as TotalCount,
+    SUM(CASE WHEN ProcessedAt IS NOT NULL THEN 1 ELSE 0 END) as ProcessedCount,
+    SUM(CASE WHEN ProcessedAt IS NULL THEN 1 ELSE 0 END) as PendingCount
+FROM [dbo].[OutboxMessages]
+GROUP BY EntityName, Operation
+ORDER BY EntityName, Operation;
+
+PRINT 'OutboxMessages reset complete. Restart the app to trigger sync.';

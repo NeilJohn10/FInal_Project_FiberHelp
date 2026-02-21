@@ -1,0 +1,373 @@
+@page "/transaction-proofs"
+@using FiberHelp.Models
+@using FiberHelp.Services
+@inject TransactionService TransactionService
+@inject AuthService AuthService
+@inject NavigationManager Navigation
+@inject Microsoft.JSInterop.IJSRuntime JS
+
+<style>
+    .proofs-header { display: flex; align-items: center; justify-content: space-between; padding-bottom: 20px; margin-bottom: 22px; border-bottom: 1px solid #e5e7eb; }
+    .proofs-header .page-title { font-size: 42px; line-height: 1.1; margin: 0 0 4px; }
+    .proofs-controls { display: flex; gap: 14px; align-items: center; }
+    .filter-select { padding: 10px 16px; border-radius: 10px; border: 1px solid #e5e7eb; background: #fff; font-size: 14px; }
+    .search-input { width: 280px; padding: 10px 16px; border-radius: 10px; border: 1px solid #e5e7eb; font-size: 14px; }
+    
+    .proofs-table { width: 100%; border-collapse: separate; border-spacing: 0 8px; }
+    .proofs-table thead th { font-size: 12px; font-weight: 700; padding: 10px 12px; color: #475569; text-align: left; text-transform: uppercase; }
+    .proofs-table tbody td { background: #f9fafb; padding: 14px 12px; font-size: 14px; border-top: 1px solid #edf2f7; border-bottom: 1px solid #edf2f7; }
+    .proofs-table tbody tr td:first-child { border-left: 1px solid #edf2f7; border-top-left-radius: 10px; border-bottom-left-radius: 10px; }
+    .proofs-table tbody tr td:last-child { border-right: 1px solid #edf2f7; border-top-right-radius: 10px; border-bottom-right-radius: 10px; }
+    .proofs-table tbody tr:hover td { background: #f1f5f9; }
+    
+    .ref-number { font-family: monospace; font-weight: 600; color: #2563eb; background: #eff6ff; padding: 4px 8px; border-radius: 6px; }
+    .verification-code { font-family: monospace; font-size: 11px; color: #64748b; background: #f1f5f9; padding: 2px 6px; border-radius: 4px; }
+    
+    .badge { display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 11px; font-weight: 700; }
+    .badge-ticket { background: #dbeafe; color: #1e40af; }
+    .badge-payment { background: #dcfce7; color: #166534; }
+    .badge-generated { background: #fef3c7; color: #92400e; }
+    .badge-acknowledged { background: #dcfce7; color: #166534; }
+    .badge-sent { background: #dbeafe; color: #1e40af; }
+    
+    .client-info { display: flex; flex-direction: column; gap: 2px; }
+    .client-info .name { font-weight: 600; color: #1e293b; }
+    .client-info .id { font-size: 11px; color: #64748b; font-family: monospace; }
+    
+    .amount { font-weight: 700; color: #059669; }
+    
+    .action-btn { border: none; background: transparent; padding: 6px 8px; border-radius: 8px; cursor: pointer; }
+    .action-btn:hover { background: #eef2ff; }
+    
+    .btn { padding: 10px 20px; border-radius: 10px; font-weight: 600; font-size: 14px; cursor: pointer; border: none; }
+    .btn-secondary { background: #fff; color: #475569; border: 1px solid #e5e7eb; }
+    
+    .empty-state { text-align: center; padding: 60px 20px; color: #64748b; }
+    .empty-state h3 { color: #475569; margin-bottom: 8px; }
+    
+    .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,0.4); display: grid; place-items: center; z-index: 60000; }
+    .modal-card { width: calc(100% - 80px); max-width: 600px; background: #fff; border-radius: 16px; padding: 28px; box-shadow: 0 20px 60px rgba(0,0,0,0.2); }
+    .modal-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; }
+    .modal-header h3 { margin: 0; font-size: 22px; color: #1e293b; }
+    .modal-close { border: none; background: transparent; cursor: pointer; padding: 8px; border-radius: 8px; }
+    
+    .proof-detail { background: linear-gradient(135deg, #f0fdf4, #dcfce7); border: 1px solid #86efac; border-radius: 12px; padding: 20px; margin-bottom: 20px; }
+    .proof-detail .ref { font-family: monospace; font-size: 18px; font-weight: 700; color: #166534; margin-bottom: 8px; }
+    .proof-detail .verification { font-family: monospace; font-size: 12px; color: #15803d; background: #fff; padding: 4px 8px; border-radius: 4px; display: inline-block; }
+    
+    .detail-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-top: 16px; }
+    .detail-item { background: #f8fafc; padding: 12px; border-radius: 8px; }
+    .detail-item .label { font-size: 12px; color: #64748b; margin-bottom: 4px; }
+    .detail-item .value { font-weight: 600; color: #1e293b; }
+    
+    .description-box { background: #f8fafc; padding: 16px; border-radius: 10px; margin-top: 16px; }
+    .description-box .label { font-size: 12px; color: #64748b; margin-bottom: 8px; }
+    .description-box .value { color: #1e293b; line-height: 1.5; }
+</style>
+
+<div>
+    <header class="proofs-header">
+        <div>
+            <p class="eyebrow">FIBERHELP · TRANSACTION MANAGEMENT</p>
+            <h1 class="page-title">Transaction Proofs</h1>
+        </div>
+        <div class="proofs-controls">
+            <input class="search-input" placeholder="Search by reference..." @bind="searchTerm" @oninput="_ => StateHasChanged()" />
+            <select class="filter-select" @bind="typeFilter" @bind:after="LoadProofsAsync">
+                <option value="">All Types</option>
+                <option value="TicketResolution">Ticket Resolution</option>
+                <option value="PaymentConfirmation">Payment Confirmation</option>
+            </select>
+            <button class="btn btn-secondary" @onclick="ExportProofs">Export CSV</button>
+        </div>
+    </header>
+
+    <section class="panel" style="background:#fff;border-radius:16px;padding:24px;box-shadow:0 2px 12px rgba(0,0,0,0.04);">
+        <table class="proofs-table">
+            <thead>
+                <tr>
+                    <th>Reference</th>
+                    <th>Type</th>
+                    <th>Client</th>
+                    <th>Description</th>
+                    <th>Amount</th>
+                    <th>Completed</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (FilteredProofs != null && FilteredProofs.Any())
+                {
+                    @foreach (var proof in FilteredProofs)
+                    {
+                        <tr>
+                            <td>
+                                <span class="ref-number">@proof.ReferenceNumber</span>
+                            </td>
+                            <td>
+                                <span class="badge @GetTypeBadge(proof.TransactionType)">@GetTypeLabel(proof.TransactionType)</span>
+                            </td>
+                            <td>
+                                <div class="client-info">
+                                    <span class="name">@(proof.ClientName ?? "Unknown")</span>
+                                    <span class="id">@proof.ClientId</span>
+                                </div>
+                            </td>
+                            <td style="max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                @proof.Description
+                            </td>
+                            <td>
+                                @if (proof.Amount.HasValue)
+                                {
+                                    <span class="amount">?@proof.Amount.Value.ToString("N2")</span>
+                                }
+                                else
+                                {
+                                    <span style="color:#94a3b8">-</span>
+                                }
+                            </td>
+                            <td>@GetTimeAgo(proof.CompletedAt)</td>
+                            <td>
+                                <span class="badge @GetStatusBadge(proof.Status)">@proof.Status</span>
+                            </td>
+                            <td>
+                                <button class="action-btn" title="View Details" @onclick="() => ShowProofDetails(proof)">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2">
+                                        <circle cx="12" cy="12" r="3"/>
+                                        <path d="M2 12s4-8 10-8 10 8 10 8-4 8-10 8-10-8-10-8z"/>
+                                    </svg>
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="8">
+                            <div class="empty-state">
+                                <h3>No Transaction Proofs Found</h3>
+                                <p>Transaction proofs are generated when tickets are resolved or payments are confirmed.</p>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </section>
+
+    @if (showDetailsModal && selectedProof != null)
+    {
+        <div class="modal-bg" @onclick="CloseDetailsModal">
+            <div class="modal-card" @onclick:stopPropagation>
+                <div class="modal-header">
+                    <h3>Transaction Proof Details</h3>
+                    <button class="modal-close" @onclick="CloseDetailsModal">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2">
+                            <line x1="18" y1="6" x2="6" y2="18"/>
+                            <line x1="6" y1="6" x2="18" y2="18"/>
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="proof-detail">
+                    <div class="ref">@selectedProof.ReferenceNumber</div>
+                    <span class="verification">Verification: @selectedProof.VerificationCode</span>
+                </div>
+
+                <div class="detail-grid">
+                    <div class="detail-item">
+                        <div class="label">Transaction Type</div>
+                        <div class="value">@GetTypeLabel(selectedProof.TransactionType)</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="label">Status</div>
+                        <div class="value">@selectedProof.Status</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="label">Client</div>
+                        <div class="value">@(selectedProof.ClientName ?? "Unknown")</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="label">Client ID</div>
+                        <div class="value" style="font-family:monospace">@selectedProof.ClientId</div>
+                    </div>
+                    @if (selectedProof.TicketId.HasValue)
+                    {
+                        <div class="detail-item">
+                            <div class="label">Ticket ID</div>
+                            <div class="value">#@selectedProof.TicketId</div>
+                        </div>
+                    }
+                    @if (selectedProof.InvoiceId.HasValue)
+                    {
+                        <div class="detail-item">
+                            <div class="label">Invoice ID</div>
+                            <div class="value">#@selectedProof.InvoiceId</div>
+                        </div>
+                    }
+                    @if (selectedProof.Amount.HasValue)
+                    {
+                        <div class="detail-item">
+                            <div class="label">Amount</div>
+                            <div class="value" style="color:#059669">?@selectedProof.Amount.Value.ToString("N2")</div>
+                        </div>
+                    }
+                    <div class="detail-item">
+                        <div class="label">Completed By</div>
+                        <div class="value">@(selectedProof.CompletedByName ?? "System")</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="label">Completed At</div>
+                        <div class="value">@selectedProof.CompletedAt.ToLocalTime().ToString("MMM dd, yyyy h:mm tt")</div>
+                    </div>
+                    @if (selectedProof.AcknowledgedAt.HasValue)
+                    {
+                        <div class="detail-item">
+                            <div class="label">Acknowledged At</div>
+                            <div class="value">@selectedProof.AcknowledgedAt.Value.ToLocalTime().ToString("MMM dd, yyyy h:mm tt")</div>
+                        </div>
+                    }
+                </div>
+
+                <div class="description-box">
+                    <div class="label">Description</div>
+                    <div class="value">@selectedProof.Description</div>
+                </div>
+
+                @if (!string.IsNullOrEmpty(selectedProof.Notes))
+                {
+                    <div class="description-box" style="margin-top: 12px;">
+                        <div class="label">Notes</div>
+                        <div class="value">@selectedProof.Notes</div>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+<Toast Message="@toastMessage" />
+
+@code {
+    private List<TransactionProof>? proofsList;
+    private string searchTerm = "";
+    private string typeFilter = "";
+    private bool showDetailsModal = false;
+    private TransactionProof? selectedProof;
+    private string toastMessage = "";
+
+    private IEnumerable<TransactionProof>? FilteredProofs => string.IsNullOrWhiteSpace(searchTerm) 
+        ? proofsList 
+        : proofsList?.Where(p => 
+            p.ReferenceNumber.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
+            (p.ClientName?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ?? false) ||
+            (p.ClientId?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ?? false));
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!AuthService.IsAuthenticated)
+        {
+            Navigation.NavigateTo("/login", true);
+            return;
+        }
+
+        await LoadProofsAsync();
+    }
+
+    private async Task LoadProofsAsync()
+    {
+        try
+        {
+            proofsList = await TransactionService.GetAllProofsAsync(
+                string.IsNullOrEmpty(typeFilter) ? null : typeFilter
+            );
+        }
+        catch (Exception ex)
+        {
+            toastMessage = $"Error loading proofs: {ex.Message}";
+            proofsList = new List<TransactionProof>();
+        }
+    }
+
+    private void ShowProofDetails(TransactionProof proof)
+    {
+        selectedProof = proof;
+        showDetailsModal = true;
+    }
+
+    private void CloseDetailsModal()
+    {
+        showDetailsModal = false;
+        selectedProof = null;
+    }
+
+    private async void ExportProofs()
+    {
+        try
+        {
+            if (proofsList == null || !proofsList.Any())
+            {
+                toastMessage = "No proofs to export";
+                StateHasChanged();
+                return;
+            }
+
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine("Reference,Type,ClientId,ClientName,Description,Amount,CompletedBy,CompletedAt,Status");
+
+            foreach (var p in proofsList)
+            {
+                sb.AppendLine($"{p.ReferenceNumber},{p.TransactionType},{p.ClientId},{Escape(p.ClientName)},{Escape(p.Description)},{p.Amount?.ToString("F2") ?? ""},{Escape(p.CompletedByName)},{p.CompletedAt:yyyy-MM-dd HH:mm},{p.Status}");
+            }
+
+            await JS.InvokeAsync<bool>("FiberExport.saveFile", "transaction_proofs.csv", sb.ToString());
+            toastMessage = $"? Exported {proofsList.Count} proofs";
+            StateHasChanged();
+            await Task.Delay(2000);
+            toastMessage = "";
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            toastMessage = $"Export failed: {ex.Message}";
+            StateHasChanged();
+        }
+    }
+
+    private string Escape(string? s) => string.IsNullOrEmpty(s) ? "" : s.Replace("\"", "\"\"").Replace(",", ";");
+
+    private string GetTypeBadge(string type) => type switch
+    {
+        "TicketResolution" => "badge-ticket",
+        "PaymentConfirmation" => "badge-payment",
+        _ => "badge-ticket"
+    };
+
+    private string GetTypeLabel(string type) => type switch
+    {
+        "TicketResolution" => "Ticket Resolution",
+        "PaymentConfirmation" => "Payment",
+        "ServiceCompletion" => "Service",
+        _ => type
+    };
+
+    private string GetStatusBadge(string status) => status?.ToLower() switch
+    {
+        "generated" => "badge-generated",
+        "acknowledged" => "badge-acknowledged",
+        "sent" => "badge-sent",
+        _ => "badge-generated"
+    };
+
+    private string GetTimeAgo(DateTime date)
+    {
+        var span = DateTime.UtcNow - date;
+        if (span.TotalMinutes < 1) return "just now";
+        if (span.TotalMinutes < 60) return $"{(int)span.TotalMinutes}m ago";
+        if (span.TotalHours < 24) return $"{(int)span.TotalHours}h ago";
+        if (span.TotalDays < 7) return $"{(int)span.TotalDays}d ago";
+        return date.ToLocalTime().ToString("MMM dd");
+    }
+}

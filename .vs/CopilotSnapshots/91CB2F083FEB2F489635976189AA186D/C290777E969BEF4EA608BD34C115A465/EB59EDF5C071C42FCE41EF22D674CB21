@@ -1,0 +1,105 @@
+﻿using FiberHelp.Models;
+using System.Security.Cryptography;
+using System.Text;
+using System;
+using System.Linq;
+
+namespace FiberHelp.Data
+{
+ public static class DbInitializer
+ {
+ private static string HashPassword(string password)
+ {
+ using var sha = SHA256.Create();
+ var bytes = Encoding.UTF8.GetBytes(password ?? string.Empty);
+ var hash = sha.ComputeHash(bytes);
+ return Convert.ToHexString(hash); // uppercase hex
+ }
+
+ public static void Initialize(AppDbContext context)
+ {
+ context.Database.EnsureCreated();
+
+ var adminEmail = "admin@fiberhelp.com";
+ var agentEmail = "agent@fiberhelp.com";
+ var adminPassword = "Adminlogin123@"; // required admin password
+ var agentPassword = "Agentlogin123@";
+ var adminHash = HashPassword(adminPassword);
+ var agentHash = HashPassword(agentPassword);
+
+ // Admin user ensure exists and always reset password
+ var admin = context.Users.FirstOrDefault(u => u.Email == adminEmail);
+ if (admin == null)
+ {
+ admin = new User { Email = adminEmail, PasswordHash = adminHash, Role = "Administrator", FullName = "System Admin" };
+ context.Users.Add(admin);
+ }
+ else if (admin.PasswordHash != adminHash)
+ {
+ admin.PasswordHash = adminHash;
+ context.Users.Update(admin);
+ }
+
+ // Agent user ensure exists and always reset password
+ var agent = context.Users.FirstOrDefault(u => u.Email == agentEmail);
+ if (agent == null)
+ {
+ agent = new User { Email = agentEmail, PasswordHash = agentHash, Role = "Agent", FullName = "Support Agent" };
+ context.Users.Add(agent);
+ }
+ else if (agent.PasswordHash != agentHash)
+ {
+ agent.PasswordHash = agentHash;
+ context.Users.Update(agent);
+ }
+
+ // CSR sample user (optional, only create if missing, does not reset)
+ if (!context.Users.Any(u => u.Email == "csr@fiberhelp.com"))
+ {
+ context.Users.Add(new User { Email = "csr@fiberhelp.com", PasswordHash = HashPassword("csr123Strong!"), Role = "CSR", FullName = "Customer Rep" });
+ }
+
+ context.SaveChanges();
+
+ // Seed Customers if none
+ if (!context.Customers.Any())
+ {
+ context.Customers.AddRange(
+ new Customer { Name = "Contoso Ltd", Email = "contact@contoso.com", Plan = "Premium" },
+ new Customer { Name = "Fabrikam", Email = "info@fabrikam.com", Plan = "Standard" }
+ );
+ context.SaveChanges();
+ }
+
+ // Seed Tickets if none
+ if (!context.Tickets.Any())
+ {
+ var c1Name = context.Customers.First().Name;
+ var c2Name = context.Customers.Skip(1).FirstOrDefault()?.Name ?? c1Name;
+ context.Tickets.AddRange(
+ new Ticket { Title = "Sample ticket1", Customer = c1Name, Priority = "High", Status = "Open" },
+ new Ticket { Title = "Sample ticket2", Customer = c2Name, Priority = "Low", Status = "Open" }
+ );
+ context.SaveChanges();
+ }
+
+ // Seed invoices demo
+ if (!context.Invoices.Any())
+ {
+ context.Invoices.AddRange(
+ new Invoice { AccountId = null, AmountDue = 199.99m, IssueDate = DateTime.UtcNow.AddDays(-7), Status = "Pending" },
+ new Invoice { AccountId = null, AmountDue = 99.50m, IssueDate = DateTime.UtcNow.AddDays(-30), Status = "Paid" }
+ );
+ context.SaveChanges();
+ }
+
+ // Ensure admin active
+ var ensureAdmin = context.Users.FirstOrDefault(u => u.Email == "admin@fiberhelp.com");
+ if (ensureAdmin == null)
+ {
+ context.Users.Add(new User { Email = "admin@fiberhelp.com", PasswordHash = adminHash, Role = "Administrator", FullName = "System Admin" });
+ context.SaveChanges();
+ }
+ }
+ }
+}

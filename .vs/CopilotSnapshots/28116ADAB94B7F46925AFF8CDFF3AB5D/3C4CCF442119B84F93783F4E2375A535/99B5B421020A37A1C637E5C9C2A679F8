@@ -1,0 +1,67 @@
+﻿using Microsoft.Extensions.Logging;
+using FiberHelp.Services;
+using Microsoft.EntityFrameworkCore;
+using FiberHelp.Data.context;
+using Microsoft.Extensions.DependencyInjection;
+using FiberHelp.Data; // Added to reference AppDbContext and DbInitializer
+
+namespace FiberHelp
+{
+    public static class MauiProgram
+    {
+        public static MauiApp CreateMauiApp()
+        {
+            var builder = MauiApp.CreateBuilder();
+            builder
+                .UseMauiApp<App>()
+                .ConfigureFonts(fonts =>
+                {
+                    fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
+                });
+
+
+
+            builder.Services.AddMauiBlazorWebView();
+            
+            // Change AuthService to Singleton to persist authentication state across navigations
+            builder.Services.AddSingleton<AuthService>();
+            builder.Services.AddScoped<AdminService>();
+            builder.Services.AddScoped<BillingService>();
+
+            // Get connection string from configuration or fallback to the existing localdb name used by your SSMS instance
+            var connectionString = builder.Configuration["ConnectionStrings:DefaultConnection"]
+                ?? "Server=(localdb)\\mssqllocaldb;Database=FiberhelpDB;Trusted_Connection=True;MultipleActiveResultSets=true";
+
+            // Register the implementation context
+            builder.Services.AddDbContext<localContext>(options => options.UseSqlServer(connectionString));
+            // Make AppDbContext resolve to the same instance so services depending on AppDbContext work
+            builder.Services.AddScoped<AppDbContext>(sp => sp.GetRequiredService<localContext>());
+
+            builder.Services.AddDbContext<onlineContext>(options => options.UseSqlServer("Data Source=db33569.public.databaseasp.net;Persist Security Info=True;User ID=db33569;Password=njadlawan10;Pooling=False;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=True;Application Name=\"SQL Server Management Studio\";Command Timeout=0"));
+
+#if DEBUG
+            builder.Services.AddBlazorWebViewDeveloperTools();
+            builder.Logging.AddDebug();
+#endif
+
+            var app = builder.Build();
+
+            // Apply migrations and seed database
+            try
+            {
+                using var scope = app.Services.CreateScope();
+                // Resolve the registered context type (localContext derives from AppDbContext)
+                var db = scope.ServiceProvider.GetRequiredService<localContext>();
+                db.Database.Migrate();
+                DbInitializer.Initialize(db);
+            }
+            catch (Exception ex)
+            {
+                // If migration fails, log to debug output. In production you might handle differently.
+                System.Diagnostics.Debug.WriteLine($"Database migration/initialization failed: {ex.Message}");
+            }
+
+            return app;
+        }
+    }
+}

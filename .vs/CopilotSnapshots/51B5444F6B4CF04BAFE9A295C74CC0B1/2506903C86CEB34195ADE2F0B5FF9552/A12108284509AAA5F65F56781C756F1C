@@ -1,0 +1,267 @@
+﻿@page "/reports"
+@inject FiberHelp.Services.AuthService AuthService
+@inject NavigationManager Navigation
+@inject FiberHelp.Services.AdminService AdminService
+@inject FiberHelp.Services.BillingService BillingService
+@inject Microsoft.JSInterop.IJSRuntime JS
+
+@* Using global admin-theme.css; removed page-specific CSS *@
+
+<div>
+ <header class="topbar agents-header">
+   <div>
+     <p class="eyebrow">FIBERHELP · @GetRoleLabel()</p>
+     <h1 class="page-title">Reports</h1>
+   </div>
+   <div class="agents-controls top-actions">
+     <input class="agents-search" placeholder="Search by title or client" @bind="searchTerm" @oninput="async _ => await OnReportsSearchChanged(searchTerm)" />
+     <button class="btn subtle" @onclick="ExportReports">Export</button>
+   </div>
+ </header>
+ <style>
+ .report-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:18px; margin-bottom:28px }
+ .kpi-card { background:#fff; padding:18px 20px; border-radius:16px; box-shadow:0 12px 28px rgba(2,6,23,0.08); position:relative; overflow:hidden; }
+ .kpi-card:before { content:""; position:absolute; inset:0; background:linear-gradient(135deg,rgba(37,99,235,0.08),rgba(99,102,241,0.08)); opacity:0.6; pointer-events:none }
+ .kpi-value { font-size:34px; font-weight:700; line-height:1; margin-bottom:6px; }
+ .kpi-label { font-size:13px; text-transform:uppercase; letter-spacing:.08em; font-weight:600; color:#64748b }
+ .status-dist { display:flex; gap:6px; margin-top:10px }
+ .status-chip { flex:1; height:10px; border-radius:6px; position:relative }
+ .status-chip span { position:absolute; top:12px; left:0; font-size:11px; font-weight:600; color:#475569 }
+ .status-open { background:linear-gradient(90deg,#fcd34d,#fbbf24) }
+ .status-progress { background:linear-gradient(90deg,#93c5fd,#3b82f6) }
+ .status-resolved { background:linear-gradient(90deg,#4ade80,#16a34a) }
+ .status-closed { background:linear-gradient(90deg,#cbd5e1,#94a3b8) }
+
+ .section-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px }
+ .filter-select { padding:8px 12px; border-radius:10px; border:1px solid #e2e8f0; background:#fff }
+ .tickets-table { width:100%; border-collapse:separate; border-spacing:0 10px }
+ .tickets-table thead th { text-align:left; font-size:13px; font-weight:700; padding:10px 12px; color:#475569; border-bottom:1px solid #e5e7eb }
+ .tickets-table tbody td { background:#f9fafb; padding:14px 12px; font-size:14px; border-top:1px solid #edf2f7; border-bottom:1px solid #edf2f7 }
+ .tickets-table tbody tr td:first-child { border-left:1px solid #edf2f7; border-top-left-radius:12px; border-bottom-left-radius:12px }
+ .tickets-table tbody tr td:last-child { border-right:1px solid #edf2f7; border-top-right-radius:12px; border-bottom-right-radius:12px }
+
+ .cust-cell { display:flex; align-items:center; gap:10px }
+ .cust-avatar { width:36px; height:36px; border-radius:50%; background:linear-gradient(135deg,#6366f1,#0ea5e9); display:grid; place-items:center; font-size:12px; font-weight:700; color:#fff; box-shadow:0 6px 18px rgba(99,102,241,0.25) }
+ .status-badge { padding:6px 10px; border-radius:999px; font-size:12px; font-weight:700; }
+ .status-open-badge { background:#fef9c3; color:#92400e; border:1px solid #fde68a }
+ .status-inprogress-badge { background:#dbeafe; color:#1e3a8a; border:1px solid #bfdbfe }
+ .status-resolved-badge { background:#dcfce7; color:#065f46; border:1px solid #bbf7d0 }
+ .status-closed-badge { background:#e2e8f0; color:#475569; border:1px solid #cbd5e1 }
+ .shimmer-row { animation: shimmer 1.2s linear infinite; background:linear-gradient(90deg,#f1f5f9 0%,#e2e8f0 50%,#f1f5f9 100%); background-size:400% 100%; height:54px; border-radius:12px }
+ @@keyframes shimmer { 0%{background-position:0% 0}100%{background-position:100% 0} }
+ .admin-reports { background:#fff; padding:24px; border-radius:12px; box-shadow:0 12px 28px rgba(2,6,23,0.08); margin-top:24px }
+ .admin-reports h2 { font-size:20px; font-weight:700; margin-bottom:16px }
+ .mini-kpis { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:16px; margin-bottom:24px }
+ .mini { background:#f9fafb; padding:16px; border-radius:12px; box-shadow:0 4px 12px rgba(2,6,23,0.05) }
+ .mini .label { font-size:12px; font-weight:600; color:#475569; margin-bottom:8px }
+ .mini .value { font-size:16px; font-weight:700; margin:0 }
+ .grid-2 { display:grid; grid-template-columns:repeat(2,1fr); gap:16px }
+ .grid-2 .card { background:#f9fafb; padding:16px; border-radius:12px; box-shadow:0 4px 12px rgba(2,6,23,0.05) }
+ </style>
+ <section class="panel">
+   <div class="report-grid">
+     <div class="kpi-card">
+       <div class="kpi-value">@totalTickets</div>
+       <div class="kpi-label">Total Tickets</div>
+     </div>
+     <div class="kpi-card">
+       <div class="kpi-value">@openTickets</div>
+       <div class="kpi-label">Open</div>
+     </div>
+     <div class="kpi-card">
+       <div class="kpi-value">@resolvedTickets</div>
+       <div class="kpi-label">Resolved</div>
+     </div>
+     <div class="kpi-card" style="display:flex;flex-direction:column;justify-content:center">
+       <div style="font-size:14px;font-weight:600;color:#475569;margin-bottom:6px">Status Distribution</div>
+       <div class="status-dist">
+         <div class="status-chip status-open" style="flex:@openTickets"><span>Open</span></div>
+         <div class="status-chip status-resolved" style="flex:@resolvedTickets"><span>Resolved</span></div>
+       </div>
+     </div>
+   </div>
+
+   <div class="section-head" style="margin-top:4px">
+     <h3 style="margin:0">Recent Tickets</h3>
+     <select class="filter-select" value="@periodFilter" @onchange="OnPeriodChanged">
+       <option value="7">Last 7 days</option>
+       <option value="30">Last 30 days</option>
+       <option value="90">Last 90 days</option>
+     </select>
+   </div>
+   <table class="tickets-table">
+     <thead><tr><th style="width:70px">#</th><th style="width:340px">Subject</th><th style="width:240px">Client</th><th style="width:140px">Status</th><th style="width:180px">Created (Local)</th></tr></thead>
+     <tbody>
+       @if(loadingRecent)
+       {
+         <tr><td colspan="5"><div class="shimmer-row"></div></td></tr>
+       }
+       else if(recentTickets!=null && recentTickets.Any())
+       {
+         @foreach(var t in recentTickets)
+         {
+           var custName = string.IsNullOrWhiteSpace(t.ClientName)? t.ClientId : t.ClientName;
+           <tr>
+             <td>@t.Id</td>
+             <td style="font-weight:600">@t.Title</td>
+             <td>
+               <div class="cust-cell">
+                 <div class="cust-avatar">@GetInitial(custName)</div>
+                 <div>
+                   <div style="font-weight:600">@custName</div>
+                   <div style="font-size:11px;color:#64748b">@t.ClientId</div>
+                 </div>
+               </div>
+             </td>
+             <td>
+               <span class="status-badge @(GetStatusBadgeClass(t.Status))">@t.Status</span>
+             </td>
+             <td>@t.Created.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</td>
+           </tr>
+         }
+       }
+       else
+       {
+         <tr><td colspan="5" style="text-align:center;padding:20px;color:#64748b">No tickets in selected period.</td></tr>
+       }
+     </tbody>
+   </table>
+ </section>
+
+ @if ((AuthService.Role ?? "").Equals("Administrator", StringComparison.OrdinalIgnoreCase))
+ {
+    <div class="admin-reports">
+        <h2>Cash Flow (Last 6 Months)</h2>
+        @if (_flow == null)
+        {
+            <p>Loading...</p>
+        }
+        else
+        {
+            <div class="mini-kpis">
+                <div class="mini"><div class="label">Inflows</div><div class="value">@_flow.Inflows.ToString("C")</div><div class="sub">Paid invoices</div></div>
+                <div class="mini"><div class="label">Outflows</div><div class="value">@_flow.Outflows.ToString("C")</div><div class="sub">Expenses</div></div>
+                <div class="mini"><div class="label">Net</div><div class="value">@_flow.Net.ToString("C")</div><div class="sub">Inflows - Outflows</div></div>
+            </div>
+
+            <div class="grid-2">
+                <div class="card">
+                    <h4>Inflows by Month</h4>
+                    <ul>
+                        @foreach (var kv in _flow.InflowsByMonth)
+                        {
+                            <li>@kv.Key: @kv.Value.ToString("C")</li>
+                        }
+                    </ul>
+                </div>
+                <div class="card">
+                    <h4>Outflows by Month</h4>
+                    <ul>
+                        @foreach (var kv in _flow.OutflowsByMonth)
+                        {
+                            <li>@kv.Key: @kv.Value.ToString("C")</li>
+                        }
+                    </ul>
+                </div>
+            </div>
+        }
+    </div>
+ }
+
+ <Toast Message="@toast" />
+</div>
+
+@code {
+ private int totalTickets =0;
+ private int openTickets =0;
+ private int resolvedTickets =0;
+ private List<FiberHelp.Models.Ticket>? recentTickets;
+ private string searchTerm = string.Empty;
+ private string toast = string.Empty;
+ private bool loadingRecent = false;
+ private int periodFilter = 7;
+ private FiberHelp.Services.BillingService.CashFlowSummary? _flow;
+
+ protected override async Task OnInitializedAsync()
+ {
+ if (!AuthService.IsAuthenticated) { Navigation.NavigateTo("/login", true); return; }
+ if (!(AuthService.Role ?? "").Equals("Administrator", StringComparison.OrdinalIgnoreCase))
+ {
+     Navigation.NavigateTo("/tickets", true);
+     return;
+ }
+ var tickets = await AdminService.GetTicketsAsync();
+ totalTickets = tickets?.Count ?? 0;
+ openTickets = tickets?.Count(t => string.Equals(t.Status, "Open", StringComparison.OrdinalIgnoreCase)) ?? 0;
+ resolvedTickets = tickets?.Count(t => string.Equals(t.Status, "Resolved", StringComparison.OrdinalIgnoreCase)) ?? 0;
+ var list = tickets?.Take(10).ToList() ?? new List<FiberHelp.Models.Ticket>();
+ recentTickets = string.IsNullOrWhiteSpace(searchTerm) ? list : list.Where(t => (t.Title ?? string.Empty).Contains(searchTerm, StringComparison.OrdinalIgnoreCase) || ((t.ClientName ?? t.ClientId) ?? string.Empty).Contains(searchTerm, StringComparison.OrdinalIgnoreCase)).ToList();
+
+ _flow = await BillingService.GetCashFlowAsync(6);
+ await ReloadRecentAsync();
+ }
+
+ private string GetRoleLabel()
+ {
+ var role = AuthService?.Role;
+ if (string.IsNullOrWhiteSpace(role)) return "GUEST";
+ return role.ToUpperInvariant();
+ }
+
+ private async void ExportReports()
+ {
+ var rows = recentTickets ?? new List<FiberHelp.Models.Ticket>();
+ var csv = new System.Text.StringBuilder();
+ csv.AppendLine("Id,Title,Client,Status,Created");
+ foreach(var t in rows)
+ csv.AppendLine($"{t.Id},{Escape(t.Title)},{Escape(t.ClientName ?? t.ClientId)},{t.Status},{t.Created:yyyy-MM-dd HH:mm}");
+ await JS.InvokeAsync<bool>("FiberExport.saveFile", "reports.csv", csv.ToString());
+ toast = "Reports exported"; StateHasChanged(); await Task.Delay(2000); toast = string.Empty; StateHasChanged();
+ }
+
+ string Escape(string? s) => string.IsNullOrEmpty(s) ? "" : s!.Replace("\"", "\"\"");
+
+ private Task OnReportsSearchChanged(string val)
+ {
+ searchTerm = val;
+ StateHasChanged();
+ _ = ReloadRecentAsync();
+ return Task.CompletedTask;
+ }
+
+ private string GetStatusBadgeClass(string status)
+ {
+   if(string.IsNullOrWhiteSpace(status)) return "status-open-badge";
+   var s = status.ToLowerInvariant();
+   return s switch {
+     "open" => "status-open-badge",
+     "in progress" => "status-inprogress-badge",
+     "resolved" => "status-resolved-badge",
+     "closed" => "status-closed-badge",
+     _ => "status-open-badge"
+   };
+ }
+
+ private async Task OnPeriodChanged(ChangeEventArgs e)
+ {
+   if(int.TryParse(e.Value?.ToString(), out var days)) periodFilter = days; else periodFilter = 7;
+   await ReloadRecentAsync();
+ }
+
+ private async Task ReloadRecentAsync()
+ {
+   loadingRecent = true; StateHasChanged();
+   var tickets = await AdminService.GetTicketsAsync();
+   var since = DateTime.UtcNow.AddDays(-periodFilter);
+   var filtered = tickets.Where(t => t.Created >= since).OrderByDescending(t => t.Created).Take(25).ToList();
+   recentTickets = string.IsNullOrWhiteSpace(searchTerm) ? filtered : filtered.Where(t => (t.Title ?? string.Empty).Contains(searchTerm, StringComparison.OrdinalIgnoreCase) || ((t.ClientName ?? t.ClientId) ?? string.Empty).Contains(searchTerm, StringComparison.OrdinalIgnoreCase)).ToList();
+   loadingRecent = false; StateHasChanged();
+ }
+
+ private string GetInitial(string? s)
+ {
+   if (string.IsNullOrWhiteSpace(s)) return "?";
+   var ch = s.Trim()[0];
+   return char.ToUpperInvariant(ch).ToString();
+ }
+}

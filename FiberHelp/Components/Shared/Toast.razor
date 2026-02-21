@@ -1,0 +1,48 @@
+@if (!string.IsNullOrEmpty(Message))
+{
+    <div class="toast-simple @(IsVisible ? "show" : "")">
+        @Message
+    </div>
+}
+
+<style>
+.toast-simple {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: #1f2937;
+    color: white;
+    padding: 12px 20px;
+    border-radius: 8px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    z-index: 9999;
+    font-size: 14px;
+    max-width: 400px;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: all 0.3s ease;
+    pointer-events: none;
+}
+
+.toast-simple.show {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+}
+
+@@media (max-width: 640px) {
+    .toast-simple {
+        left: 20px;
+        right: 20px;
+        bottom: 10px;
+        max-width: none;
+    }
+}
+</style>
+
+@code {
+    [Parameter]
+    public string? Message { get; set; }
+
+    private bool IsVisible => !string.IsNullOrEmpty(Message);
+}

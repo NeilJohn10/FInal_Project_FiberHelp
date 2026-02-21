@@ -1,0 +1,390 @@
+@page "/feedback"
+@page "/feedback/{TicketId:int}"
+@using FiberHelp.Models
+@using FiberHelp.Services
+@inject TransactionService TransactionService
+@inject AuthService AuthService
+@inject NavigationManager Navigation
+
+<style>
+    .feedback-container { max-width: 800px; margin: 0 auto; padding: 24px; }
+    .feedback-header { text-align: center; margin-bottom: 32px; }
+    .feedback-header h1 { font-size: 32px; margin-bottom: 8px; color: #1e293b; }
+    .feedback-header p { color: #64748b; font-size: 16px; }
+    
+    .proof-card { background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border: 1px solid #86efac; border-radius: 16px; padding: 24px; margin-bottom: 32px; }
+    .proof-card .proof-header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+    .proof-card .proof-icon { width: 48px; height: 48px; background: #22c55e; border-radius: 50%; display: grid; place-items: center; }
+    .proof-card .proof-icon svg { width: 24px; height: 24px; fill: white; }
+    .proof-card h3 { margin: 0; color: #166534; font-size: 20px; }
+    .proof-card .proof-ref { font-family: monospace; background: #fff; padding: 8px 16px; border-radius: 8px; font-size: 14px; color: #166534; display: inline-block; margin-bottom: 12px; }
+    .proof-card .proof-details { display: grid; gap: 8px; color: #15803d; font-size: 14px; }
+    .proof-card .proof-details span { font-weight: 600; }
+    
+    .feedback-form { background: #fff; border: 1px solid #e5e7eb; border-radius: 16px; padding: 32px; box-shadow: 0 4px 24px rgba(0,0,0,0.05); }
+    .form-section { margin-bottom: 28px; }
+    .form-section h4 { font-size: 16px; font-weight: 600; color: #1e293b; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+    .form-section h4 .required { color: #ef4444; }
+    
+    .rating-group { display: flex; flex-direction: column; gap: 16px; }
+    .rating-item { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: #f8fafc; border-radius: 10px; }
+    .rating-item label { font-weight: 500; color: #475569; }
+    .star-rating { display: flex; gap: 4px; }
+    .star-rating button { background: none; border: none; cursor: pointer; padding: 4px; font-size: 28px; color: #d1d5db; transition: all 0.15s; }
+    .star-rating button:hover, .star-rating button.active { color: #fbbf24; transform: scale(1.1); }
+    .star-rating button.active { color: #f59e0b; }
+    
+    .recommend-options { display: flex; gap: 16px; margin-top: 8px; }
+    .recommend-btn { flex: 1; padding: 16px; border: 2px solid #e5e7eb; border-radius: 12px; background: #fff; cursor: pointer; text-align: center; transition: all 0.2s; }
+    .recommend-btn:hover { border-color: #94a3b8; }
+    .recommend-btn.yes.selected { border-color: #22c55e; background: #f0fdf4; }
+    .recommend-btn.no.selected { border-color: #ef4444; background: #fef2f2; }
+    .recommend-btn .emoji { font-size: 32px; display: block; margin-bottom: 8px; }
+    .recommend-btn .label { font-weight: 600; color: #475569; }
+    
+    .form-textarea { width: 100%; min-height: 120px; padding: 16px; border: 1px solid #e5e7eb; border-radius: 12px; font-size: 15px; resize: vertical; font-family: inherit; }
+    .form-textarea:focus { outline: none; border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+    
+    .form-select { width: 100%; padding: 12px 16px; border: 1px solid #e5e7eb; border-radius: 10px; font-size: 15px; background: #fff; }
+    
+    .submit-section { display: flex; justify-content: flex-end; gap: 12px; margin-top: 32px; padding-top: 24px; border-top: 1px solid #e5e7eb; }
+    .btn { padding: 12px 28px; border-radius: 10px; font-weight: 600; font-size: 15px; cursor: pointer; transition: all 0.2s; }
+    .btn-primary { background: linear-gradient(135deg, #2563eb, #1d4ed8); color: #fff; border: none; box-shadow: 0 4px 14px rgba(37,99,235,0.3); }
+    .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(37,99,235,0.4); }
+    .btn-primary:disabled { background: #94a3b8; box-shadow: none; cursor: not-allowed; }
+    .btn-secondary { background: #fff; color: #475569; border: 1px solid #e5e7eb; }
+    .btn-secondary:hover { background: #f8fafc; }
+    
+    .success-message { text-align: center; padding: 48px 24px; }
+    .success-message .icon { width: 80px; height: 80px; background: linear-gradient(135deg, #22c55e, #16a34a); border-radius: 50%; display: grid; place-items: center; margin: 0 auto 24px; }
+    .success-message .icon svg { width: 40px; height: 40px; fill: white; }
+    .success-message h2 { font-size: 28px; color: #166534; margin-bottom: 12px; }
+    .success-message p { color: #64748b; font-size: 16px; max-width: 400px; margin: 0 auto; }
+    
+    .error-banner { background: #fef2f2; border: 1px solid #fecaca; border-radius: 10px; padding: 16px; margin-bottom: 24px; color: #991b1b; }
+    
+    .no-feedback { text-align: center; padding: 48px; color: #64748b; }
+    .no-feedback h3 { font-size: 20px; color: #475569; margin-bottom: 8px; }
+</style>
+
+<div class="feedback-container">
+    @if (isSubmitted)
+    {
+        <div class="success-message">
+            <div class="icon">
+                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+                </svg>
+            </div>
+            <h2>Thank You for Your Feedback!</h2>
+            <p>Your feedback helps us improve our services. We appreciate you taking the time to share your experience.</p>
+            <div style="margin-top: 24px;">
+                <button class="btn btn-primary" @onclick="GoToDashboard">Back to Dashboard</button>
+            </div>
+        </div>
+    }
+    else if (proof != null)
+    {
+        <div class="feedback-header">
+            <h1>Share Your Experience</h1>
+            <p>Help us improve by rating your recent service experience</p>
+        </div>
+
+        <!-- Transaction Proof Card -->
+        <div class="proof-card">
+            <div class="proof-header">
+                <div class="proof-icon">
+                    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+                    </svg>
+                </div>
+                <div>
+                    <h3>Transaction Completed</h3>
+                    <div class="proof-ref">@proof.ReferenceNumber</div>
+                </div>
+            </div>
+            <div class="proof-details">
+                <div><span>Type:</span> @GetTransactionTypeLabel(proof.TransactionType)</div>
+                <div><span>Description:</span> @proof.Description</div>
+                <div><span>Completed:</span> @proof.CompletedAt.ToLocalTime().ToString("MMMM dd, yyyy 'at' h:mm tt")</div>
+                @if (!string.IsNullOrEmpty(proof.CompletedByName))
+                {
+                    <div><span>Handled by:</span> @proof.CompletedByName</div>
+                }
+                @if (proof.Amount.HasValue)
+                {
+                    <div><span>Amount:</span> ?@proof.Amount.Value.ToString("N2")</div>
+                }
+            </div>
+        </div>
+
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <div class="error-banner">@errorMessage</div>
+        }
+
+        <!-- Feedback Form -->
+        <div class="feedback-form">
+            <div class="form-section">
+                <h4>Overall Rating <span class="required">*</span></h4>
+                <div class="rating-group">
+                    <div class="rating-item">
+                        <label>How would you rate your overall experience?</label>
+                        <div class="star-rating">
+                            @for (int i = 1; i <= 5; i++)
+                            {
+                                var starNum = i;
+                                <button type="button" 
+                                        class="@(feedback.Rating >= starNum ? "active" : "")" 
+                                        @onclick="() => SetRating(starNum)">
+                                    ?
+                                </button>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <h4>Detailed Ratings (Optional)</h4>
+                <div class="rating-group">
+                    <div class="rating-item">
+                        <label>Service Quality</label>
+                        <div class="star-rating">
+                            @for (int i = 1; i <= 5; i++)
+                            {
+                                var starNum = i;
+                                <button type="button" 
+                                        class="@((feedback.ServiceQualityRating ?? 0) >= starNum ? "active" : "")" 
+                                        @onclick="() => feedback.ServiceQualityRating = starNum">
+                                    ?
+                                </button>
+                            }
+                        </div>
+                    </div>
+                    <div class="rating-item">
+                        <label>Response Time</label>
+                        <div class="star-rating">
+                            @for (int i = 1; i <= 5; i++)
+                            {
+                                var starNum = i;
+                                <button type="button" 
+                                        class="@((feedback.ResponseTimeRating ?? 0) >= starNum ? "active" : "")" 
+                                        @onclick="() => feedback.ResponseTimeRating = starNum">
+                                    ?
+                                </button>
+                            }
+                        </div>
+                    </div>
+                    <div class="rating-item">
+                        <label>Staff Professionalism</label>
+                        <div class="star-rating">
+                            @for (int i = 1; i <= 5; i++)
+                            {
+                                var starNum = i;
+                                <button type="button" 
+                                        class="@((feedback.ProfessionalismRating ?? 0) >= starNum ? "active" : "")" 
+                                        @onclick="() => feedback.ProfessionalismRating = starNum">
+                                    ?
+                                </button>
+                            }
+                        </div>
+                    </div>
+                    <div class="rating-item">
+                        <label>Communication</label>
+                        <div class="star-rating">
+                            @for (int i = 1; i <= 5; i++)
+                            {
+                                var starNum = i;
+                                <button type="button" 
+                                        class="@((feedback.CommunicationRating ?? 0) >= starNum ? "active" : "")" 
+                                        @onclick="() => feedback.CommunicationRating = starNum">
+                                    ?
+                                </button>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <h4>Would you recommend our service?</h4>
+                <div class="recommend-options">
+                    <button type="button" 
+                            class="recommend-btn yes @(feedback.WouldRecommend == true ? "selected" : "")"
+                            @onclick="() => feedback.WouldRecommend = true">
+                        <span class="emoji">??</span>
+                        <span class="label">Yes, definitely!</span>
+                    </button>
+                    <button type="button" 
+                            class="recommend-btn no @(feedback.WouldRecommend == false ? "selected" : "")"
+                            @onclick="() => feedback.WouldRecommend = false">
+                        <span class="emoji">??</span>
+                        <span class="label">Not really</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <h4>Feedback Category</h4>
+                <select class="form-select" @bind="feedback.FeedbackCategory">
+                    <option value="General">General Feedback</option>
+                    <option value="ServiceQuality">Service Quality</option>
+                    <option value="Technical">Technical Support</option>
+                    <option value="Billing">Billing & Payments</option>
+                    <option value="Communication">Communication</option>
+                </select>
+            </div>
+
+            <div class="form-section">
+                <h4>Additional Comments</h4>
+                <textarea class="form-textarea" 
+                          placeholder="Tell us more about your experience. What did we do well? How can we improve?"
+                          @bind="feedback.Comments"></textarea>
+            </div>
+
+            <div class="submit-section">
+                <button class="btn btn-secondary" @onclick="GoToDashboard">Cancel</button>
+                <button class="btn btn-primary" @onclick="SubmitFeedback" disabled="@(isSubmitting || feedback.Rating < 1)">
+                    @(isSubmitting ? "Submitting..." : "Submit Feedback")
+                </button>
+            </div>
+        </div>
+    }
+    else if (isLoading)
+    {
+        <div class="no-feedback">
+            <p>Loading...</p>
+        </div>
+    }
+    else
+    {
+        <div class="no-feedback">
+            <h3>No Transaction Found</h3>
+            <p>The transaction proof could not be found or has already received feedback.</p>
+            <button class="btn btn-primary" style="margin-top: 16px;" @onclick="GoToDashboard">Back to Dashboard</button>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public int TicketId { get; set; }
+
+    private TransactionProof? proof;
+    private ClientFeedback feedback = new();
+    private bool isLoading = true;
+    private bool isSubmitting = false;
+    private bool isSubmitted = false;
+    private string errorMessage = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            if (TicketId > 0)
+            {
+                // Find transaction proof for this ticket
+                var proofs = await TransactionService.GetAllProofsAsync("TicketResolution");
+                proof = proofs.FirstOrDefault(p => p.TicketId == TicketId);
+
+                if (proof != null)
+                {
+                    // Check if feedback already exists
+                    var existingFeedback = await TransactionService.GetTicketFeedbackAsync(TicketId);
+                    if (existingFeedback != null)
+                    {
+                        isSubmitted = true;
+                    }
+                    else
+                    {
+                        // Pre-populate feedback with transaction details
+                        feedback.TicketId = TicketId;
+                        feedback.TransactionProofId = proof.Id;
+                        feedback.ClientId = proof.ClientId ?? string.Empty;
+                        feedback.ClientName = proof.ClientName;
+                        feedback.HandledById = proof.CompletedById;
+                        feedback.HandledByName = proof.CompletedByName;
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error loading transaction: {ex.Message}";
+            System.Diagnostics.Debug.WriteLine($"[Feedback] OnInitializedAsync error: {ex}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void SetRating(int rating)
+    {
+        feedback.Rating = rating;
+    }
+
+    private async Task SubmitFeedback()
+    {
+        if (feedback.Rating < 1)
+        {
+            errorMessage = "Please provide an overall rating.";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(feedback.ClientId))
+        {
+            errorMessage = "Client information is missing.";
+            return;
+        }
+
+        try
+        {
+            isSubmitting = true;
+            errorMessage = string.Empty;
+
+            var result = await TransactionService.SubmitFeedbackAsync(feedback);
+            
+            if (result != null)
+            {
+                isSubmitted = true;
+                
+                // Mark the proof as acknowledged
+                if (proof != null)
+                {
+                    await TransactionService.AcknowledgeProofAsync(proof.Id);
+                }
+            }
+            else
+            {
+                errorMessage = TransactionService.LastError ?? "Failed to submit feedback.";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error submitting feedback: {ex.Message}";
+            System.Diagnostics.Debug.WriteLine($"[Feedback] SubmitFeedback error: {ex}");
+        }
+        finally
+        {
+            isSubmitting = false;
+        }
+    }
+
+    private void GoToDashboard()
+    {
+        Navigation.NavigateTo("/dashboard");
+    }
+
+    private string GetTransactionTypeLabel(string type)
+    {
+        return type switch
+        {
+            "TicketResolution" => "Service Ticket Resolution",
+            "PaymentConfirmation" => "Payment Confirmation",
+            "ServiceCompletion" => "Service Completion",
+            _ => type
+        };
+    }
+}

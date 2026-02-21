@@ -1,0 +1,113 @@
+﻿@page "/diag"
+@using FiberHelp.Models
+@using FiberHelp.Data
+@using Microsoft.EntityFrameworkCore
+@inject FiberHelp.Data.context.localContext LocalDb
+@inject FiberHelp.Services.AuthService AuthService
+@inject Microsoft.Extensions.Configuration.IConfiguration Config
+
+<PageTitle>Diagnostic - FiberHelp</PageTitle>
+
+<h3>Database Diagnostic (Local)</h3>
+<p>Provider: <code>@(LocalDb.Database.ProviderName)</code></p>
+<p>Connection: <code>@(LocalDb.Database.GetDbConnection().DataSource)</code> / Database: <code>@(LocalDb.Database.GetDbConnection().Database)</code></p>
+<p>AppDataDirectory: <code>@Microsoft.Maui.Storage.FileSystem.AppDataDirectory</code></p>
+<p>Local DB file: <code>@System.IO.Path.Combine(Microsoft.Maui.Storage.FileSystem.AppDataDirectory, "fiberhelp_local.db")</code></p>
+
+@if (error != null)
+{
+ <div style="color:darkred">Error: @error</div>
+}
+else
+{
+ <div style="margin:10px 0; display:flex; gap:8px;">
+  <button class="btn primary" @onclick="Seed">Reseed Defaults (Local)</button>
+  <button class="btn danger" @onclick="DeleteLocal">Delete Local DB</button>
+ </div>
+
+ <h4>Users (@(users?.Count ??0))</h4>
+ <table class="data-table">
+ <thead><tr><th>Email</th><th>Role</th><th>PasswordHash</th></tr></thead>
+ <tbody>
+ @if (users != null)
+ {
+ foreach (var u in users)
+ {
+ <tr>
+ <td>@u.Email</td>
+ <td>@u.Role</td>
+ <td style="font-family:monospace">@u.PasswordHash</td>
+ </tr>
+ }
+ }
+ </tbody>
+ </table>
+
+ <h4>Clients (@(clients?.Count ??0))</h4>
+ <ul>
+ @if (clients != null)
+ {
+ foreach (var c in clients) { <li>@c.Name (@c.Email)</li>; }
+ }
+ </ul>
+
+ <h4>Tickets (@(tickets?.Count ??0))</h4>
+ <ul>
+ @if (tickets != null)
+ {
+ foreach (var t in tickets) { <li>@t.Title - @(t.ClientName ?? t.ClientId) (@t.Status)</li>; }
+ }
+ </ul>
+}
+
+@code {
+ private List<User>? users;
+ private List<Client>? clients;
+ private List<Ticket>? tickets;
+ private string? error;
+
+ protected override async Task OnInitializedAsync()
+ {
+ try
+ {
+ // Ensure LOCAL DB created and seeded
+ LocalDb.Database.EnsureCreated();
+ if (!await LocalDb.Users.AnyAsync()) FiberHelp.Data.DbInitializer.Initialize(LocalDb);
+ await LoadData();
+ }
+ catch (Exception ex)
+ {
+ error = ex.Message;
+ }
+ }
+
+ private async Task LoadData()
+ {
+ users = await LocalDb.Users.AsNoTracking().ToListAsync();
+ clients = await LocalDb.Clients.AsNoTracking().ToListAsync();
+ tickets = await LocalDb.Tickets.AsNoTracking().ToListAsync();
+ }
+
+ private Task Seed()
+ {
+ try { FiberHelp.Data.DbInitializer.Initialize(LocalDb); } catch { }
+ return LoadData();
+ }
+
+ private async Task DeleteLocal()
+ {
+ try
+ {
+ var path = System.IO.Path.Combine(Microsoft.Maui.Storage.FileSystem.AppDataDirectory, "fiberhelp_local.db");
+ if (System.IO.File.Exists(path)) System.IO.File.Delete(path);
+ // Recreate
+ LocalDb.Database.EnsureCreated();
+ FiberHelp.Data.DbInitializer.Initialize(LocalDb);
+ await LoadData();
+ }
+ catch (Exception ex)
+ {
+ error = ex.Message;
+ }
+ }
+}

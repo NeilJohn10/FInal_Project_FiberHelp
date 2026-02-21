@@ -1,0 +1,105 @@
+﻿using Microsoft.Extensions.Logging;
+using FiberHelp.Services;
+using Microsoft.EntityFrameworkCore;
+using FiberHelp.Data.context;
+using Microsoft.Extensions.DependencyInjection;
+using FiberHelp.Data;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Maui.Storage;
+using System.IO;
+
+namespace FiberHelp
+{
+    public static class MauiProgram
+    {
+        public static MauiApp CreateMauiApp()
+        {
+            var builder = MauiApp.CreateBuilder();
+            builder
+                .UseMauiApp<App>()
+                .ConfigureFonts(fonts =>
+                {
+                    fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
+                });
+
+            // Load configuration from appsettings.json (copied to output via csproj)
+            builder.Configuration
+                   .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true);
+
+            builder.Services.AddMauiBlazorWebView();
+            
+            // Change AuthService to Singleton to persist authentication state across navigations
+            builder.Services.AddSingleton<AuthService>();
+            builder.Services.AddScoped<AdminService>();
+            builder.Services.AddScoped<BillingService>();
+
+            var localDbPath = Path.Combine(FileSystem.AppDataDirectory, "fiberhelp_local.db");
+            var sqliteConn = $"Data Source={localDbPath}";
+
+            var sqlLocal = builder.Configuration.GetConnectionString("DefaultConnection")
+                ?? "Server=(localdb)\\mssqllocaldb;Database=FiberhelpDB;Trusted_Connection=True;MultipleActiveResultSets=true";
+            var sqlOnline = builder.Configuration.GetConnectionString("OnlineConnection") ?? string.Empty;
+
+            // Register contexts: SQLite (offline), SqlServer (online), SqlServer local dev
+            builder.Services.AddDbContext<localContext>(o => o.UseSqlite(sqliteConn));
+            builder.Services.AddDbContext<onlineContext>(o => {
+                if (!string.IsNullOrWhiteSpace(sqlOnline))
+                    o.UseSqlServer(sqlOnline, sql => sql.EnableRetryOnFailure());
+            });
+            builder.Services.AddDbContext<devLocalContext>(o => o.UseSqlServer(sqlLocal));
+
+            // Resolve AppDbContext with automatic preference: Online -> DevLocal -> SQLite (no config switch needed)
+            builder.Services.AddScoped<AppDbContext>(sp =>
+            {
+                // Try cloud first
+                try
+                {
+                    var online = sp.GetRequiredService<onlineContext>();
+                    if (online.Database.CanConnect()) return online;
+                }
+                catch { }
+
+                // Then developer local SQL Server
+                try
+                {
+                    var dev = sp.GetRequiredService<devLocalContext>();
+                    if (dev.Database.CanConnect()) return dev;
+                }
+                catch { }
+
+                // Fallback to embedded SQLite
+                return sp.GetRequiredService<localContext>();
+            });
+
+#if DEBUG
+            builder.Services.AddBlazorWebViewDeveloperTools();
+            builder.Logging.AddDebug();
+#endif
+
+            var app = builder.Build();
+
+            // Migrate only selected active context; avoid seeding online automatically
+            using (var scope = app.Services.CreateScope())
+            {
+                var ctx = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+                try
+                {
+                    ctx.Database.Migrate();
+                    // Seed only if database is empty and it is not the online cloud (heuristic)
+                    var isSqlite = ctx.Database.ProviderName?.Contains("Sqlite") == true;
+                    var isLocalDb = ctx.Database.GetDbConnection().DataSource?.Contains("(localdb)") == true;
+                    if (isSqlite || isLocalDb)
+                    {
+                        DbInitializer.Initialize(ctx);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"DB init error: {ex.Message}");
+                }
+            }
+
+            return app;
+        }
+    }
+}

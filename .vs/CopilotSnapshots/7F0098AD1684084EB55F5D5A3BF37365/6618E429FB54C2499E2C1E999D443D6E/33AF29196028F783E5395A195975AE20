@@ -1,0 +1,307 @@
+﻿@page "/tickets"
+@using FiberHelp.Models
+@inject FiberHelp.Services.AuthService AuthService
+@inject FiberHelp.Services.AdminService AdminService
+@inject NavigationManager Navigation
+
+<link href="css/tickets.css" rel="stylesheet" />
+
+<style>
+/* Header and dropdown tweaks */
+.topbar { display: flex; align-items: center; justify-content: space-between; padding-bottom:16px; border-bottom:1px solid #e2e8f0; margin-bottom:16px; }
+.topbar > div:first-child { display: flex; flex-direction: column; }
+.top-actions { display: flex; gap:12px; align-items: center; }
+.dropdown-list { list-style: none; margin:0; padding:0; border:1px solid #ddd; max-height:180px; overflow: auto; background: #fff; box-shadow:06px12px rgba(0,0,0,0.06); border-radius:6px; }
+.dropdown-list li { padding:8px12px; cursor: pointer; }
+.dropdown-list li:hover { background: #f6f6f6; }
+.selected-customer { margin-top:8px; font-size:0.95em; color: #333; }
+</style>
+
+<div>
+ <header class="topbar">
+ <div>
+ <p class="eyebrow">FIBERHELP · @GetRoleLabel()</p>
+ <h1 class="page-title">Tickets</h1>
+ </div>
+ <div class="top-actions">
+   <input class="agents-search" placeholder="Search tickets by id, title or customer" @bind="ticketSearch" />
+   <button class="btn subtle" @onclick="ExportTickets">Export</button>
+   <button class="btn primary" style="background:#2563eb;color:#fff;z-index:9999;position:relative;" @onclick="ShowNewTicketModal">+ New Ticket</button>
+   <UserPill />
+ </div>
+ </header>
+
+ <section class="panel">
+ <table class="data-table">
+ <thead>
+ <tr>
+ <th>Ticket ID</th>
+ <th>Title</th>
+ <th>Customer</th>
+ <th>Priority</th>
+ <th>Status</th>
+ <th>Created</th>
+ <th></th>
+ </tr>
+ </thead>
+ <tbody>
+ @if (tickets != null)
+ {
+ @foreach (var ticket in tickets)
+ {
+ <tr>
+ <td>@ticket.Id</td>
+ <td>@ticket.Title</td>
+ <td>@GetCustomerDisplay(ticket.Customer)</td>
+ @* Prefer showing resolved customer name if available *@
+ <td><span class="status-pill priority">@ticket.Priority</span></td>
+ <td><span class="status-pill @ticket.Status.ToLower().Replace(" ", "")">@ticket.Status</span></td>
+ <td>@GetTimeAgo(ticket.Created)</td>
+ <td>
+   <button class="action-btn edit" title="Edit" @onclick="() => ShowEditTicketModal(ticket)">
+     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+       <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25z" fill="#2563eb" />
+       <path d="M20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" fill="#2563eb" />
+     </svg>
+   </button>
+   <button class="action-btn delete" title="Delete" @onclick="() => DeleteTicketAsync(ticket.Id)">
+     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+       <path d="M3 6h18" stroke="#ef4444" stroke-width="1.5" stroke-linecap="round" />
+       <path d="M8 6v12a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2V6" stroke="#ef4444" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+       <path d="M10 11v6" stroke="#ef4444" stroke-width="1.5" stroke-linecap="round" />
+       <path d="M14 11v6" stroke="#ef4444" stroke-width="1.5" stroke-linecap="round" />
+       <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" stroke="#ef4444" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+     </svg>
+   </button>
+ </td>
+ </tr>
+ }
+ }
+ </tbody>
+ </table>
+ </section>
+
+ @* New Ticket modal with dim backdrop *@
+ @if (showNewTicketModal)
+ {
+ <div style="position:fixed;top:0;left:0;width:100vw;height:100vh;display:grid;place-items:center;background:rgba(0,0,0,0.45);z-index:20000;" @onclick="CloseNewTicketModal">
+ <div @onclick:stopPropagation style="position:relative;z-index:20001;width:640px;max-width:90vw;background:#fff;border-radius:12px;padding:20px;box-shadow:020px60px rgba(0,0,0,0.18);">
+ <h3>New Ticket</h3>
+ <div style="margin-top:8px;">
+ <div class="form-group">
+ <label>Account (search or scroll)</label>
+ <input class="form-input" @bind="newAccountSearch" @oninput="OnNewAccountSearch" placeholder="Search account number or customer name..." autofocus />
+ <div style="max-height:220px;overflow:auto;border:1px solid #eef2f7;border-radius:8px;margin-top:8px;padding:6px;">
+ @if(filteredAccounts != null && filteredAccounts.Any())
+ {
+ <ul class="dropdown-list" style="max-height:200px;overflow:auto;">
+ @foreach(var a in filteredAccounts)
+ {
+ <li style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;" @onclick="() => SelectAccount(a)">
+ <div>
+ <div style="font-weight:700">@a.AccountNumber</div>
+ <div style="font-size:0.9rem;color:#64748b">@GetCustomerName(a.CustomerId) — @a.ServicePlan</div>
+ </div>
+ <div style="color:#2563eb;font-weight:700">Select</div>
+ </li>
+ }
+ </ul>
+ }
+ else
+ {
+ <div style="padding:10px;color:#64748b">No accounts match the search.</div>
+ }
+ </div>
+
+ @if (!string.IsNullOrEmpty(newTicketAccountNumber))
+ {
+ <div class="selected-customer">Selected: @newTicketAccountNumber — @newTicketCustomerName</div>
+ }
+ </div>
+
+ <div class="form-group">
+ <label>Title</label>
+ <input class="form-input" @bind="newTicketTitle" placeholder="Enter ticket title" />
+ </div>
+
+ <div class="form-group">
+ <label>Priority</label>
+ <select class="form-input" @bind="newTicketPriority">
+ <option value="Low">Low</option>
+ <option value="Medium">Medium</option>
+ <option value="High">High</option>
+ <option value="Critical">Critical</option>
+ </select>
+ </div>
+
+ <div class="form-group">
+ <label>Status</label>
+ <select class="form-input" @bind="newTicketStatus">
+ <option value="Open">Open</option>
+ <option value="In Progress">In Progress</option>
+ <option value="Resolved">Resolved</option>
+ <option value="Closed">Closed</option>
+ </select>
+ </div>
+
+ <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:16px;">
+ <button class="btn" @onclick="CloseNewTicketModal">Cancel</button>
+ <button class="btn primary" @onclick="OnCreateNewTicketClicked">Create</button>
+ </div>
+ @if (!string.IsNullOrEmpty(serviceError))
+ {
+ <p style="color:#dc2626;font-size:0.85rem;margin-top:8px;">@serviceError</p>
+ }
+ </div>
+ </div>
+ </div>
+ }
+
+ @* Edit Ticket modal with dim backdrop *@
+ @if (showEditTicketModal && editingTicket != null)
+ {
+ <div style="position:fixed;top:0;left:0;width:100vw;height:100vh;display:grid;place-items:center;background:rgba(0,0,0,0.45);z-index:20000;" @onclick="CloseEditTicketModal">
+ <div @onclick:stopPropagation style="position:relative;z-index:20001;width:640px;max-width:90vw;background:#fff;border-radius:12px;padding:20px;box-shadow:020px60px rgba(0,0,0,0.18);">
+ <h3>Edit Ticket</h3>
+ <div class="form-group">
+ <label>Ticket ID</label>
+ <input class="form-input" value="@editingTicket.Id" disabled />
+ </div>
+ <div class="form-group">
+ <label>Title</label>
+ <input class="form-input" @bind="editingTicket.Title" placeholder="Enter ticket title" />
+ </div>
+ <div class="form-group">
+ <label>Customer</label>
+ <select class="form-input" @bind="editingTicket.Customer">
+ <option value="">Select customer</option>
+ @if (customers != null)
+ {
+ @foreach (var c in customers)
+ {
+ <option value="@c.Name">@c.Name</option>
+ }
+ }
+ </select>
+ </div>
+ <div class="form-group">
+ <label>Priority</label>
+ <select class="form-input" @bind="editingTicket.Priority">
+ <option value="Low">Low</option>
+ <option value="Medium">Medium</option>
+ <option value="High">High</option>
+ <option value="Critical">Critical</option>
+ </select>
+ </div>
+ <div class="form-group">
+ <label>Status</label>
+ <select class="form-input" @bind="editingTicket.Status">
+ <option value="Open">Open</option>
+ <option value="In Progress">In Progress</option>
+ <option value="Resolved">Resolved</option>
+ <option value="Closed">Closed</option>
+ </select>
+ </div>
+ <div class="form-group">
+ <label>Created</label>
+ <input class="form-input" value="@editingTicket.Created.ToString("yyyy-MM-dd HH:mm")" disabled />
+ </div>
+ <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:16px;">
+ <button class="btn" @onclick="CloseEditTicketModal">Cancel</button>
+ <button class="btn primary" @onclick="UpdateTicketAsync">Update</button>
+ </div>
+ </div>
+ </div>
+ }
+
+@if (!string.IsNullOrEmpty(ticketToast))
+{
+ <div class="toast">@ticketToast</div>
+}
+</div>
+
+@code {
+ private List<Ticket>? tickets;
+ private List<Customer>? customers;
+ private string ticketSearch = string.Empty;
+
+ // New Ticket Modal
+ private bool showNewTicketModal = false;
+ private string newTicketTitle = "";
+ private string newTicketCustomer = ""; // will store customer id
+ private string newTicketCustomerName = ""; // display name
+ private string newTicketAccountNumber = ""; // selected account number
+ private string newTicketPriority = "Medium";
+ private string newTicketStatus = "Open";
+
+ // Account search helpers
+ private string newAccountSearch = string.Empty;
+ private List<Account>? accounts;
+ private List<Account>? filteredAccounts;
+
+ // Edit Ticket Modal
+ private bool showEditTicketModal = false;
+ private Ticket? editingTicket = null;
+
+ private string ticketToast = string.Empty;
+ private string serviceError = string.Empty;
+
+ protected override async Task OnInitializedAsync()
+ {
+ // Check if user is authenticated
+ if (!AuthService.IsAuthenticated)
+ {
+ Navigation.NavigateTo("/login", true);
+ return;
+ }
+
+ await LoadDataAsync();
+ }
+
+ private async Task LoadDataAsync()
+ {
+ tickets = await AdminService.GetTicketsAsync();
+ customers = await AdminService.GetCustomersAsync();
+ StateHasChanged();
+ }
+
+ // New Ticket Methods
+ private void ShowNewTicketModal()
+ {
+ System.Diagnostics.Debug.WriteLine("ShowNewTicketModal clicked");
+ newTicketTitle = "";
+ newTicketCustomer = "";
+ newTicketCustomerName = "";
+ newTicketAccountNumber = "";
+ newTicketPriority = "Medium";
+ newTicketStatus = "Open";
+ newAccountSearch = string.Empty;
+ // build accounts if not loaded (synthesise from customers)
+ if (accounts == null)
+ {
+ accounts = new List<Account>();
+ if (customers != null)
+ {
+ int i = 1;
+ foreach (var c in customers)
+ {
+ accounts.Add(new Account { Id = i, AccountNumber = "ACCT-" + (i+1).ToString("000000"), CustomerId = c.Id, Customer = c, ServicePlan = c.Plan, IsActive = true });
+ i++;
+ }
+ }
+ }
+ filteredAccounts = accounts;
+ showNewTicketModal = true;
+ StateHasChanged();
+ }
+
+ private void CloseNewTicketModal()
+ {
+ System.Diagnostics.Debug.WriteLine("CloseNewTicketModal called");
+ showNewTicketModal = false;
+ // reset search and selection when closing
+ newAccountSearch = string.Empty;
+ newTicketAccountNumber = string.Empty;
+ newTicketCustomer = string.Empty;
+ newTicketCustomerName = string.Empty;
+ StateHasChanges

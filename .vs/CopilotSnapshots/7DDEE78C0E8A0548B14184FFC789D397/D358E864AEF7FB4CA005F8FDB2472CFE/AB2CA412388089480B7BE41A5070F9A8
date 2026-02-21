@@ -1,0 +1,514 @@
+﻿@page "/admin/agents"
+@using FiberHelp.Models
+@using System.Linq
+@inject FiberHelp.Services.AdminService AdminService
+@inject FiberHelp.Services.AuthService AuthService
+@inject Microsoft.JSInterop.IJSRuntime JS
+
+@* Using global admin-theme.css; removed page-specific CSS *@
+
+<style>
+ /* Agents page polished UI */
+ .agents-header { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:18px }
+ .agents-controls { display:flex; gap:12px; align-items:center }
+ .agents-search { padding:10px 14px; border-radius:12px; border:1px solid #e5e7eb; background:#fff; width:360px; box-shadow:0 6px 14px rgba(2,6,23,0.06) }
+ .agents-controls .btn.primary { background:linear-gradient(135deg,#2563eb,#1d4ed8); color:#fff; box-shadow:0 10px 22px rgba(29,78,216,0.25); border-radius:12px }
+ .agents-controls .btn.subtle { background:#fff; color:#0f172a; border:1px solid #e5e7eb; border-radius:12px }
+
+ .panel { background:#fff; border-radius:14px; padding:18px; box-shadow:0 12px 28px rgba(2,6,23,0.08); }
+ .modern-table { width:100%; border-collapse:separate; border-spacing:0 10px }
+ .modern-table thead th { font-weight:700; color:#475569; padding:10px 12px; border-bottom:1px solid #e5e7eb }
+ .modern-table tbody td { background:#f9fafb; padding:14px 12px; border-top:1px solid #eef2f7; border-bottom:1px solid #eef2f7 }
+ .modern-table tbody tr td:first-child { border-left:1px solid #eef2f7; border-top-left-radius:10px; border-bottom-left-radius:10px }
+ .modern-table tbody tr td:last-child { border-right:1px solid #eef2f7; border-top-right-radius:10px; border-bottom-right-radius:10px }
+
+ .agent-avatar { width:40px; height:40px; border-radius:999px; background:linear-gradient(135deg,#0ea5e9,#6366f1); display:inline-grid; place-items:center; font-weight:800; color:#fff; margin-right:12px; box-shadow:0 8px 18px rgba(99,102,241,0.25) }
+ .agent-meta { line-height:1.25 }
+ .agent-email { font-size:12px; color:#64748b }
+
+ .badge { display:inline-block; padding:6px 10px; border-radius:999px; font-size:12px; font-weight:700 }
+ .badge.on { color:#065f46; background:#ecfdf5; border:1px solid #a7f3d0 }
+ .badge.off { color:#7f1d1d; background:#fee2e2; border:1px solid #fecaca }
+
+ .data-table td.actions { white-space:nowrap }
+ .action-btn { border:none; background:transparent; padding:6px 8px; border-radius:10px; cursor:pointer }
+ .action-btn:hover { background:#eef2ff }
+ .action-btn.edit { color:#2563eb }
+ .action-btn.delete { color:#ef4444 }
+
+ /* Modal enhancements */
+ .agents-modal-bg { position:fixed; inset:0; background:rgba(2,6,23,0.5); display:grid; place-items:center; z-index:20000 }
+ .agents-modal-card { width:720px; max-width:94vw; background:#fff; border-radius:16px; padding:20px; box-shadow:0 24px 58px rgba(2,6,23,0.28) }
+ .agents-modal-header h3 { margin:0; font-size:20px }
+ .agents-modal-desc { margin:6px 0 0; color:#64748b }
+ .agents-form-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px }
+ .agents-form-group { display:flex; flex-direction:column; gap:6px }
+ .agents-form-span-2 { grid-column:span 2 }
+ .agents-form-input { padding:10px 12px; border:1px solid #e6edf3; border-radius:10px }
+ .agents-label-hint { color:#94a3b8; font-size:12px }
+ .agents-checkbox-group { display:flex; align-items:center; gap:8px }
+ .agents-error-message { background:#fee2e2; color:#7f1d1d; border:1px solid #fecaca; padding:10px 12px; border-radius:10px; margin-bottom:10px }
+ .agents-modal-actions { display:flex; justify-content:flex-end; gap:10px; margin-top:16px }
+
+ .req-list { margin-top:8px; display:grid; grid-template-columns:1fr 1fr; gap:8px }
+ .req { font-size:12px; padding:8px 10px; border-radius:10px; border:1px solid #e5e7eb }
+ .req.ok { background:#ecfdf5; color:#065f46; border-color:#a7f3d0 }
+ .req.bad { background:#fef2f2; color:#7f1d1d; border-color:#fecaca }
+
+ @@media (max-width:900px){ .agents-search{width:200px} .agents-form-grid{grid-template-columns:1fr} }
+</style>
+
+@if(!AuthService.IsAuthenticated || !string.Equals(AuthService.Role,"Administrator",StringComparison.OrdinalIgnoreCase))
+{
+ <div class="panel"><strong>Access denied.</strong></div>
+}
+else
+{
+ <header class="topbar agents-header">
+   <div>
+     <p class="eyebrow">FIBERHELP · ADMIN</p>
+     <h1 class="page-title">Agents</h1>
+   </div>
+   <div class="agents-controls">
+     <input class="agents-search" placeholder="Search by name, email or dept" @bind="searchTerm" />
+     <button class="btn subtle" @onclick="ExportAgents">Export</button>
+     <button class="btn primary" @onclick="() => OpenModal(null)">+ Register Agent</button>
+   </div>
+ </header>
+
+ <section class="panel">
+ <div style="overflow:auto">
+ <table class="data-table modern-table">
+ <thead>
+ <tr>
+ <th>Email</th>
+ <th>Name</th>
+ <th>Dept</th>
+ <th>Phone</th>
+ <th>Active</th>
+ <th style="text-align:right">Actions</th>
+ </tr>
+ </thead>
+ <tbody>
+ @if(FilteredAgents.Any())
+ {
+ @foreach(var a in FilteredAgents)
+ {
+ <tr>
+ <td>@a.Email</td>
+ <td>
+   <div style="display:flex;align-items:center">
+     <span class="agent-avatar">@GetInitials(a.FullName)</span>
+     <div>
+       <div style="font-weight:700">@a.FullName</div>
+       <div style="font-size:12px;color:#64748b">@a.Email</div>
+     </div>
+   </div>
+ </td>
+ <td>@(string.IsNullOrWhiteSpace(a.Department)?"—":a.Department)</td>
+ <td>@(string.IsNullOrWhiteSpace(a.Phone)?"—":a.Phone)</td>
+ <td>
+   <span class="badge @(a.IsActive?"on":"off")">@(a.IsActive?"Active":"Inactive")</span>
+ </td>
+ <td class="actions">
+    <button class="action-btn edit" title="Edit" @onclick="() => OpenModal(a)">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25z" fill="#2563eb" />
+        <path d="M20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" fill="#2563eb" />
+      </svg>
+    </button>
+    <button class="action-btn delete" title="Delete" @onclick="() => DeleteAgent(a)">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <path d="M3 6h18" stroke="#ef4444" stroke-width="1.5" stroke-linecap="round" />
+        <path d="M8 6v12a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2V6" stroke="#ef4444" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M10 11v6" stroke="#ef4444" stroke-width="1.5" stroke-linecap="round" />
+        <path d="M14 11v6" stroke="#ef4444" stroke-width="1.5" stroke-linecap="round" />
+        <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" stroke="#ef4444" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+      </svg>
+    </button>
+  </td>
+ </tr>
+ }
+ }
+ else
+ {
+ <tr><td colspan="6">No agents found.</td></tr>
+ }
+ </tbody>
+ </table>
+ </div>
+ </section>
+
+ @if(!string.IsNullOrEmpty(notification))
+ {
+ <div class="panel" style="margin-top:12px;background:#ecfdf5;color:#065f46;border-color:#16a34a">
+   <span style="display:inline-flex;align-items:center;gap:10px">
+     <svg width="18" height="18" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+       <circle cx="10" cy="10" r="9" stroke="#16a34a" stroke-width="1.2" fill="rgba(16,185,129,0.06)" />
+       <path d="M6.5 10.5l2 2 4-4" stroke="#065f46" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+     </svg>
+     <span>@notification</span>
+   </span>
+ </div>
+ }
+
+ @if(showModal)
+ {
+ <div class="agents-modal-bg" @onclick="CloseModal">
+ <div class="agents-modal-card" @onclick:stopPropagation>
+ <div class="agents-modal-header">
+ <h3>@(isEditing ? "Edit Agent" : "Register Agent")</h3>
+ <p class="agents-modal-desc">@(isEditing ? "Modify agent details and save changes." : "Create a new support agent account. Password rules apply after typing.")</p>
+ </div>
+ 
+ <div class="agents-modal-body">
+ @if(!string.IsNullOrEmpty(errorMessage))
+ {
+ <div class="agents-error-message">@errorMessage</div>
+ }
+ 
+ <div class="agents-form-grid">
+ <div class="agents-form-group agents-form-span-2">
+ <label>Email <span class="agents-label-hint">(work address)</span></label>
+ <input type="email" class="agents-form-input" @bind="newEmail" placeholder="agent@domain.com" />
+ </div>
+ 
+ <div class="agents-form-group agents-form-span-2">
+ <label>Full Name</label>
+ <input class="agents-form-input" @bind="newFullName" placeholder="John Doe" />
+ </div>
+ 
+ <div class="agents-form-group">
+ <label>Department</label>
+ <input class="agents-form-input" @bind="newDept" placeholder="e.g. Support" />
+ </div>
+ 
+ <div class="agents-form-group">
+ <label>Phone</label>
+ <input type="tel" class="agents-form-input" @bind="newPhone" placeholder="+639123456789" />
+ </div>
+ 
+ <div class="agents-form-group agents-form-span-2">
+ <div class="agents-checkbox-group">
+ <input type="checkbox" id="activeCheck" @bind="newActive" />
+ <label for="activeCheck">Active</label>
+ </div>
+ </div>
+ 
+ <div class="agents-form-group agents-form-span-2">
+ <label>@(isEditing ? "Password (leave blank to keep existing)" : "Password") <span class="agents-label-hint">(initial)</span></label>
+ <input type="password" class="agents-form-input" @bind="newPassword" @bind:event="oninput" placeholder="Enter password" />
+ @if(!isEditing && attempted && !IsValidPassword())
+ {
+ <div class="req-list">
+ <div class="req @(LenOk?"ok":"bad")">@(LenOk?"✓":"✕") 12+ characters</div>
+ <div class="req @(UpperOk?"ok":"bad")">@(UpperOk?"✓":"✕") Uppercase letter</div>
+ <div class="req @(DigitOk?"ok":"bad")">@(DigitOk?"✓":"✕") Number</div>
+ <div class="req @(SpecialOk?"ok":"bad")">@(SpecialOk?"✓":"✕") Special character</div>
+ </div>
+ }
+ </div>
+ 
+ @if(!isEditing)
+ {
+ <div class="agents-form-group agents-form-span-2">
+ <label>Confirm Password</label>
+ <input type="password" class="agents-form-input" @bind="confirmPassword" @bind:event="oninput" placeholder="Re-enter password" />
+ @if(attempted && !string.IsNullOrWhiteSpace(newPassword) && !string.IsNullOrWhiteSpace(confirmPassword) && newPassword != confirmPassword)
+ {
+   <div style="color:#ef4444;font-size:12px;margin-top:4px">Passwords do not match</div>
+ }
+ @if(!string.IsNullOrWhiteSpace(confirmPassword) && newPassword == confirmPassword)
+ {
+   <div style="color:#10b981;font-size:12px;margin-top:4px">✓ Passwords match</div>
+ }
+ </div>
+ }
+ </div>
+ 
+ <div class="agents-modal-actions">
+ <button class="btn" @onclick="CloseModal">Cancel</button>
+ <button class="btn primary" @onclick="ShowCreateConfirmation" disabled="@(!CanSubmit())">@(isEditing ? "Save Changes" : "Create Agent")</button>
+ </div>
+ </div>
+ </div>
+ </div>
+ }
+ 
+ @* Confirmation modal for create/update *@
+ @if(showCreateConfirm)
+ {
+  <div class="agents-modal-bg" @onclick="() => showCreateConfirm=false">
+    <div class="agents-modal-card" style="max-width:500px" @onclick:stopPropagation>
+      <div class="agents-modal-header">
+        <h3>@(isEditing ? "Confirm Changes" : "Confirm Agent Creation")</h3>
+      </div>
+      <div class="agents-modal-body">
+        @if(isEditing)
+        {
+          <p>Are you sure you want to save changes for <strong>@newFullName</strong> (@newEmail)?</p>
+        }
+        else
+        {
+          <p>You are about to create a new agent account:</p>
+          <div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:10px;padding:12px;margin:12px 0">
+            <div style="margin-bottom:8px"><strong>Email:</strong> @newEmail</div>
+            <div style="margin-bottom:8px"><strong>Name:</strong> @newFullName</div>
+            <div style="margin-bottom:8px"><strong>Department:</strong> @(string.IsNullOrWhiteSpace(newDept) ? "(none)" : newDept)</div>
+            <div style="margin-bottom:8px"><strong>Phone:</strong> @(string.IsNullOrWhiteSpace(newPhone) ? "(none)" : newPhone)</div>
+            <div><strong>Status:</strong> @(newActive ? "Active" : "Inactive")</div>
+          </div>
+          <p style="color:#64748b;font-size:13px">The agent will be able to log in with the provided credentials.</p>
+        }
+      </div>
+      <div class="agents-modal-actions">
+        <button class="btn" @onclick="() => showCreateConfirm=false">Cancel</button>
+        <button class="btn primary" @onclick="ConfirmCreateAgent">@(isEditing ? "Yes, Save Changes" : "Yes, Create Agent")</button>
+      </div>
+    </div>
+  </div>
+ }
+ 
+ @* Confirmation modal for delete *@
+ @if(showConfirm)
+ {
+  <div class="agents-modal-bg" @onclick="() => showConfirm=false">
+    <div class="agents-modal-card" style="max-width:500px" @onclick:stopPropagation>
+      <div class="agents-modal-header">
+        <h3>Confirm Deletion</h3>
+      </div>
+      <div class="agents-modal-body">
+        <p>Are you sure you want to delete <strong>@confirmTargetFullName</strong> (@confirmTargetEmail)? This action cannot be undone.</p>
+      </div>
+      <div class="agents-modal-actions">
+        <button class="btn" @onclick="() => { showConfirm=false; confirmTargetId=string.Empty; }">Cancel</button>
+        <button class="btn primary" style="background:#ef4444" @onclick="ConfirmDelete">Delete Agent</button>
+      </div>
+    </div>
+  </div>
+ }
+}
+
+@code {
+ List<Agent>? agentRecords;
+ IEnumerable<Agent> FilteredAgents => string.IsNullOrWhiteSpace(searchTerm)
+   ? (agentRecords ?? Enumerable.Empty<Agent>())
+   : (agentRecords ?? Enumerable.Empty<Agent>())
+       .Where(a => (a.FullName ?? string.Empty).Contains(searchTerm, StringComparison.OrdinalIgnoreCase)
+                || (a.Email ?? string.Empty).Contains(searchTerm, StringComparison.OrdinalIgnoreCase)
+                || (a.Department ?? string.Empty).Contains(searchTerm, StringComparison.OrdinalIgnoreCase));
+ 
+ bool showModal=false;
+ bool isEditing=false;
+ string editingId = string.Empty;
+ string newEmail=""; 
+ string newFullName=""; 
+ string newPassword=""; 
+ string confirmPassword="";
+ string errorMessage=""; 
+ string notification=""; 
+ bool attempted=false;
+ string newDept=""; 
+ string newPhone=""; 
+ bool newActive=true;
+ string searchTerm = string.Empty;
+ bool showCreateConfirm = false;
+ 
+ bool LenOk=>newPassword.Length>=12;
+ bool UpperOk=>newPassword.Any(char.IsUpper);
+ bool DigitOk=>newPassword.Any(char.IsDigit);
+ bool SpecialOk=>newPassword.Any(c=>!char.IsLetterOrDigit(c));
+ bool PasswordsMatch => newPassword == confirmPassword;
+ 
+ bool IsValidPassword()=>LenOk&&UpperOk&&DigitOk&&SpecialOk&& !string.IsNullOrWhiteSpace(newEmail) && !string.IsNullOrWhiteSpace(newFullName);
+ 
+ bool CanSubmit()
+ {
+   if (isEditing)
+   {
+     // For edit: only check if new password is provided, it must be valid
+     if (!string.IsNullOrWhiteSpace(newPassword))
+     {
+       return IsValidPassword() && PasswordsMatch && !string.IsNullOrWhiteSpace(newEmail) && !string.IsNullOrWhiteSpace(newFullName);
+     }
+     return !string.IsNullOrWhiteSpace(newEmail) && !string.IsNullOrWhiteSpace(newFullName);
+   }
+   else
+   {
+     // For create: must have valid password and matching confirmation
+     return IsValidPassword() && PasswordsMatch && !string.IsNullOrWhiteSpace(confirmPassword);
+   }
+ }
+ 
+ protected override async Task OnInitializedAsync()
+ {
+   if(!AuthService.IsAuthenticated || !string.Equals(AuthService.Role,"Administrator",StringComparison.OrdinalIgnoreCase))
+     return;
+   
+   agentRecords=await AdminService.GetAgentRecordsAsync();
+ }
+ 
+ void OpenModal(Agent? a)
+ {
+   showModal=true;
+   errorMessage="";
+   notification="";
+   attempted=false;
+   if (a == null)
+   {
+     // create
+     isEditing = false;
+     editingId = string.Empty;
+     newEmail = newFullName = newPassword = confirmPassword = newDept = newPhone = string.Empty;
+     newActive = true;
+   }
+   else
+   {
+     // edit
+     isEditing = true;
+     editingId = a.Id;
+     newEmail = a.Email;
+     newFullName = a.FullName;
+     newDept = a.Department;
+     newPhone = a.Phone;
+     newActive = a.IsActive;
+     newPassword = confirmPassword = string.Empty; // don't preload password
+   }
+ }
+ 
+ void CloseModal()
+ {
+   showModal=false;
+   errorMessage="";
+   newEmail=newFullName=newPassword=confirmPassword=newDept=newPhone="";
+   attempted=false;
+   showCreateConfirm = false;
+ }
+ 
+ void ShowCreateConfirmation()
+ {
+   attempted = true;
+   if (!CanSubmit())
+   {
+     if (!isEditing && newPassword != confirmPassword)
+     {
+       errorMessage = "Passwords do not match.";
+     }
+     else
+     {
+       errorMessage = "Please fill all required fields correctly.";
+     }
+     return;
+   }
+   
+   errorMessage = "";
+   showCreateConfirm = true;
+ }
+ 
+ async Task ConfirmCreateAgent()
+ {
+   showCreateConfirm = false;
+   await CreateAgent();
+ }
+ 
+ async Task CreateAgent()
+ {
+   errorMessage="";
+   notification="";
+ 
+   if (!isEditing)
+   {
+     var a=new Agent
+     {
+       Email=newEmail.Trim().ToLowerInvariant(),
+       FullName=newFullName,
+       Department=newDept,
+       Phone=newPhone,
+       IsActive=newActive
+     };
+ 
+     var ok=await AdminService.CreateAgentRecordAsync(a,newPassword);
+ 
+     if(ok)
+     {
+       notification="Agent created successfully!";
+       agentRecords=await AdminService.GetAgentRecordsAsync();
+       CloseModal();
+     }
+     else
+     {
+       errorMessage=AdminService.LastError??"Create failed.";
+     }
+   }
+   else
+   {
+     // update
+     var a = new Agent
+     {
+       Id = editingId,
+       Email = newEmail.Trim().ToLowerInvariant(),
+       FullName = newFullName,
+       Department = newDept,
+       Phone = newPhone,
+       IsActive = newActive
+     };
+ 
+     var ok = await AdminService.UpdateAgentRecordAsync(a, string.IsNullOrWhiteSpace(newPassword) ? null : newPassword);
+     if (ok)
+     {
+       notification = "Agent updated successfully!";
+       agentRecords = await AdminService.GetAgentRecordsAsync();
+       CloseModal();
+     }
+     else
+     {
+       errorMessage = AdminService.LastError ?? "Update failed.";
+     }
+   }
+ }
+ 
+ string confirmTargetId = string.Empty;
+ string confirmTargetFullName = string.Empty;
+ string confirmTargetEmail = string.Empty;
+ bool showConfirm = false;
+ 
+ void DeleteAgent(Agent a)
+ {
+   // open custom confirm modal
+   confirmTargetId = a.Id;
+   confirmTargetFullName = a.FullName;
+   confirmTargetEmail = a.Email;
+   showConfirm = true;
+ }
+ 
+ async Task ConfirmDelete()
+ {
+   showConfirm = false;
+   if (string.IsNullOrWhiteSpace(confirmTargetId)) return;
+   var ok = await AdminService.DeleteAgentRecordAsync(confirmTargetId);
+   if (ok)
+   {
+     notification = "Agent deleted successfully!";
+     agentRecords = await AdminService.GetAgentRecordsAsync();
+   }
+   else
+   {
+     notification = AdminService.LastError ?? "Delete failed.";
+   }
+   confirmTargetId = string.Empty;
+ }
+ 
+ void ExportAgents()
+ {
+   // placeholder: could implement CSV export
+   notification = "Export not implemented.";
+ }
+ 
+ private string GetInitials(string name)
+ {
+   if (string.IsNullOrWhiteSpace(name)) return "?";
+   var parts = name.Split(new[] { ' ', '@', '.' }, StringSplitOptions.RemoveEmptyEntries);
+   if (parts.Length >= 2) return (parts[0][0].ToString() + parts[1][0].ToString()).ToUpper();
+   return parts[0].Length >= 2 ? parts[0].Substring(0, 2).ToUpper() : parts[0][0].ToString().ToUpper();
+ }
+}

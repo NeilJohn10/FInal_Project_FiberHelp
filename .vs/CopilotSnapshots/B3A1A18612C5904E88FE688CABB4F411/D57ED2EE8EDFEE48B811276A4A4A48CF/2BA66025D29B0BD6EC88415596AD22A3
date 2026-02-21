@@ -1,0 +1,182 @@
+﻿using System;
+using System.Threading.Tasks;
+using FiberHelp.Data;
+using Microsoft.EntityFrameworkCore;
+using System.Security.Cryptography;
+using System.Text;
+using Microsoft.Extensions.DependencyInjection;
+using System.Linq;
+
+namespace FiberHelp.Services
+{
+    public class AuthService
+    {
+        private readonly IServiceProvider _serviceProvider;
+        public AuthService(IServiceProvider serviceProvider) { _serviceProvider = serviceProvider; }
+
+        public bool IsAuthenticated { get; private set; }
+        public string? Email { get; private set; }
+        public string? Role { get; private set; }
+        public string? FullName { get; private set; }
+        public string? UserId { get; private set; }
+        public string? LastLoginError { get; private set; }
+        public event Action? AuthenticationStateChanged;
+
+        private static string HashPassword(string password)
+        {
+            using var sha = SHA256.Create();
+            var normalized = (password ?? string.Empty).Trim();
+            var bytes = Encoding.UTF8.GetBytes(normalized);
+            var hash = sha.ComputeHash(bytes);
+            return Convert.ToHexString(hash);
+        }
+
+        public async Task<bool> SignInAsync(string email, string password)
+        {
+            LastLoginError = null;
+            
+            try
+            {
+                if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
+                {
+                    LastLoginError = "Email and password are required.";
+                    return false;
+                }
+
+                using var scope = _serviceProvider.CreateScope();
+                var _db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+                try 
+                { 
+                    await _db.Database.EnsureCreatedAsync(); 
+                    DbInitializer.Initialize(_db); 
+                } 
+                catch (Exception ex) 
+                { 
+                    System.Diagnostics.Debug.WriteLine($"AuthService: DB init error: {ex.Message}");
+                }
+
+                var lowered = email.Trim().ToLowerInvariant();
+                var hashed = HashPassword(password);
+                
+                System.Diagnostics.Debug.WriteLine($"AuthService: Attempting login for '{lowered}'");
+                System.Diagnostics.Debug.WriteLine($"AuthService: Password hash = {hashed}");
+
+                // Check Users table first (Administrator, Agent, CSR)
+                var users = await _db.Users.AsNoTracking().ToListAsync();
+                System.Diagnostics.Debug.WriteLine($"AuthService: Found {users.Count} users in Users table");
+                
+                var user = users.FirstOrDefault(u => string.Equals(u.Email?.Trim(), lowered, StringComparison.OrdinalIgnoreCase));
+                if (user != null)
+                {
+                    System.Diagnostics.Debug.WriteLine($"AuthService: Found user '{user.Email}' with role '{user.Role}'");
+                    System.Diagnostics.Debug.WriteLine($"AuthService: Stored hash = {user.PasswordHash}");
+                    System.Diagnostics.Debug.WriteLine($"AuthService: Input hash  = {hashed}");
+                    System.Diagnostics.Debug.WriteLine($"AuthService: Hash match = {string.Equals(user.PasswordHash?.Trim(), hashed, StringComparison.Ordinal)}");
+                    
+                    if (!string.Equals(user.PasswordHash?.Trim(), hashed, StringComparison.Ordinal))
+                    {
+                        LastLoginError = "Invalid password.";
+                        return false;
+                    }
+
+                    IsAuthenticated = true;
+                    Email = user.Email;
+                    Role = user.Role;
+                    FullName = user.FullName;
+                    UserId = user.Id;
+                    
+                    System.Diagnostics.Debug.WriteLine($"AuthService: Login successful! Role = {Role}");
+                    AuthenticationStateChanged?.Invoke();
+                    return true;
+                }
+
+                // Check Agents table (Support Agent, Technician, Supervisor)
+                var agents = await _db.Agents.AsNoTracking().ToListAsync();
+                System.Diagnostics.Debug.WriteLine($"AuthService: Found {agents.Count} agents in Agents table");
+                
+                var agent = agents.FirstOrDefault(a => string.Equals(a.Email?.Trim(), lowered, StringComparison.OrdinalIgnoreCase));
+                if (agent != null)
+                {
+                    System.Diagnostics.Debug.WriteLine($"AuthService: Found agent '{agent.Email}' with role '{agent.Role}'");
+                    
+                    if (!agent.IsActive)
+                    {
+                        LastLoginError = "Account is inactive. Contact administrator.";
+                        return false;
+                    }
+                    
+                    if (agent.IsLocked)
+                    {
+                        LastLoginError = "Account is locked due to too many failed attempts.";
+                        return false;
+                    }
+                    
+                    if (!string.Equals(agent.PasswordHash?.Trim(), hashed, StringComparison.Ordinal))
+                    {
+                        // Increment failed login count
+                        var tracked = await _db.Agents.FirstOrDefaultAsync(a => a.Id == agent.Id);
+                        if (tracked != null)
+                        {
+                            tracked.FailedLoginCount++;
+                            if (tracked.FailedLoginCount >= 5) tracked.IsLocked = true;
+                            await _db.SaveChangesAsync();
+                        }
+                        LastLoginError = "Invalid password.";
+                        return false;
+                    }
+
+                    // Successful login - reset failed count
+                    var trackedSuccess = await _db.Agents.FirstOrDefaultAsync(a => a.Id == agent.Id);
+                    if (trackedSuccess != null)
+                    {
+                        trackedSuccess.FailedLoginCount = 0;
+                        trackedSuccess.LastLoginAt = DateTime.UtcNow;
+                        await _db.SaveChangesAsync();
+                    }
+
+                    IsAuthenticated = true;
+                    Email = agent.Email;
+                    UserId = agent.Id;
+                    FullName = agent.FullName;
+                    Role = string.IsNullOrWhiteSpace(agent.Role) ? "Agent" : agent.Role;
+                    
+                    System.Diagnostics.Debug.WriteLine($"AuthService: Agent login successful! Role = {Role}");
+                    AuthenticationStateChanged?.Invoke();
+                    return true;
+                }
+
+                LastLoginError = "Email not found.";
+                System.Diagnostics.Debug.WriteLine($"AuthService: No user/agent found with email '{lowered}'");
+                return false;
+            }
+            catch (Exception ex)
+            {
+                LastLoginError = $"Login error: {ex.Message}";
+                System.Diagnostics.Debug.WriteLine($"AuthService: Exception during login: {ex}");
+                return false;
+            }
+        }
+
+        public void SignOut()
+        {
+            IsAuthenticated = false;
+            Email = null;
+            Role = null;
+            FullName = null;
+            UserId = null;
+            LastLoginError = null;
+            AuthenticationStateChanged?.Invoke();
+        }
+
+        // Helper methods for role checking
+        public bool IsAdministrator => Role?.Equals("Administrator", StringComparison.OrdinalIgnoreCase) == true;
+        public bool IsAgent => Role?.Equals("Agent", StringComparison.OrdinalIgnoreCase) == true 
+                            || Role?.Equals("Support Agent", StringComparison.OrdinalIgnoreCase) == true;
+        public bool IsTechnician => Role?.Equals("Technician", StringComparison.OrdinalIgnoreCase) == true;
+        public bool IsSupervisor => Role?.Equals("Supervisor", StringComparison.OrdinalIgnoreCase) == true;
+        public bool CanManageTickets => IsAdministrator || IsAgent || IsSupervisor;
+        public bool CanResolveTickets => IsTechnician || IsAdministrator;
+        public bool CanAssignTechnicians => IsAgent || IsAdministrator || IsSupervisor;
+    }
+}

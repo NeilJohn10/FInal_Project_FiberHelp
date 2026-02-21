@@ -1,0 +1,130 @@
+﻿@page "/admin/accounts"
+@using FiberHelp.Models
+@inject FiberHelp.Services.AdminService AdminService
+@inject FiberHelp.Services.AuthService AuthService
+@inject FiberHelp.Services.ErrorHandlingService ErrorService
+@inject Microsoft.JSInterop.IJSRuntime JS
+
+<style>
+/* Accounts page enhancements */
+.topbar { padding-bottom:20px; margin-bottom:22px; border-bottom:1px solid #e5e7eb; }
+.topbar .page-title { font-size:42px; line-height:1.1; margin:0 0 4px; }
+.top-actions { gap:14px; }
+.top-actions .agents-search { width:360px; padding:12px 18px; border-radius:14px; border:1px solid #e5e7eb; background:#fff; box-shadow:0 8px 22px rgba(2,6,23,0.08); font-size:15px; }
+.top-actions .btn.subtle { background:#fff; color:#0f172a; border:1px solid #e5e7eb; border-radius:14px; padding:10px 22px; box-shadow:0 4px 10px rgba(2,6,23,0.04); }
+.top-actions .btn.primary { background:linear-gradient(135deg,#2563eb,#1d4ed8); color:#fff; border:none; border-radius:14px; padding:10px 26px; box-shadow:0 14px 32px rgba(29,78,216,0.30); font-weight:600; }
+.top-actions .btn.primary:hover { filter:brightness(1.08); }
+
+.accounts-card { display:block; background:#fff; border-radius:14px; padding:20px 20px 10px; box-shadow:0 12px 28px rgba(2,6,23,0.08); }
+.accounts-table { width:100%; border-collapse:separate; border-spacing:0 10px; }
+.accounts-table thead th { text-align:left; padding:10px 12px; color:#475569; font-weight:700; border-bottom:1px solid #e5e7eb; font-size:14px; }
+.accounts-table tbody td { background:#f9fafb; padding:14px 12px; color:#0f172a; font-size:14px; border-top:1px solid #eef2f7; border-bottom:1px solid #eef2f7; }
+.accounts-table tbody tr td:first-child { border-left:1px solid #eef2f7; border-top-left-radius:12px; border-bottom-left-radius:12px; }
+.accounts-table tbody tr td:last-child { border-right:1px solid #eef2f7; border-top-right-radius:12px; border-bottom-right-radius:12px; }
+.accounts-actions { white-space:nowrap; }
+.action-btn { border:none; background:transparent; padding:6px 8px; border-radius:10px; cursor:pointer; }
+.action-btn:hover { background:#eef2ff; }
+.action-btn.edit { color:#2563eb; }
+.action-btn.delete { color:#ef4444; }
+.badge { display:inline-block; padding:6px 10px; border-radius:999px; font-size:12px; font-weight:700; }
+.badge.on { color:#065f46; background:#ecfdf5; border:1px solid #a7f3d0; }
+.badge.off { color:#7f1d1d; background:#fee2e2; border:1px solid #fecaca; }
+.acct-customer-cell { display:flex; align-items:center; gap:12px; }
+.acct-initial { width:40px; height:40px; border-radius:999px; background:linear-gradient(135deg,#0ea5e9,#6366f1); display:grid; place-items:center; font-weight:800; color:#fff; font-size:14px; box-shadow:0 8px 18px rgba(99,102,241,0.25); }
+.acct-name { font-weight:600; }
+.acct-plan { font-size:12px; color:#64748b; }
+
+/* Modal visual parity with Agents */
+.modal-backdrop { position:fixed; inset:0; background:rgba(2,6,23,0.5); display:grid; place-items:center; z-index:20000; }
+.modal-card { width:680px; max-width:94vw; background:#fff; border-radius:16px; padding:22px; box-shadow:0 24px 58px rgba(2,6,23,0.28); }
+.modal-head h3 { margin:0; font-size:20px; }
+.modal-head p { margin:6px 0 0; color:#64748b; font-size:14px; }
+.form-row { display:flex; gap:14px; }
+.form-col { flex:1; display:flex; flex-direction:column; gap:6px; }
+.form-input { padding:10px 12px; border-radius:10px; border:1px solid #e6edf3; }
+.modal-actions { display:flex; gap:10px; justify-content:flex-end; margin-top:18px; }
+.btn.primary { background:linear-gradient(135deg,#2563eb,#1d4ed8); color:#fff; box-shadow:0 10px 22px rgba(29,78,216,0.25); }
+.btn { border-radius:10px; }
+
+.disabled{opacity:0.6;pointer-events:none}
+
+/* Pagination Styles */
+.pagination-container{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:20px;padding:16px 0}
+.pagination-btn{border:1px solid #e5e7eb;background:#fff;color:#475569;padding:8px 12px;border-radius:8px;cursor:pointer;font-size:14px;font-weight:600;transition:all 0.2s}
+.pagination-btn:hover:not(:disabled){background:#f8fafc;border-color:#cbd5e1}
+.pagination-btn:disabled{opacity:0.4;cursor:not-allowed}
+.pagination-btn.active{background:#2563eb;color:#fff;border-color:#2563eb}
+.pagination-arrow{display:flex;align-items:center;justify-content:center;width:36px;height:36px}
+.pagination-info{color:#64748b;font-size:14px;padding:0 12px}
+</style>
+
+@if(!AuthService.IsAuthenticated)
+{
+    <div class="panel">Access denied. Please log in.</div>
+}
+else
+{
+
+    <header class="topbar agents-header">
+      <div>
+        <p class="eyebrow">FIBERHELP · @GetRoleLabel()</p>
+        <h1 class="page-title">Accounts</h1>
+      </div>
+      <div class="agents-controls top-actions">
+        <input class="agents-search" placeholder="Search by number, name or email" list="accountSearchList" @bind="searchTerm" @bind:event="oninput" @bind:after="TryOpenFromSearch" />
+        <datalist id="accountSearchList">
+            @if(accounts != null)
+            {
+                foreach(var a in accounts)
+                {
+                    <option value="@($"{a.Id} - {a.Name} ({a.ContactEmail})")"></option>
+                }
+            }
+        </datalist>
+        <button class="btn subtle" @onclick="ExportAccounts">Export</button>
+        @if (!IsAgent())
+        {
+          <button class="btn primary" @onclick="OpenNewAccount">+ Add Account</button>
+        }
+      </div>
+    </header>
+
+    <section class="accounts-card">
+        <table class="accounts-table">
+            <thead>
+                <tr>
+                    <th style="width:70px">Account ID</th>
+                    <th style="width:220px">Account Number</th>
+                    <th style="width:220px">Name</th>
+                    <th style="width:140px">Type</th>
+                    <th style="width:160px">Plan</th>
+                    <th style="width:140px">Status</th>
+                    <th style="width:110px">Active</th>
+                    <th style="text-align:right">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (PaginatedAccounts != null && PaginatedAccounts.Any())
+                {
+                    @foreach(var a in PaginatedAccounts)
+                    {
+                        <tr>
+                            <td>@a.Id</td>
+                            <td style="font-weight:600">@a.Id - @(string.IsNullOrWhiteSpace(a.Name)?"(no name)":a.Name) (@(string.IsNullOrWhiteSpace(a.AccountNumber)?"no number":a.AccountNumber))</td>
+                            <td>@(string.IsNullOrWhiteSpace(a.Name)?"—":a.Name)</td>
+                            <td>@(string.IsNullOrWhiteSpace(a.Type)?"—":a.Type)</td>
+                            <td>@(string.IsNullOrWhiteSpace(a.ServicePlan)?"—":a.ServicePlan)</td>
+                            <td>@(string.IsNullOrWhiteSpace(a.ServiceStatus)?"—":a.ServiceStatus)</td>
+                            <td><span class="badge @(a.IsActive?"on":"off")">@(a.IsActive?"Active":"Inactive")</span></td>
+                            <td class="accounts-actions" style="text-align:right">
+                                @if (!IsAgent())
+                                {
+                                 <button class="action-btn edit" title="Edit" @onclick="() => EditAccount(a)">
+                                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                                         <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25z" fill="#2563eb" />
+                                         <path d="M20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" fill="#2563eb" />
+                                     </svg>
+                                 </button>
+                                 <button class="action-btn delete" title="Delete" @onclick="() => DeleteAccount(a.Id)">
+                                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                                    

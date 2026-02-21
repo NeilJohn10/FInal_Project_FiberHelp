@@ -178,7 +178,7 @@
       "DocumentGroups": [
         {
           "DockedHeight": 305,
-          "SelectedChildIndex": 7,
+          "SelectedChildIndex": 6,
           "Children": [
             {
               "$type": "Bookmark",
@@ -191,10 +191,6 @@
             {
               "$type": "Bookmark",
               "Name": "ST:0:0:{1c64b9c2-e352-428e-a56d-0ace190b99a6}"
-            },
-            {
-              "$type": "Bookmark",
-              "Name": "ST:0:0:{1c4feeaa-4718-4aa9-859d-94ce25d182ba}"
             },
             {
               "$type": "Document",
@@ -242,8 +238,7 @@
               "RelativeToolTip": "FiberHelp\\wwwroot\\css\\login.css",
               "ViewState": "AgIAAIACAAAAAAAAAAAIwI4CAAARAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003000|",
-              "WhenOpened": "2025-11-12T02:47:33.453Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-11-12T02:47:33.453Z"
             },
             {
               "$type": "Document",

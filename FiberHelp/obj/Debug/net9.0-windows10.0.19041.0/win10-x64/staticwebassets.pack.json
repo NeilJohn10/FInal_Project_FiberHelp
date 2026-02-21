@@ -5,16 +5,16 @@
       "PackagePath": "staticwebassets\\FiberHelp.styles.css"
     },
     {
-      "Id": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\wwwroot\\css\\agents.css",
-      "PackagePath": "staticwebassets\\css\\agents.css"
+      "Id": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\wwwroot\\css\\admin-theme.css",
+      "PackagePath": "staticwebassets\\css\\admin-theme.css"
+    },
+    {
+      "Id": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\wwwroot\\css\\analytics.css",
+      "PackagePath": "staticwebassets\\css\\analytics.css"
     },
     {
       "Id": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\wwwroot\\css\\app.css",
       "PackagePath": "staticwebassets\\css\\app.css"
-    },
-    {
-      "Id": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\wwwroot\\css\\billing.css",
-      "PackagePath": "staticwebassets\\css\\billing.css"
     },
     {
       "Id": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\wwwroot\\css\\bootstrap\\Logo.png",
@@ -27,10 +27,6 @@
     {
       "Id": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\wwwroot\\css\\bootstrap\\bootstrap.min.css.map",
       "PackagePath": "staticwebassets\\css\\bootstrap\\bootstrap.min.css.map"
-    },
-    {
-      "Id": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\wwwroot\\css\\customers.css",
-      "PackagePath": "staticwebassets\\css\\customers.css"
     },
     {
       "Id": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\wwwroot\\css\\dashboard.css",
@@ -49,16 +45,16 @@
       "PackagePath": "staticwebassets\\css\\mainlayout.css"
     },
     {
-      "Id": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\wwwroot\\css\\reports.css",
-      "PackagePath": "staticwebassets\\css\\reports.css"
-    },
-    {
-      "Id": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\wwwroot\\css\\tickets.css",
-      "PackagePath": "staticwebassets\\css\\tickets.css"
-    },
-    {
       "Id": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\wwwroot\\index.html",
       "PackagePath": "staticwebassets\\index.html"
+    },
+    {
+      "Id": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\wwwroot\\js\\analytics.js",
+      "PackagePath": "staticwebassets\\js\\analytics.js"
+    },
+    {
+      "Id": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\wwwroot\\js\\export.js",
+      "PackagePath": "staticwebassets\\js\\export.js"
     },
     {
       "Id": "obj\\Debug\\net9.0-windows10.0.19041.0\\win10-x64\\staticwebassets\\msbuild.FiberHelp.Microsoft.AspNetCore.StaticWebAssetEndpoints.props",

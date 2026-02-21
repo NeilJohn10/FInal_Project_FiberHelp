@@ -1,0 +1,83 @@
+﻿using FiberHelp.Models;
+using System.Security.Cryptography;
+using System.Text;
+using System.Linq;
+
+namespace FiberHelp.Data
+{
+ public static class DbInitializer
+ {
+ private static string HashPassword(string password)
+ {
+ using var sha = SHA256.Create();
+ var bytes = Encoding.UTF8.GetBytes(password);
+ var hash = sha.ComputeHash(bytes);
+ return Convert.ToHexString(hash);
+ }
+
+ public static void Initialize(AppDbContext context)
+ {
+ context.Database.EnsureCreated();
+
+ var adminPassword = "Adminlogin123@";
+ var adminHash = HashPassword(adminPassword);
+ var agentPassword = "Agentlogin123@";
+ var agentHash = HashPassword(agentPassword);
+
+ // Seed users only if table empty; otherwise just refresh known passwords
+ if (!context.Users.Any())
+ {
+ context.Users.AddRange(
+ new User { Email = "admin@fiberhelp.com", PasswordHash = adminHash, Role = "Administrator", FullName = "System Admin" },
+ new User { Email = "agent@fiberhelp.com", PasswordHash = agentHash, Role = "Agent", FullName = "Support Agent" },
+ new User { Email = "csr@fiberhelp.com", PasswordHash = HashPassword("csr123"), Role = "CSR", FullName = "Customer Rep" }
+ );
+ context.SaveChanges();
+ }
+ else
+ {
+ var admin = context.Users.FirstOrDefault(u => u.Email == "admin@fiberhelp.com");
+ if (admin != null)
+ {
+ admin.PasswordHash = adminHash;
+ context.Users.Update(admin);
+ context.SaveChanges();
+ }
+ var agent = context.Users.FirstOrDefault(u => u.Email == "agent@fiberhelp.com");
+ if (agent != null)
+ {
+ agent.PasswordHash = agentHash;
+ context.Users.Update(agent);
+ context.SaveChanges();
+ }
+ }
+
+ if (!context.Customers.Any())
+ {
+ context.Customers.AddRange(
+ new Customer { Name = "Contoso Ltd", Email = "contact@contoso.com", Plan = "Premium" },
+ new Customer { Name = "Fabrikam", Email = "info@fabrikam.com", Plan = "Standard" }
+ );
+ context.SaveChanges();
+ }
+
+ if (!context.Tickets.Any())
+ {
+ context.Tickets.AddRange(
+ new Ticket { Title = "Sample ticket1", Customer = context.Customers.First().Name, Priority = "High", Status = "Open" },
+ new Ticket { Title = "Sample ticket2", Customer = context.Customers.Skip(1).FirstOrDefault()?.Name ?? "Fabrikam", Priority = "Low", Status = "Open" }
+ );
+ context.SaveChanges();
+ }
+
+ if (!context.Invoices.Any())
+ {
+ context.Invoices.AddRange(
+ new Invoice { AccountId = null, AmountDue = 199.99m, IssueDate = DateTime.UtcNow.AddDays(-7), Status = "Pending" },
+ new Invoice { AccountId = null, AmountDue = 99.50m, IssueDate = DateTime.UtcNow.AddDays(-30), Status = "Paid" }
+ );
+ context.SaveChanges();
+ }
+ }
+ }
+}

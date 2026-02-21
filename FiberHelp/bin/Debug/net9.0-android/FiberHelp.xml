@@ -4,10 +4,438 @@
         <name>FiberHelp</name>
     </assembly>
     <members>
+        <member name="M:FiberHelp.Models.Client.GenerateClientId(System.Int32)">
+            <summary>
+            Generates a user-friendly Client ID like CLT-0001
+            </summary>
+        </member>
+        <member name="T:FiberHelp.Models.ClientFeedback">
+            <summary>
+            Represents client feedback after a service/transaction is completed.
+            Clients can rate their experience and provide comments.
+            </summary>
+        </member>
+        <member name="P:FiberHelp.Models.ClientFeedback.TransactionProofId">
+            <summary>
+            Related transaction proof ID
+            </summary>
+        </member>
+        <member name="P:FiberHelp.Models.ClientFeedback.TicketId">
+            <summary>
+            Related ticket ID (if feedback is for a ticket resolution)
+            </summary>
+        </member>
+        <member name="P:FiberHelp.Models.ClientFeedback.InvoiceId">
+            <summary>
+            Related invoice ID (if feedback is for a payment)
+            </summary>
+        </member>
+        <member name="P:FiberHelp.Models.ClientFeedback.ClientId">
+            <summary>
+            Client who provided the feedback
+            </summary>
+        </member>
+        <member name="P:FiberHelp.Models.ClientFeedback.ClientName">
+            <summary>
+            Client name for display
+            </summary>
+        </member>
+        <member name="P:FiberHelp.Models.ClientFeedback.Rating">
+            <summary>
+            Overall rating (1-5 stars)
+            </summary>
+        </member>
+        <member name="P:FiberHelp.Models.ClientFeedback.ServiceQualityRating">
+            <summary>
+            Service quality rating (1-5)
+            </summary>
+        </member>
+        <member name="P:FiberHelp.Models.ClientFeedback.ResponseTimeRating">
+            <summary>
+            Response time rating (1-5)
+            </summary>
+        </member>
+        <member name="P:FiberHelp.Models.ClientFeedback.ProfessionalismRating">
+            <summary>
+            Staff professionalism rating (1-5)
+            </summary>
+        </member>
+        <member name="P:FiberHelp.Models.ClientFeedback.CommunicationRating">
+            <summary>
+            Communication rating (1-5)
+            </summary>
+        </member>
+        <member name="P:FiberHelp.Models.ClientFeedback.WouldRecommend">
+            <summary>
+            Would the client recommend the service? (NPS question)
+            </summary>
+        </member>
+        <member name="P:FiberHelp.Models.ClientFeedback.Comments">
+            <summary>
+            Client's comments/feedback text
+            </summary>
+        </member>
+        <member name="P:FiberHelp.Models.ClientFeedback.FeedbackCategory">
+            <summary>
+            Category of feedback: ServiceQuality, Billing, Technical, General
+            </summary>
+        </member>
+        <member name="P:FiberHelp.Models.ClientFeedback.HandledById">
+            <summary>
+            ID of technician/agent who handled the service (for performance tracking)
+            </summary>
+        </member>
+        <member name="P:FiberHelp.Models.ClientFeedback.HandledByName">
+            <summary>
+            Name of technician/agent
+            </summary>
+        </member>
+        <member name="P:FiberHelp.Models.ClientFeedback.SubmittedAt">
+            <summary>
+            When the feedback was submitted
+            </summary>
+        </member>
+        <member name="P:FiberHelp.Models.ClientFeedback.IsReviewed">
+            <summary>
+            Whether the feedback has been reviewed by management
+            </summary>
+        </member>
+        <member name="P:FiberHelp.Models.ClientFeedback.ReviewedAt">
+            <summary>
+            When the feedback was reviewed
+            </summary>
+        </member>
+        <member name="P:FiberHelp.Models.ClientFeedback.ReviewedById">
+            <summary>
+            Who reviewed the feedback
+            </summary>
+        </member>
+        <member name="P:FiberHelp.Models.ClientFeedback.ReviewNotes">
+            <summary>
+            Internal notes from the review
+            </summary>
+        </member>
+        <member name="P:FiberHelp.Models.ClientFeedback.Status">
+            <summary>
+            Status: Pending, Reviewed, ActionRequired, Resolved
+            </summary>
+        </member>
+        <member name="P:FiberHelp.Models.ClientFeedback.RequiresFollowUp">
+            <summary>
+            Whether follow-up is required
+            </summary>
+        </member>
+        <member name="P:FiberHelp.Models.ClientFeedback.FollowUpNotes">
+            <summary>
+            Follow-up notes if required
+            </summary>
+        </member>
+        <member name="P:FiberHelp.Models.ClientFeedback.FollowUpCompletedAt">
+            <summary>
+            When follow-up was completed
+            </summary>
+        </member>
+        <member name="M:FiberHelp.Models.ClientFeedback.GetAverageRating">
+            <summary>
+            Calculate average rating across all rating categories
+            </summary>
+        </member>
+        <member name="M:FiberHelp.Models.ClientFeedback.GetRatingLabel">
+            <summary>
+            Get a human-readable rating label
+            </summary>
+        </member>
+        <member name="T:FiberHelp.Models.TransactionProof">
+            <summary>
+            Represents proof of a completed transaction/service in the CRM system.
+            Generated when a ticket is resolved or an invoice is paid.
+            </summary>
+        </member>
+        <member name="P:FiberHelp.Models.TransactionProof.ReferenceNumber">
+            <summary>
+            Unique reference number for the transaction proof (e.g., TXN-2025-000001)
+            </summary>
+        </member>
+        <member name="P:FiberHelp.Models.TransactionProof.TransactionType">
+            <summary>
+            Type of transaction: TicketResolution, PaymentConfirmation, ServiceCompletion
+            </summary>
+        </member>
+        <member name="P:FiberHelp.Models.TransactionProof.TicketId">
+            <summary>
+            Related ticket ID (if applicable)
+            </summary>
+        </member>
+        <member name="P:FiberHelp.Models.TransactionProof.InvoiceId">
+            <summary>
+            Related invoice ID (if applicable)
+            </summary>
+        </member>
+        <member name="P:FiberHelp.Models.TransactionProof.ClientId">
+            <summary>
+            Client ID who received the service
+            </summary>
+        </member>
+        <member name="P:FiberHelp.Models.TransactionProof.ClientName">
+            <summary>
+            Client name for display purposes
+            </summary>
+        </member>
+        <member name="P:FiberHelp.Models.TransactionProof.AccountId">
+            <summary>
+            Account ID (if applicable)
+            </summary>
+        </member>
+        <member name="P:FiberHelp.Models.TransactionProof.Description">
+            <summary>
+            Description of what was completed
+            </summary>
+        </member>
+        <member name="P:FiberHelp.Models.TransactionProof.Amount">
+            <summary>
+            Amount involved (for payment transactions)
+            </summary>
+        </member>
+        <member name="P:FiberHelp.Models.TransactionProof.CompletedById">
+            <summary>
+            ID of the agent/technician who completed the transaction
+            </summary>
+        </member>
+        <member name="P:FiberHelp.Models.TransactionProof.CompletedByName">
+            <summary>
+            Name of the agent/technician who completed the transaction
+            </summary>
+        </member>
+        <member name="P:FiberHelp.Models.TransactionProof.CompletedAt">
+            <summary>
+            When the transaction was completed
+            </summary>
+        </member>
+        <member name="P:FiberHelp.Models.TransactionProof.CreatedAt">
+            <summary>
+            When the proof record was created
+            </summary>
+        </member>
+        <member name="P:FiberHelp.Models.TransactionProof.Status">
+            <summary>
+            Status of the proof: Generated, Sent, Acknowledged
+            </summary>
+        </member>
+        <member name="P:FiberHelp.Models.TransactionProof.AcknowledgedAt">
+            <summary>
+            When the client acknowledged/viewed the proof
+            </summary>
+        </member>
+        <member name="P:FiberHelp.Models.TransactionProof.Notes">
+            <summary>
+            Resolution notes or additional details
+            </summary>
+        </member>
+        <member name="P:FiberHelp.Models.TransactionProof.VerificationCode">
+            <summary>
+            Digital signature or verification hash
+            </summary>
+        </member>
+        <member name="M:FiberHelp.Models.TransactionProof.GenerateReferenceNumber(System.Int32)">
+            <summary>
+            Generates a unique reference number for the transaction
+            </summary>
+        </member>
+        <member name="M:FiberHelp.Services.AdminService.ResolveTicketWithProofAsync(System.Int32,System.String,System.String,System.String)">
+            <summary>
+            Resolve a ticket and automatically generate transaction proof for the client.
+            This creates a verified proof of service completion.
+            </summary>
+        </member>
+        <member name="M:FiberHelp.Services.AdminService.HasFeedbackForTicketAsync(System.Int32)">
+            <summary>
+            Check if feedback exists for a ticket
+            </summary>
+        </member>
+        <member name="M:FiberHelp.Services.AdminService.GetTicketProofAsync(System.Int32)">
+            <summary>
+            Get transaction proof for a ticket
+            </summary>
+        </member>
+        <member name="M:FiberHelp.Services.AdminService.GenerateVerificationCode(System.String,System.String)">
+            <summary>
+            Generate a verification code for transaction proof
+            </summary>
+        </member>
+        <member name="M:FiberHelp.Services.BillingService.UpdateOverdueStatusAsync(System.Collections.Generic.List{FiberHelp.Models.Invoice})">
+            <summary>
+            Automatically marks pending invoices as Overdue if past due date
+            </summary>
+        </member>
+        <member name="M:FiberHelp.Services.BillingService.GetClientsAsync">
+            <summary>
+            Get all clients (customers) for invoice dropdown
+            </summary>
+        </member>
+        <member name="M:FiberHelp.Services.BillingService.GenerateMonthlyInvoicesAsync(System.DateTime)">
+            <summary>
+            Generate monthly subscription invoices for all active clients
+            </summary>
+        </member>
+        <member name="M:FiberHelp.Services.BillingService.CreateServiceInvoiceAsync(System.Int32,System.Decimal,System.String)">
+            <summary>
+            Create a service invoice linked to a resolved ticket
+            </summary>
+        </member>
+        <member name="M:FiberHelp.Services.BillingService.GetClientInvoicesAsync(System.String)">
+            <summary>
+            Get invoices for a specific client
+            </summary>
+        </member>
+        <member name="M:FiberHelp.Services.BillingService.GetUnpaidInvoicesAsync(System.String)">
+            <summary>
+            Get unpaid invoices for a client
+            </summary>
+        </member>
+        <member name="M:FiberHelp.Services.BillingService.GetPlanAmount(System.String)">
+            <summary>
+            Get plan amount based on plan name
+            </summary>
+        </member>
+        <member name="M:FiberHelp.Services.BillingService.GetClientBillingSummaryAsync(System.String)">
+            <summary>
+            Get client billing summary
+            </summary>
+        </member>
+        <member name="T:FiberHelp.Services.ErrorHandlingService">
+            <summary>
+            Centralized error handling service with user-friendly messages
+            </summary>
+        </member>
+        <member name="M:FiberHelp.Services.ErrorHandlingService.GetUserFriendlyMessage(System.Exception)">
+            <summary>
+            Get user-friendly error message from exception
+            </summary>
+        </member>
+        <member name="M:FiberHelp.Services.ErrorHandlingService.GetContextualMessage(System.Exception,System.String,System.String)">
+            <summary>
+            Get user-friendly message for specific operation context
+            </summary>
+        </member>
+        <member name="M:FiberHelp.Services.ErrorHandlingService.IsCriticalError(System.Exception)">
+            <summary>
+            Check if error is critical (requires immediate attention)
+            </summary>
+        </member>
+        <member name="M:FiberHelp.Services.ErrorHandlingService.LogError(System.Exception,System.String,System.String)">
+            <summary>
+            Log error to history
+            </summary>
+        </member>
+        <member name="M:FiberHelp.Services.ErrorHandlingService.GetRecentErrors(System.Int32)">
+            <summary>
+            Get recent error history
+            </summary>
+        </member>
+        <member name="M:FiberHelp.Services.ErrorHandlingService.ClearHistory">
+            <summary>
+            Clear error history
+            </summary>
+        </member>
+        <member name="T:FiberHelp.Services.ErrorHandlingService.ErrorLog">
+            <summary>
+            Error log entry
+            </summary>
+        </member>
+        <member name="T:FiberHelp.Services.TransactionService">
+            <summary>
+            Service for handling transaction validation, proof generation, and client feedback.
+            </summary>
+        </member>
+        <member name="M:FiberHelp.Services.TransactionService.GenerateTicketResolutionProofAsync(System.Int32,System.String,System.String,System.String)">
+            <summary>
+            Generate proof of transaction when a ticket is resolved
+            </summary>
+        </member>
+        <member name="M:FiberHelp.Services.TransactionService.GeneratePaymentProofAsync(System.Int32,System.String,System.String)">
+            <summary>
+            Generate proof of payment when an invoice is paid
+            </summary>
+        </member>
+        <member name="M:FiberHelp.Services.TransactionService.GetClientTransactionProofsAsync(System.String)">
+            <summary>
+            Get all transaction proofs for a client
+            </summary>
+        </member>
+        <member name="M:FiberHelp.Services.TransactionService.GetProofByReferenceAsync(System.String)">
+            <summary>
+            Get transaction proof by reference number
+            </summary>
+        </member>
+        <member name="M:FiberHelp.Services.TransactionService.ValidateProofAsync(System.String,System.String)">
+            <summary>
+            Validate a transaction proof using verification code
+            </summary>
+        </member>
+        <member name="M:FiberHelp.Services.TransactionService.AcknowledgeProofAsync(System.Int32)">
+            <summary>
+            Mark proof as acknowledged by client
+            </summary>
+        </member>
+        <member name="M:FiberHelp.Services.TransactionService.GetAllProofsAsync(System.String,System.Nullable{System.DateTime},System.Nullable{System.DateTime})">
+            <summary>
+            Get all transaction proofs with optional filtering
+            </summary>
+        </member>
+        <member name="M:FiberHelp.Services.TransactionService.SubmitFeedbackAsync(FiberHelp.Models.ClientFeedback)">
+            <summary>
+            Submit client feedback for a transaction
+            </summary>
+        </member>
+        <member name="M:FiberHelp.Services.TransactionService.GetTicketFeedbackAsync(System.Int32)">
+            <summary>
+            Get all feedback for a specific ticket
+            </summary>
+        </member>
+        <member name="M:FiberHelp.Services.TransactionService.GetClientFeedbackHistoryAsync(System.String)">
+            <summary>
+            Get all feedback from a client
+            </summary>
+        </member>
+        <member name="M:FiberHelp.Services.TransactionService.GetAllFeedbackAsync(System.Nullable{System.Boolean},System.Nullable{System.Boolean})">
+            <summary>
+            Get all feedback (for admin review)
+            </summary>
+        </member>
+        <member name="M:FiberHelp.Services.TransactionService.ReviewFeedbackAsync(System.Int32,System.String,System.String,System.Boolean)">
+            <summary>
+            Mark feedback as reviewed
+            </summary>
+        </member>
+        <member name="M:FiberHelp.Services.TransactionService.CompleteFollowUpAsync(System.Int32,System.String)">
+            <summary>
+            Complete follow-up for feedback
+            </summary>
+        </member>
+        <member name="M:FiberHelp.Services.TransactionService.GetFeedbackStatisticsAsync(System.Nullable{System.DateTime})">
+            <summary>
+            Get feedback statistics for dashboard
+            </summary>
+        </member>
+        <member name="M:FiberHelp.Services.TransactionService.GetStaffPerformanceAsync">
+            <summary>
+            Get technician/agent performance based on feedback
+            </summary>
+        </member>
         <member name="T:FiberHelp.Resource">
             <summary>
             Android Resource Designer class.
             Exposes the Android Resource designer assembly into the project Namespace.
+            </summary>
+        </member>
+        <member name="M:FiberHelp.Components.Pages.Billing.RefreshKpisOnlyAsync">
+            <summary>
+            Lightweight refresh that only updates KPIs without reloading all data
+            </summary>
+        </member>
+        <member name="M:FiberHelp.Components.Pages.Billing.RefreshDataAsync">
+            <summary>
+            Manual refresh - reloads all data
             </summary>
         </member>
     </members>

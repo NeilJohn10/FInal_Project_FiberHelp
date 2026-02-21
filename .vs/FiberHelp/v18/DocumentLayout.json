@@ -1,0 +1,1608 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|c:\\users\\genita\\source\\repos\\fiberhelp\\fiberhelp\\database\\create_transaction_feedback_tables.sql||{CC5D8DF0-88F4-4BB2-9DBB-B48CEE65C30A}",
+      "RelativeMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|solutionrelative:fiberhelp\\database\\create_transaction_feedback_tables.sql||{CC5D8DF0-88F4-4BB2-9DBB-B48CEE65C30A}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|c:\\users\\genita\\source\\repos\\fiberhelp\\fiberhelp\\services\\dualwriteservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|solutionrelative:fiberhelp\\services\\dualwriteservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|c:\\users\\genita\\source\\repos\\fiberhelp\\fiberhelp\\services\\authservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|solutionrelative:fiberhelp\\services\\authservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|c:\\users\\genita\\source\\repos\\fiberhelp\\fiberhelp\\services\\datasyncservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|solutionrelative:fiberhelp\\services\\datasyncservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|c:\\users\\genita\\source\\repos\\fiberhelp\\fiberhelp\\data\\appdbcontext.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|solutionrelative:fiberhelp\\data\\appdbcontext.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|c:\\users\\genita\\source\\repos\\fiberhelp\\fiberhelp\\database\\reset_outbox_for_resync.sql||{CC5D8DF0-88F4-4BB2-9DBB-B48CEE65C30A}",
+      "RelativeMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|solutionrelative:fiberhelp\\database\\reset_outbox_for_resync.sql||{CC5D8DF0-88F4-4BB2-9DBB-B48CEE65C30A}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|c:\\users\\genita\\source\\repos\\fiberhelp\\fiberhelp\\components\\pages\\billing.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|solutionrelative:fiberhelp\\components\\pages\\billing.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|c:\\users\\genita\\source\\repos\\fiberhelp\\fiberhelp\\components\\pages\\tickets.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|solutionrelative:fiberhelp\\components\\pages\\tickets.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|c:\\users\\genita\\source\\repos\\fiberhelp\\fiberhelp\\services\\billingservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|solutionrelative:fiberhelp\\services\\billingservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|c:\\users\\genita\\source\\repos\\fiberhelp\\fiberhelp\\components\\pages\\agents.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|solutionrelative:fiberhelp\\components\\pages\\agents.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|c:\\users\\genita\\source\\repos\\fiberhelp\\fiberhelp\\components\\pages\\analytics.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|solutionrelative:fiberhelp\\components\\pages\\analytics.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|c:\\users\\genita\\source\\repos\\fiberhelp\\fiberhelp\\database\\cleanup_all_data.sql||{CC5D8DF0-88F4-4BB2-9DBB-B48CEE65C30A}",
+      "RelativeMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|solutionrelative:fiberhelp\\database\\cleanup_all_data.sql||{CC5D8DF0-88F4-4BB2-9DBB-B48CEE65C30A}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|c:\\users\\genita\\source\\repos\\fiberhelp\\fiberhelp\\fiberhelp.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}",
+      "RelativeMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|solutionrelative:fiberhelp\\fiberhelp.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|c:\\users\\genita\\source\\repos\\fiberhelp\\fiberhelp\\components\\pages\\technicians.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|solutionrelative:fiberhelp\\components\\pages\\technicians.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|c:\\users\\genita\\source\\repos\\fiberhelp\\fiberhelp\\components\\pages\\techniciandashboard.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|solutionrelative:fiberhelp\\components\\pages\\techniciandashboard.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|c:\\users\\genita\\source\\repos\\fiberhelp\\fiberhelp\\components\\pages\\reports.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|solutionrelative:fiberhelp\\components\\pages\\reports.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|c:\\users\\genita\\source\\repos\\fiberhelp\\fiberhelp\\components\\pages\\logout.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|solutionrelative:fiberhelp\\components\\pages\\logout.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|c:\\users\\genita\\source\\repos\\fiberhelp\\fiberhelp\\components\\pages\\dashboard.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|solutionrelative:fiberhelp\\components\\pages\\dashboard.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|c:\\users\\genita\\source\\repos\\fiberhelp\\fiberhelp\\components\\pages\\clients.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|solutionrelative:fiberhelp\\components\\pages\\clients.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|c:\\users\\genita\\source\\repos\\fiberhelp\\fiberhelp\\components\\pages\\accounts.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|solutionrelative:fiberhelp\\components\\pages\\accounts.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|c:\\users\\genita\\source\\repos\\fiberhelp\\fiberhelp\\components\\layout\\mainlayout.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|solutionrelative:fiberhelp\\components\\layout\\mainlayout.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|c:\\users\\genita\\source\\repos\\fiberhelp\\fiberhelp\\database\\seed_100_records.sql||{CC5D8DF0-88F4-4BB2-9DBB-B48CEE65C30A}",
+      "RelativeMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|solutionrelative:fiberhelp\\database\\seed_100_records.sql||{CC5D8DF0-88F4-4BB2-9DBB-B48CEE65C30A}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|c:\\users\\genita\\source\\repos\\fiberhelp\\fiberhelp\\database\\add_archive_columns_all.sql||{CC5D8DF0-88F4-4BB2-9DBB-B48CEE65C30A}",
+      "RelativeMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|solutionrelative:fiberhelp\\database\\add_archive_columns_all.sql||{CC5D8DF0-88F4-4BB2-9DBB-B48CEE65C30A}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|c:\\users\\genita\\source\\repos\\fiberhelp\\fiberhelp\\database\\add_client_archive_columns.sql||{CC5D8DF0-88F4-4BB2-9DBB-B48CEE65C30A}",
+      "RelativeMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|solutionrelative:fiberhelp\\database\\add_client_archive_columns.sql||{CC5D8DF0-88F4-4BB2-9DBB-B48CEE65C30A}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|c:\\users\\genita\\source\\repos\\fiberhelp\\fiberhelp\\database\\add_invoice_client_columns.sql||{CC5D8DF0-88F4-4BB2-9DBB-B48CEE65C30A}",
+      "RelativeMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|solutionrelative:fiberhelp\\database\\add_invoice_client_columns.sql||{CC5D8DF0-88F4-4BB2-9DBB-B48CEE65C30A}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|c:\\users\\genita\\source\\repos\\fiberhelp\\fiberhelp\\database\\add_ticket_columns.sql||{CC5D8DF0-88F4-4BB2-9DBB-B48CEE65C30A}",
+      "RelativeMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|solutionrelative:fiberhelp\\database\\add_ticket_columns.sql||{CC5D8DF0-88F4-4BB2-9DBB-B48CEE65C30A}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|c:\\users\\genita\\source\\repos\\fiberhelp\\fiberhelp\\database\\create_technicians_table.sql||{CC5D8DF0-88F4-4BB2-9DBB-B48CEE65C30A}",
+      "RelativeMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|solutionrelative:fiberhelp\\database\\create_technicians_table.sql||{CC5D8DF0-88F4-4BB2-9DBB-B48CEE65C30A}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|c:\\users\\genita\\source\\repos\\fiberhelp\\fiberhelp\\database\\technician_role_migration.sql||{CC5D8DF0-88F4-4BB2-9DBB-B48CEE65C30A}",
+      "RelativeMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|solutionrelative:fiberhelp\\database\\technician_role_migration.sql||{CC5D8DF0-88F4-4BB2-9DBB-B48CEE65C30A}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|c:\\users\\genita\\source\\repos\\fiberhelp\\fiberhelp\\documentation\\analytics_testing_checklist.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}",
+      "RelativeMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|solutionrelative:fiberhelp\\documentation\\analytics_testing_checklist.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|c:\\users\\genita\\source\\repos\\fiberhelp\\fiberhelp\\database\\complete_setup.sql||{CC5D8DF0-88F4-4BB2-9DBB-B48CEE65C30A}",
+      "RelativeMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|solutionrelative:fiberhelp\\database\\complete_setup.sql||{CC5D8DF0-88F4-4BB2-9DBB-B48CEE65C30A}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|c:\\users\\genita\\source\\repos\\fiberhelp\\fiberhelp\\wwwroot\\css\\analytics.css||{A5401142-F49D-43DB-90B1-F57BA349E55C}",
+      "RelativeMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|solutionrelative:fiberhelp\\wwwroot\\css\\analytics.css||{A5401142-F49D-43DB-90B1-F57BA349E55C}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|c:\\users\\genita\\source\\repos\\fiberhelp\\fiberhelp\\database\\setup_guide.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}",
+      "RelativeMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|solutionrelative:fiberhelp\\database\\setup_guide.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|c:\\users\\genita\\source\\repos\\fiberhelp\\fiberhelp\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
+      "RelativeMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|solutionrelative:fiberhelp\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|c:\\users\\genita\\source\\repos\\fiberhelp\\fiberhelp\\mauiprogram.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|solutionrelative:fiberhelp\\mauiprogram.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|c:\\users\\genita\\source\\repos\\fiberhelp\\fiberhelp\\data\\context\\online.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|solutionrelative:fiberhelp\\data\\context\\online.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|c:\\users\\genita\\source\\repos\\fiberhelp\\fiberhelp\\data\\context\\local.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|solutionrelative:fiberhelp\\data\\context\\local.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|c:\\users\\genita\\source\\repos\\fiberhelp\\fiberhelp\\data\\dbinitializer.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|solutionrelative:fiberhelp\\data\\dbinitializer.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|c:\\users\\genita\\source\\repos\\fiberhelp\\fiberhelp\\data\\context\\devlocalcontext.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|solutionrelative:fiberhelp\\data\\context\\devlocalcontext.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|c:\\users\\genita\\source\\repos\\fiberhelp\\fiberhelp\\components\\layout\\login.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|solutionrelative:fiberhelp\\components\\layout\\login.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|c:\\users\\genita\\source\\repos\\fiberhelp\\fiberhelp\\models\\ticket.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|solutionrelative:fiberhelp\\models\\ticket.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|c:\\users\\genita\\source\\repos\\fiberhelp\\fiberhelp\\models\\account.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|solutionrelative:fiberhelp\\models\\account.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|c:\\users\\genita\\source\\repos\\fiberhelp\\fiberhelp\\wwwroot\\css\\dashboard.css||{A5401142-F49D-43DB-90B1-F57BA349E55C}",
+      "RelativeMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|solutionrelative:fiberhelp\\wwwroot\\css\\dashboard.css||{A5401142-F49D-43DB-90B1-F57BA349E55C}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|c:\\users\\genita\\source\\repos\\fiberhelp\\fiberhelp\\wwwroot\\css\\admin-theme.css||{A5401142-F49D-43DB-90B1-F57BA349E55C}",
+      "RelativeMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|solutionrelative:fiberhelp\\wwwroot\\css\\admin-theme.css||{A5401142-F49D-43DB-90B1-F57BA349E55C}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|c:\\users\\genita\\source\\repos\\fiberhelp\\fiberhelp\\app.xaml.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|solutionrelative:fiberhelp\\app.xaml.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|c:\\users\\genita\\source\\repos\\fiberhelp\\fiberhelp\\mainpage.xaml.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|solutionrelative:fiberhelp\\mainpage.xaml.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|c:\\users\\genita\\source\\repos\\fiberhelp\\fiberhelp\\components\\shared\\adminheader.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|solutionrelative:fiberhelp\\components\\shared\\adminheader.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|c:\\users\\genita\\source\\repos\\fiberhelp\\fiberhelp\\wwwroot\\js\\export.js||{14D17961-FE51-464D-9111-C4AF11D7D99A}",
+      "RelativeMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|solutionrelative:fiberhelp\\wwwroot\\js\\export.js||{14D17961-FE51-464D-9111-C4AF11D7D99A}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|c:\\users\\genita\\source\\repos\\fiberhelp\\fiberhelp\\models\\customer.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|solutionrelative:fiberhelp\\models\\customer.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|c:\\users\\genita\\source\\repos\\fiberhelp\\fiberhelp\\models\\client.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|solutionrelative:fiberhelp\\models\\client.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|c:\\users\\genita\\source\\repos\\fiberhelp\\fiberhelp\\models\\invoice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|solutionrelative:fiberhelp\\models\\invoice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|c:\\users\\genita\\source\\repos\\fiberhelp\\fiberhelp\\models\\outboxmessage.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|solutionrelative:fiberhelp\\models\\outboxmessage.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|c:\\users\\genita\\source\\repos\\fiberhelp\\fiberhelp\\services\\syncscheduler.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|solutionrelative:fiberhelp\\services\\syncscheduler.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|c:\\users\\genita\\source\\repos\\fiberhelp\\fiberhelp\\models\\expense.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|solutionrelative:fiberhelp\\models\\expense.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|c:\\users\\genita\\source\\repos\\fiberhelp\\fiberhelp\\wwwroot\\js\\analytics.js||{14D17961-FE51-464D-9111-C4AF11D7D99A}",
+      "RelativeMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|solutionrelative:fiberhelp\\wwwroot\\js\\analytics.js||{14D17961-FE51-464D-9111-C4AF11D7D99A}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|c:\\users\\genita\\source\\repos\\fiberhelp\\fiberhelp\\wwwroot\\index.html||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|solutionrelative:fiberhelp\\wwwroot\\index.html||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|c:\\users\\genita\\source\\repos\\fiberhelp\\fiberhelp\\documentation\\analytics_readme.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}",
+      "RelativeMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|solutionrelative:fiberhelp\\documentation\\analytics_readme.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|c:\\users\\genita\\source\\repos\\fiberhelp\\fiberhelp\\documentation\\analytics_visual_guide.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}",
+      "RelativeMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|solutionrelative:fiberhelp\\documentation\\analytics_visual_guide.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|c:\\users\\genita\\source\\repos\\fiberhelp\\fiberhelp\\documentation\\analytics_implementation_summary.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}",
+      "RelativeMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|solutionrelative:fiberhelp\\documentation\\analytics_implementation_summary.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|c:\\users\\genita\\source\\repos\\fiberhelp\\fiberhelp\\documentation\\analytics_quick_start.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}",
+      "RelativeMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|solutionrelative:fiberhelp\\documentation\\analytics_quick_start.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|c:\\users\\genita\\source\\repos\\fiberhelp\\fiberhelp\\documentation\\hybrid_dashboard_implementation.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}",
+      "RelativeMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|solutionrelative:fiberhelp\\documentation\\hybrid_dashboard_implementation.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|c:\\users\\genita\\source\\repos\\fiberhelp\\fiberhelp\\documentation\\before_after_comparison.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}",
+      "RelativeMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|solutionrelative:fiberhelp\\documentation\\before_after_comparison.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|c:\\users\\genita\\source\\repos\\fiberhelp\\fiberhelp\\documentation\\dashboard_fixes_summary.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}",
+      "RelativeMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|solutionrelative:fiberhelp\\documentation\\dashboard_fixes_summary.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|c:\\users\\genita\\source\\repos\\fiberhelp\\fiberhelp\\documentation\\dashboard_quick_fix_guide.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}",
+      "RelativeMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|solutionrelative:fiberhelp\\documentation\\dashboard_quick_fix_guide.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|c:\\users\\genita\\source\\repos\\fiberhelp\\fiberhelp\\services\\errorhandlingservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|solutionrelative:fiberhelp\\services\\errorhandlingservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|c:\\users\\genita\\source\\repos\\fiberhelp\\fiberhelp\\documentation\\error_handling_guide.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}",
+      "RelativeMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|solutionrelative:fiberhelp\\documentation\\error_handling_guide.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|c:\\users\\genita\\source\\repos\\fiberhelp\\fiberhelp\\components\\shared\\toastnotification.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|solutionrelative:fiberhelp\\components\\shared\\toastnotification.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|c:\\users\\genita\\source\\repos\\fiberhelp\\fiberhelp\\documentation\\error_handling_implementation_summary.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}",
+      "RelativeMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|solutionrelative:fiberhelp\\documentation\\error_handling_implementation_summary.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|c:\\users\\genita\\source\\repos\\fiberhelp\\fiberhelp\\documentation\\error_handling_visual_guide.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}",
+      "RelativeMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|solutionrelative:fiberhelp\\documentation\\error_handling_visual_guide.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|c:\\users\\genita\\source\\repos\\fiberhelp\\fiberhelp\\documentation\\error_handling_quick_reference.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}",
+      "RelativeMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|solutionrelative:fiberhelp\\documentation\\error_handling_quick_reference.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|c:\\users\\genita\\source\\repos\\fiberhelp\\fiberhelp\\documentation\\agent_confirmation_feature.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}",
+      "RelativeMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|solutionrelative:fiberhelp\\documentation\\agent_confirmation_feature.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|c:\\users\\genita\\source\\repos\\fiberhelp\\fiberhelp\\documentation\\agents_page_fix_complete.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}",
+      "RelativeMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|solutionrelative:fiberhelp\\documentation\\agents_page_fix_complete.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|c:\\users\\genita\\source\\repos\\fiberhelp\\fiberhelp\\documentation\\accounts_error_handling_complete.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}",
+      "RelativeMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|solutionrelative:fiberhelp\\documentation\\accounts_error_handling_complete.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|c:\\users\\genita\\source\\repos\\fiberhelp\\fiberhelp\\services\\adminservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|solutionrelative:fiberhelp\\services\\adminservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|c:\\users\\genita\\source\\repos\\fiberhelp\\fiberhelp\\components\\shared\\toast.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|solutionrelative:fiberhelp\\components\\shared\\toast.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|c:\\users\\genita\\source\\repos\\fiberhelp\\fiberhelp\\components\\_imports.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|solutionrelative:fiberhelp\\components\\_imports.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|c:\\users\\genita\\source\\repos\\fiberhelp\\fiberhelp\\models\\agent.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|solutionrelative:fiberhelp\\models\\agent.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|c:\\users\\genita\\source\\repos\\fiberhelp\\fiberhelp\\documentation\\technician_role_system.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}",
+      "RelativeMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|solutionrelative:fiberhelp\\documentation\\technician_role_system.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|c:\\users\\genita\\source\\repos\\fiberhelp\\fiberhelp\\models\\technician.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|solutionrelative:fiberhelp\\models\\technician.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|c:\\users\\genita\\source\\repos\\fiberhelp\\fiberhelp\\database\\sync_technicians_to_cloud.sql||{CC5D8DF0-88F4-4BB2-9DBB-B48CEE65C30A}",
+      "RelativeMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|solutionrelative:fiberhelp\\database\\sync_technicians_to_cloud.sql||{CC5D8DF0-88F4-4BB2-9DBB-B48CEE65C30A}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|c:\\users\\genita\\source\\repos\\fiberhelp\\fiberhelp\\database\\add_archive_columns.sql||{CC5D8DF0-88F4-4BB2-9DBB-B48CEE65C30A}",
+      "RelativeMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|solutionrelative:fiberhelp\\database\\add_archive_columns.sql||{CC5D8DF0-88F4-4BB2-9DBB-B48CEE65C30A}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|c:\\users\\genita\\source\\repos\\fiberhelp\\fiberhelp\\database\\add_agent_to_local.sql||{CC5D8DF0-88F4-4BB2-9DBB-B48CEE65C30A}",
+      "RelativeMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|solutionrelative:fiberhelp\\database\\add_agent_to_local.sql||{CC5D8DF0-88F4-4BB2-9DBB-B48CEE65C30A}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|c:\\users\\genita\\source\\repos\\fiberhelp\\fiberhelp\\database\\fix_agents_table_role.sql||{CC5D8DF0-88F4-4BB2-9DBB-B48CEE65C30A}",
+      "RelativeMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|solutionrelative:fiberhelp\\database\\fix_agents_table_role.sql||{CC5D8DF0-88F4-4BB2-9DBB-B48CEE65C30A}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|c:\\users\\genita\\source\\repos\\fiberhelp\\fiberhelp\\database\\fix_agents_missing_columns.sql||{CC5D8DF0-88F4-4BB2-9DBB-B48CEE65C30A}",
+      "RelativeMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|solutionrelative:fiberhelp\\database\\fix_agents_missing_columns.sql||{CC5D8DF0-88F4-4BB2-9DBB-B48CEE65C30A}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|c:\\users\\genita\\source\\repos\\fiberhelp\\fiberhelp\\database\\migrate_client_ids.sql||{CC5D8DF0-88F4-4BB2-9DBB-B48CEE65C30A}",
+      "RelativeMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|solutionrelative:fiberhelp\\database\\migrate_client_ids.sql||{CC5D8DF0-88F4-4BB2-9DBB-B48CEE65C30A}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|c:\\users\\genita\\source\\repos\\fiberhelp\\fiberhelp\\database\\create_tables.sql||{CC5D8DF0-88F4-4BB2-9DBB-B48CEE65C30A}",
+      "RelativeMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|solutionrelative:fiberhelp\\database\\create_tables.sql||{CC5D8DF0-88F4-4BB2-9DBB-B48CEE65C30A}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|c:\\users\\genita\\source\\repos\\fiberhelp\\fiberhelp\\wwwroot\\css\\login.css||{A5401142-F49D-43DB-90B1-F57BA349E55C}",
+      "RelativeMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|solutionrelative:fiberhelp\\wwwroot\\css\\login.css||{A5401142-F49D-43DB-90B1-F57BA349E55C}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|c:\\users\\genita\\source\\repos\\fiberhelp\\fiberhelp\\documentation\\complete_system_documentation.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}",
+      "RelativeMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|solutionrelative:fiberhelp\\documentation\\complete_system_documentation.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|c:\\users\\genita\\source\\repos\\fiberhelp\\fiberhelp\\components\\shared\\syncstatusindicator.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|solutionrelative:fiberhelp\\components\\shared\\syncstatusindicator.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|c:\\users\\genita\\source\\repos\\fiberhelp\\fiberhelp\\documentation\\rubric_checklist.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}",
+      "RelativeMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|solutionrelative:fiberhelp\\documentation\\rubric_checklist.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|c:\\users\\genita\\source\\repos\\fiberhelp\\fiberhelp\\database\\create_expenses_table.sql||{CC5D8DF0-88F4-4BB2-9DBB-B48CEE65C30A}",
+      "RelativeMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|solutionrelative:fiberhelp\\database\\create_expenses_table.sql||{CC5D8DF0-88F4-4BB2-9DBB-B48CEE65C30A}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|c:\\users\\genita\\source\\repos\\fiberhelp\\fiberhelp\\database\\setup_cloud_database.sql||{CC5D8DF0-88F4-4BB2-9DBB-B48CEE65C30A}",
+      "RelativeMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|solutionrelative:fiberhelp\\database\\setup_cloud_database.sql||{CC5D8DF0-88F4-4BB2-9DBB-B48CEE65C30A}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|c:\\users\\genita\\source\\repos\\fiberhelp\\fiberhelp\\models\\transactionproof.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|solutionrelative:fiberhelp\\models\\transactionproof.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|c:\\users\\genita\\source\\repos\\fiberhelp\\fiberhelp\\models\\clientfeedback.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|solutionrelative:fiberhelp\\models\\clientfeedback.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|c:\\users\\genita\\source\\repos\\fiberhelp\\fiberhelp\\services\\transactionservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|solutionrelative:fiberhelp\\services\\transactionservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|c:\\users\\genita\\source\\repos\\fiberhelp\\fiberhelp\\components\\pages\\feedback.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|solutionrelative:fiberhelp\\components\\pages\\feedback.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|c:\\users\\genita\\source\\repos\\fiberhelp\\fiberhelp\\components\\pages\\feedbackmanagement.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|solutionrelative:fiberhelp\\components\\pages\\feedbackmanagement.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|c:\\users\\genita\\source\\repos\\fiberhelp\\fiberhelp\\components\\pages\\transactionproofs.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|solutionrelative:fiberhelp\\components\\pages\\transactionproofs.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|c:\\users\\genita\\source\\repos\\fiberhelp\\fiberhelp\\documentation\\transaction_feedback_system.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}",
+      "RelativeMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|solutionrelative:fiberhelp\\documentation\\transaction_feedback_system.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Database\\seed_sample_feedback.sql||{CC5D8DF0-88F4-4BB2-9DBB-B48CEE65C30A}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:FiberHelp\\Database\\seed_sample_feedback.sql||{CC5D8DF0-88F4-4BB2-9DBB-B48CEE65C30A}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|c:\\users\\genita\\source\\repos\\fiberhelp\\fiberhelp\\database\\create_transaction_feedback_tables.sql||{CC5D8DF0-88F4-4BB2-9DBB-B48CEE65C30A}|CodeFrame",
+      "RelativeMoniker": "D:0:0:{F8DAA62B-2DB8-4A6F-9A2C-6E9DF87F5914}|FiberHelp\\FiberHelp.csproj|solutionrelative:fiberhelp\\database\\create_transaction_feedback_tables.sql||{CC5D8DF0-88F4-4BB2-9DBB-B48CEE65C30A}|CodeFrame"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 6,
+          "Children": [
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{c6f34f0d-7ae5-4f3a-be61-fe0c21ae9eb8}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{1c4feeaa-4718-4aa9-859d-94ce25d182ba}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{34e76e81-ee4a-11d0-ae2e-00a0c90fffc3}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{d78612c7-9962-4b83-95d9-268046dad23a}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{3ae79031-e1bc-11d0-8f78-00a0c9110057}"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 98,
+              "Title": "seed_sample_feedback.sql",
+              "DocumentMoniker": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Database\\seed_sample_feedback.sql",
+              "RelativeDocumentMoniker": "FiberHelp\\Database\\seed_sample_feedback.sql",
+              "ToolTip": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Database\\seed_sample_feedback.sql",
+              "RelativeToolTip": "FiberHelp\\Database\\seed_sample_feedback.sql",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000826|",
+              "WhenOpened": "2025-12-13T23:55:48.055Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "create_transaction_feedback_tables.sql ",
+              "DocumentMoniker": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Database\\create_transaction_feedback_tables.sql",
+              "RelativeDocumentMoniker": "FiberHelp\\Database\\create_transaction_feedback_tables.sql",
+              "ToolTip": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Database\\create_transaction_feedback_tables.sql",
+              "RelativeToolTip": "FiberHelp\\Database\\create_transaction_feedback_tables.sql",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000826|",
+              "WhenOpened": "2025-12-13T15:09:39.679Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 93,
+              "Title": "TransactionService.cs",
+              "DocumentMoniker": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Services\\TransactionService.cs",
+              "RelativeDocumentMoniker": "FiberHelp\\Services\\TransactionService.cs",
+              "ToolTip": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Services\\TransactionService.cs",
+              "RelativeToolTip": "FiberHelp\\Services\\TransactionService.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAGgCAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-12-13T15:06:06.572Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 92,
+              "Title": "ClientFeedback.cs",
+              "DocumentMoniker": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Models\\ClientFeedback.cs",
+              "RelativeDocumentMoniker": "FiberHelp\\Models\\ClientFeedback.cs",
+              "ToolTip": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Models\\ClientFeedback.cs",
+              "RelativeToolTip": "FiberHelp\\Models\\ClientFeedback.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAALMAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-12-13T15:04:52.119Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 91,
+              "Title": "TransactionProof.cs",
+              "DocumentMoniker": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Models\\TransactionProof.cs",
+              "RelativeDocumentMoniker": "FiberHelp\\Models\\TransactionProof.cs",
+              "ToolTip": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Models\\TransactionProof.cs",
+              "RelativeToolTip": "FiberHelp\\Models\\TransactionProof.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAHcAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-12-13T15:04:23.992Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "AuthService.cs",
+              "DocumentMoniker": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Services\\AuthService.cs",
+              "RelativeDocumentMoniker": "FiberHelp\\Services\\AuthService.cs",
+              "ToolTip": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Services\\AuthService.cs",
+              "RelativeToolTip": "FiberHelp\\Services\\AuthService.cs",
+              "ViewState": "AgIAAB8BAAAAAAAAAAAAwDIBAAAVAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-12-04T14:22:09.524Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "DualWriteService.cs",
+              "DocumentMoniker": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Services\\DualWriteService.cs",
+              "RelativeDocumentMoniker": "FiberHelp\\Services\\DualWriteService.cs",
+              "ToolTip": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Services\\DualWriteService.cs",
+              "RelativeToolTip": "FiberHelp\\Services\\DualWriteService.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-12-03T14:11:32.238Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 97,
+              "Title": "TRANSACTION_FEEDBACK_SYSTEM.md",
+              "DocumentMoniker": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Documentation\\TRANSACTION_FEEDBACK_SYSTEM.md",
+              "RelativeDocumentMoniker": "FiberHelp\\Documentation\\TRANSACTION_FEEDBACK_SYSTEM.md",
+              "ToolTip": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Documentation\\TRANSACTION_FEEDBACK_SYSTEM.md",
+              "RelativeToolTip": "FiberHelp\\Documentation\\TRANSACTION_FEEDBACK_SYSTEM.md",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAOIAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001818|",
+              "WhenOpened": "2025-12-13T15:21:18.577Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 96,
+              "Title": "TransactionProofs.razor",
+              "DocumentMoniker": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Components\\Pages\\TransactionProofs.razor",
+              "RelativeDocumentMoniker": "FiberHelp\\Components\\Pages\\TransactionProofs.razor",
+              "ToolTip": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Components\\Pages\\TransactionProofs.razor",
+              "RelativeToolTip": "FiberHelp\\Components\\Pages\\TransactionProofs.razor",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAHUBAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
+              "WhenOpened": "2025-12-13T15:19:44.763Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 95,
+              "Title": "FeedbackManagement.razor",
+              "DocumentMoniker": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Components\\Pages\\FeedbackManagement.razor",
+              "RelativeDocumentMoniker": "FiberHelp\\Components\\Pages\\FeedbackManagement.razor",
+              "ToolTip": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Components\\Pages\\FeedbackManagement.razor",
+              "RelativeToolTip": "FiberHelp\\Components\\Pages\\FeedbackManagement.razor",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAHoCAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
+              "WhenOpened": "2025-12-13T15:13:17.285Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 94,
+              "Title": "Feedback.razor",
+              "DocumentMoniker": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Components\\Pages\\Feedback.razor",
+              "RelativeDocumentMoniker": "FiberHelp\\Components\\Pages\\Feedback.razor",
+              "ToolTip": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Components\\Pages\\Feedback.razor",
+              "RelativeToolTip": "FiberHelp\\Components\\Pages\\Feedback.razor",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAIYBAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
+              "WhenOpened": "2025-12-13T15:11:01.205Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
+              "Title": "reset_outbox_for_resync.sql",
+              "DocumentMoniker": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Database\\reset_outbox_for_resync.sql",
+              "RelativeDocumentMoniker": "FiberHelp\\Database\\reset_outbox_for_resync.sql",
+              "ToolTip": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Database\\reset_outbox_for_resync.sql",
+              "RelativeToolTip": "FiberHelp\\Database\\reset_outbox_for_resync.sql",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000826|",
+              "WhenOpened": "2025-12-09T16:20:32.332Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "DataSyncService.cs",
+              "DocumentMoniker": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Services\\DataSyncService.cs",
+              "RelativeDocumentMoniker": "FiberHelp\\Services\\DataSyncService.cs",
+              "ToolTip": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Services\\DataSyncService.cs",
+              "RelativeToolTip": "FiberHelp\\Services\\DataSyncService.cs",
+              "ViewState": "AgIAAEYAAAAAAAAAAAAAwDMAAAAUAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-12-03T13:59:03.797Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "AppDbContext.cs",
+              "DocumentMoniker": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Data\\AppDbContext.cs",
+              "RelativeDocumentMoniker": "FiberHelp\\Data\\AppDbContext.cs",
+              "ToolTip": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Data\\AppDbContext.cs",
+              "RelativeToolTip": "FiberHelp\\Data\\AppDbContext.cs",
+              "ViewState": "AgIAAAIBAAAAAAAAAEBVwAYBAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-11-26T14:42:33.918Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 6,
+              "Title": "Billing.razor",
+              "DocumentMoniker": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Components\\Pages\\Billing.razor",
+              "RelativeDocumentMoniker": "FiberHelp\\Components\\Pages\\Billing.razor",
+              "ToolTip": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Components\\Pages\\Billing.razor",
+              "RelativeToolTip": "FiberHelp\\Components\\Pages\\Billing.razor",
+              "ViewState": "AgIAAPMCAAAAAAAAAAAMwKMDAAAeAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
+              "WhenOpened": "2025-11-27T19:05:39.23Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 90,
+              "Title": "setup_cloud_database.sql",
+              "DocumentMoniker": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Database\\setup_cloud_database.sql",
+              "RelativeDocumentMoniker": "FiberHelp\\Database\\setup_cloud_database.sql",
+              "ToolTip": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Database\\setup_cloud_database.sql",
+              "RelativeToolTip": "FiberHelp\\Database\\setup_cloud_database.sql",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000826|",
+              "WhenOpened": "2025-12-09T16:38:54.644Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 7,
+              "Title": "Tickets.razor",
+              "DocumentMoniker": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Components\\Pages\\Tickets.razor",
+              "RelativeDocumentMoniker": "FiberHelp\\Components\\Pages\\Tickets.razor",
+              "ToolTip": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Components\\Pages\\Tickets.razor",
+              "RelativeToolTip": "FiberHelp\\Components\\Pages\\Tickets.razor",
+              "ViewState": "AgIAAIoEAAAAAAAAAAAAAJMEAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
+              "WhenOpened": "2025-11-26T14:56:17.911Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 11,
+              "Title": "cleanup_all_data.sql",
+              "DocumentMoniker": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Database\\cleanup_all_data.sql",
+              "RelativeDocumentMoniker": "FiberHelp\\Database\\cleanup_all_data.sql",
+              "ToolTip": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Database\\cleanup_all_data.sql",
+              "RelativeToolTip": "FiberHelp\\Database\\cleanup_all_data.sql",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000826|",
+              "WhenOpened": "2025-12-08T14:39:08.472Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 13,
+              "Title": "Technicians.razor",
+              "DocumentMoniker": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Components\\Pages\\Technicians.razor",
+              "RelativeDocumentMoniker": "FiberHelp\\Components\\Pages\\Technicians.razor",
+              "ToolTip": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Components\\Pages\\Technicians.razor",
+              "RelativeToolTip": "FiberHelp\\Components\\Pages\\Technicians.razor",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAIAAAAJAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
+              "WhenOpened": "2025-12-06T08:41:33.235Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 12,
+              "Title": "FiberHelp.csproj",
+              "DocumentMoniker": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\FiberHelp.csproj",
+              "RelativeDocumentMoniker": "FiberHelp\\FiberHelp.csproj",
+              "ToolTip": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\FiberHelp.csproj",
+              "RelativeToolTip": "FiberHelp\\FiberHelp.csproj",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000758|",
+              "WhenOpened": "2025-12-01T14:08:33.045Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 9,
+              "Title": "Agents.razor",
+              "DocumentMoniker": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Components\\Pages\\Agents.razor",
+              "RelativeDocumentMoniker": "FiberHelp\\Components\\Pages\\Agents.razor",
+              "ToolTip": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Components\\Pages\\Agents.razor",
+              "RelativeToolTip": "FiberHelp\\Components\\Pages\\Agents.razor",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
+              "WhenOpened": "2025-12-04T23:53:17.505Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 8,
+              "Title": "BillingService.cs",
+              "DocumentMoniker": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Services\\BillingService.cs",
+              "RelativeDocumentMoniker": "FiberHelp\\Services\\BillingService.cs",
+              "ToolTip": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Services\\BillingService.cs",
+              "RelativeToolTip": "FiberHelp\\Services\\BillingService.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAEgBAABSAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-11-30T07:46:21.251Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 89,
+              "Title": "create_expenses_table.sql",
+              "DocumentMoniker": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Database\\create_expenses_table.sql",
+              "RelativeDocumentMoniker": "FiberHelp\\Database\\create_expenses_table.sql",
+              "ToolTip": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Database\\create_expenses_table.sql",
+              "RelativeToolTip": "FiberHelp\\Database\\create_expenses_table.sql",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000826|",
+              "WhenOpened": "2025-12-08T15:17:00.93Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 10,
+              "Title": "Analytics.razor",
+              "DocumentMoniker": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Components\\Pages\\Analytics.razor",
+              "RelativeDocumentMoniker": "FiberHelp\\Components\\Pages\\Analytics.razor",
+              "ToolTip": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Components\\Pages\\Analytics.razor",
+              "RelativeToolTip": "FiberHelp\\Components\\Pages\\Analytics.razor",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAwAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
+              "WhenOpened": "2025-12-04T19:19:32.608Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 15,
+              "Title": "Reports.razor",
+              "DocumentMoniker": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Components\\Pages\\Reports.razor",
+              "RelativeDocumentMoniker": "FiberHelp\\Components\\Pages\\Reports.razor",
+              "ToolTip": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Components\\Pages\\Reports.razor",
+              "RelativeToolTip": "FiberHelp\\Components\\Pages\\Reports.razor",
+              "ViewState": "AgIAAC8CAAAAAAAAAIBJwDECAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
+              "WhenOpened": "2025-11-27T18:29:20.796Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 16,
+              "Title": "Logout.razor",
+              "DocumentMoniker": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Components\\Pages\\Logout.razor",
+              "RelativeDocumentMoniker": "FiberHelp\\Components\\Pages\\Logout.razor",
+              "ToolTip": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Components\\Pages\\Logout.razor",
+              "RelativeToolTip": "FiberHelp\\Components\\Pages\\Logout.razor",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
+              "WhenOpened": "2025-12-08T09:39:30.222Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 18,
+              "Title": "Clients.razor",
+              "DocumentMoniker": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Components\\Pages\\Clients.razor",
+              "RelativeDocumentMoniker": "FiberHelp\\Components\\Pages\\Clients.razor",
+              "ToolTip": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Components\\Pages\\Clients.razor",
+              "RelativeToolTip": "FiberHelp\\Components\\Pages\\Clients.razor",
+              "ViewState": "AgIAANoDAAAAAAAAAAAMwDoAAAASAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
+              "WhenOpened": "2025-12-05T00:25:21.179Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 14,
+              "Title": "TechnicianDashboard.razor",
+              "DocumentMoniker": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Components\\Pages\\TechnicianDashboard.razor",
+              "RelativeDocumentMoniker": "FiberHelp\\Components\\Pages\\TechnicianDashboard.razor",
+              "ToolTip": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Components\\Pages\\TechnicianDashboard.razor",
+              "RelativeToolTip": "FiberHelp\\Components\\Pages\\TechnicianDashboard.razor",
+              "ViewState": "AgIAAO4BAAAAAAAAAIBJwPABAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
+              "WhenOpened": "2025-12-06T08:16:25.289Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 19,
+              "Title": "Accounts.razor",
+              "DocumentMoniker": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Components\\Pages\\Accounts.razor",
+              "RelativeDocumentMoniker": "FiberHelp\\Components\\Pages\\Accounts.razor",
+              "ToolTip": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Components\\Pages\\Accounts.razor",
+              "RelativeToolTip": "FiberHelp\\Components\\Pages\\Accounts.razor",
+              "ViewState": "AgIAAIwDAAAAAAAAAAAMwJcDAAANAQAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
+              "WhenOpened": "2025-12-05T06:00:55.185Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 20,
+              "Title": "MainLayout.razor",
+              "DocumentMoniker": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Components\\Layout\\MainLayout.razor",
+              "RelativeDocumentMoniker": "FiberHelp\\Components\\Layout\\MainLayout.razor",
+              "ToolTip": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Components\\Layout\\MainLayout.razor",
+              "RelativeToolTip": "FiberHelp\\Components\\Layout\\MainLayout.razor",
+              "ViewState": "AgIAAH0AAAAAAAAAAAAAAH0AAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
+              "WhenOpened": "2025-11-26T14:33:44.849Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 17,
+              "Title": "Dashboard.razor",
+              "DocumentMoniker": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Components\\Pages\\Dashboard.razor",
+              "RelativeDocumentMoniker": "FiberHelp\\Components\\Pages\\Dashboard.razor",
+              "ToolTip": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Components\\Pages\\Dashboard.razor",
+              "RelativeToolTip": "FiberHelp\\Components\\Pages\\Dashboard.razor",
+              "ViewState": "AgIAAIUDAAAAAAAAAAAAAIUDAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
+              "WhenOpened": "2025-11-27T09:08:23.84Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 21,
+              "Title": "seed_100_records.sql",
+              "DocumentMoniker": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Database\\seed_100_records.sql",
+              "RelativeDocumentMoniker": "FiberHelp\\Database\\seed_100_records.sql",
+              "ToolTip": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Database\\seed_100_records.sql",
+              "RelativeToolTip": "FiberHelp\\Database\\seed_100_records.sql",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000826|",
+              "WhenOpened": "2025-12-08T09:18:02.841Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 22,
+              "Title": "add_archive_columns_all.sql",
+              "DocumentMoniker": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Database\\add_archive_columns_all.sql",
+              "RelativeDocumentMoniker": "FiberHelp\\Database\\add_archive_columns_all.sql",
+              "ToolTip": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Database\\add_archive_columns_all.sql",
+              "RelativeToolTip": "FiberHelp\\Database\\add_archive_columns_all.sql",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000826|",
+              "WhenOpened": "2025-12-08T04:23:59.686Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 85,
+              "Title": "login.css",
+              "DocumentMoniker": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\wwwroot\\css\\login.css",
+              "RelativeDocumentMoniker": "FiberHelp\\wwwroot\\css\\login.css",
+              "ToolTip": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\wwwroot\\css\\login.css",
+              "RelativeToolTip": "FiberHelp\\wwwroot\\css\\login.css",
+              "ViewState": "AgIAAJYCAAAAAAAAAIBJwAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003000|",
+              "WhenOpened": "2025-12-08T07:33:01.684Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 86,
+              "Title": "COMPLETE_SYSTEM_DOCUMENTATION.md",
+              "DocumentMoniker": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Documentation\\COMPLETE_SYSTEM_DOCUMENTATION.md",
+              "RelativeDocumentMoniker": "FiberHelp\\Documentation\\COMPLETE_SYSTEM_DOCUMENTATION.md",
+              "ToolTip": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Documentation\\COMPLETE_SYSTEM_DOCUMENTATION.md",
+              "RelativeToolTip": "FiberHelp\\Documentation\\COMPLETE_SYSTEM_DOCUMENTATION.md",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAANIBAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001818|",
+              "WhenOpened": "2025-12-08T09:19:31.363Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 87,
+              "Title": "SyncStatusIndicator.razor",
+              "DocumentMoniker": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Components\\Shared\\SyncStatusIndicator.razor",
+              "RelativeDocumentMoniker": "FiberHelp\\Components\\Shared\\SyncStatusIndicator.razor",
+              "ToolTip": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Components\\Shared\\SyncStatusIndicator.razor",
+              "RelativeToolTip": "FiberHelp\\Components\\Shared\\SyncStatusIndicator.razor",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAIQAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
+              "WhenOpened": "2025-12-08T09:20:53.387Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 88,
+              "Title": "RUBRIC_CHECKLIST.md",
+              "DocumentMoniker": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Documentation\\RUBRIC_CHECKLIST.md",
+              "RelativeDocumentMoniker": "FiberHelp\\Documentation\\RUBRIC_CHECKLIST.md",
+              "ToolTip": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Documentation\\RUBRIC_CHECKLIST.md",
+              "RelativeToolTip": "FiberHelp\\Documentation\\RUBRIC_CHECKLIST.md",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAPgAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001818|",
+              "WhenOpened": "2025-12-08T09:23:00.46Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 23,
+              "Title": "add_client_archive_columns.sql",
+              "DocumentMoniker": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Database\\add_client_archive_columns.sql",
+              "RelativeDocumentMoniker": "FiberHelp\\Database\\add_client_archive_columns.sql",
+              "ToolTip": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Database\\add_client_archive_columns.sql",
+              "RelativeToolTip": "FiberHelp\\Database\\add_client_archive_columns.sql",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000826|",
+              "WhenOpened": "2025-12-07T17:47:11.887Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 84,
+              "Title": "create_tables.sql",
+              "DocumentMoniker": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Database\\create_tables.sql",
+              "RelativeDocumentMoniker": "FiberHelp\\Database\\create_tables.sql",
+              "ToolTip": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Database\\create_tables.sql",
+              "RelativeToolTip": "FiberHelp\\Database\\create_tables.sql",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000826|",
+              "WhenOpened": "2025-12-07T17:45:54.247Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 24,
+              "Title": "add_invoice_client_columns.sql",
+              "DocumentMoniker": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Database\\add_invoice_client_columns.sql",
+              "RelativeDocumentMoniker": "FiberHelp\\Database\\add_invoice_client_columns.sql",
+              "ToolTip": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Database\\add_invoice_client_columns.sql",
+              "RelativeToolTip": "FiberHelp\\Database\\add_invoice_client_columns.sql",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000826|",
+              "WhenOpened": "2025-12-07T08:14:17.768Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 80,
+              "Title": "add_agent_to_local.sql",
+              "DocumentMoniker": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Database\\add_agent_to_local.sql",
+              "RelativeDocumentMoniker": "FiberHelp\\Database\\add_agent_to_local.sql",
+              "ToolTip": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Database\\add_agent_to_local.sql",
+              "RelativeToolTip": "FiberHelp\\Database\\add_agent_to_local.sql",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000826|",
+              "WhenOpened": "2025-12-06T10:34:08.603Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 81,
+              "Title": "fix_agents_table_role.sql",
+              "DocumentMoniker": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Database\\fix_agents_table_role.sql",
+              "RelativeDocumentMoniker": "FiberHelp\\Database\\fix_agents_table_role.sql",
+              "ToolTip": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Database\\fix_agents_table_role.sql",
+              "RelativeToolTip": "FiberHelp\\Database\\fix_agents_table_role.sql",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000826|",
+              "WhenOpened": "2025-12-06T10:39:24.029Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 82,
+              "Title": "fix_agents_missing_columns.sql",
+              "DocumentMoniker": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Database\\fix_agents_missing_columns.sql",
+              "RelativeDocumentMoniker": "FiberHelp\\Database\\fix_agents_missing_columns.sql",
+              "ToolTip": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Database\\fix_agents_missing_columns.sql",
+              "RelativeToolTip": "FiberHelp\\Database\\fix_agents_missing_columns.sql",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000826|",
+              "WhenOpened": "2025-12-06T10:52:11.981Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 25,
+              "Title": "add_ticket_columns.sql",
+              "DocumentMoniker": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Database\\add_ticket_columns.sql",
+              "RelativeDocumentMoniker": "FiberHelp\\Database\\add_ticket_columns.sql",
+              "ToolTip": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Database\\add_ticket_columns.sql",
+              "RelativeToolTip": "FiberHelp\\Database\\add_ticket_columns.sql",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000826|",
+              "WhenOpened": "2025-12-06T09:07:47.807Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 83,
+              "Title": "migrate_client_ids.sql",
+              "DocumentMoniker": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Database\\migrate_client_ids.sql",
+              "RelativeDocumentMoniker": "FiberHelp\\Database\\migrate_client_ids.sql",
+              "ToolTip": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Database\\migrate_client_ids.sql",
+              "RelativeToolTip": "FiberHelp\\Database\\migrate_client_ids.sql",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000826|",
+              "WhenOpened": "2025-12-06T11:08:31.256Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 26,
+              "Title": "create_technicians_table.sql",
+              "DocumentMoniker": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Database\\create_technicians_table.sql",
+              "RelativeDocumentMoniker": "FiberHelp\\Database\\create_technicians_table.sql",
+              "ToolTip": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Database\\create_technicians_table.sql",
+              "RelativeToolTip": "FiberHelp\\Database\\create_technicians_table.sql",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000826|",
+              "WhenOpened": "2025-12-06T08:44:33.115Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 79,
+              "Title": "add_archive_columns.sql",
+              "DocumentMoniker": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Database\\add_archive_columns.sql",
+              "RelativeDocumentMoniker": "FiberHelp\\Database\\add_archive_columns.sql",
+              "ToolTip": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Database\\add_archive_columns.sql",
+              "RelativeToolTip": "FiberHelp\\Database\\add_archive_columns.sql",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000826|",
+              "WhenOpened": "2025-12-06T10:15:50.229Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 78,
+              "Title": "sync_technicians_to_cloud.sql",
+              "DocumentMoniker": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Database\\sync_technicians_to_cloud.sql",
+              "RelativeDocumentMoniker": "FiberHelp\\Database\\sync_technicians_to_cloud.sql",
+              "ToolTip": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Database\\sync_technicians_to_cloud.sql",
+              "RelativeToolTip": "FiberHelp\\Database\\sync_technicians_to_cloud.sql",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000826|",
+              "WhenOpened": "2025-12-06T09:55:37.287Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 77,
+              "Title": "Technician.cs",
+              "DocumentMoniker": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Models\\Technician.cs",
+              "RelativeDocumentMoniker": "FiberHelp\\Models\\Technician.cs",
+              "ToolTip": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Models\\Technician.cs",
+              "RelativeToolTip": "FiberHelp\\Models\\Technician.cs",
+              "ViewState": "AgIAADoAAAAAAAAAAMBUwD0AAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-12-06T08:47:01.873Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 27,
+              "Title": "technician_role_migration.sql",
+              "DocumentMoniker": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Database\\technician_role_migration.sql",
+              "RelativeDocumentMoniker": "FiberHelp\\Database\\technician_role_migration.sql",
+              "ToolTip": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Database\\technician_role_migration.sql",
+              "RelativeToolTip": "FiberHelp\\Database\\technician_role_migration.sql",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000826|",
+              "WhenOpened": "2025-12-06T08:23:49.922Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 76,
+              "Title": "TECHNICIAN_ROLE_SYSTEM.md",
+              "DocumentMoniker": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Documentation\\TECHNICIAN_ROLE_SYSTEM.md",
+              "RelativeDocumentMoniker": "FiberHelp\\Documentation\\TECHNICIAN_ROLE_SYSTEM.md",
+              "ToolTip": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Documentation\\TECHNICIAN_ROLE_SYSTEM.md",
+              "RelativeToolTip": "FiberHelp\\Documentation\\TECHNICIAN_ROLE_SYSTEM.md",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAO4AAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001818|",
+              "WhenOpened": "2025-12-06T08:24:38.173Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 75,
+              "Title": "Agent.cs",
+              "DocumentMoniker": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Models\\Agent.cs",
+              "RelativeDocumentMoniker": "FiberHelp\\Models\\Agent.cs",
+              "ToolTip": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Models\\Agent.cs",
+              "RelativeToolTip": "FiberHelp\\Models\\Agent.cs",
+              "ViewState": "AgIAABkAAAAAAAAAAMBUwBwAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-12-06T08:10:17.207Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 72,
+              "Title": "AdminService.cs",
+              "DocumentMoniker": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Services\\AdminService.cs",
+              "RelativeDocumentMoniker": "FiberHelp\\Services\\AdminService.cs",
+              "ToolTip": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Services\\AdminService.cs",
+              "RelativeToolTip": "FiberHelp\\Services\\AdminService.cs",
+              "ViewState": "AgIAAN8HAAAAAAAAAABRwOIHAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-12-05T00:31:26.026Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 73,
+              "Title": "Toast.razor",
+              "DocumentMoniker": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Components\\Shared\\Toast.razor",
+              "RelativeDocumentMoniker": "FiberHelp\\Components\\Shared\\Toast.razor",
+              "ToolTip": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Components\\Shared\\Toast.razor",
+              "RelativeToolTip": "FiberHelp\\Components\\Shared\\Toast.razor",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAADAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
+              "WhenOpened": "2025-12-05T04:24:42.591Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 74,
+              "Title": "_Imports.razor",
+              "DocumentMoniker": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Components\\_Imports.razor",
+              "RelativeDocumentMoniker": "FiberHelp\\Components\\_Imports.razor",
+              "ToolTip": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Components\\_Imports.razor",
+              "RelativeToolTip": "FiberHelp\\Components\\_Imports.razor",
+              "ViewState": "AgIAAAkAAAAAAAAAAIBJwAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
+              "WhenOpened": "2025-12-05T04:25:08.66Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 71,
+              "Title": "ACCOUNTS_ERROR_HANDLING_COMPLETE.md",
+              "DocumentMoniker": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Documentation\\ACCOUNTS_ERROR_HANDLING_COMPLETE.md",
+              "RelativeDocumentMoniker": "FiberHelp\\Documentation\\ACCOUNTS_ERROR_HANDLING_COMPLETE.md",
+              "ToolTip": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Documentation\\ACCOUNTS_ERROR_HANDLING_COMPLETE.md",
+              "RelativeToolTip": "FiberHelp\\Documentation\\ACCOUNTS_ERROR_HANDLING_COMPLETE.md",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAEcBAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001818|",
+              "WhenOpened": "2025-12-04T23:47:17.199Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 70,
+              "Title": "AGENTS_PAGE_FIX_COMPLETE.md",
+              "DocumentMoniker": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Documentation\\AGENTS_PAGE_FIX_COMPLETE.md",
+              "RelativeDocumentMoniker": "FiberHelp\\Documentation\\AGENTS_PAGE_FIX_COMPLETE.md",
+              "ToolTip": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Documentation\\AGENTS_PAGE_FIX_COMPLETE.md",
+              "RelativeToolTip": "FiberHelp\\Documentation\\AGENTS_PAGE_FIX_COMPLETE.md",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAADkBAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001818|",
+              "WhenOpened": "2025-12-04T23:29:05.328Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 69,
+              "Title": "AGENT_CONFIRMATION_FEATURE.md",
+              "DocumentMoniker": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Documentation\\AGENT_CONFIRMATION_FEATURE.md",
+              "RelativeDocumentMoniker": "FiberHelp\\Documentation\\AGENT_CONFIRMATION_FEATURE.md",
+              "ToolTip": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Documentation\\AGENT_CONFIRMATION_FEATURE.md",
+              "RelativeToolTip": "FiberHelp\\Documentation\\AGENT_CONFIRMATION_FEATURE.md",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAANsAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001818|",
+              "WhenOpened": "2025-12-04T20:43:44.693Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 66,
+              "Title": "ERROR_HANDLING_IMPLEMENTATION_SUMMARY.md",
+              "DocumentMoniker": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Documentation\\ERROR_HANDLING_IMPLEMENTATION_SUMMARY.md",
+              "RelativeDocumentMoniker": "FiberHelp\\Documentation\\ERROR_HANDLING_IMPLEMENTATION_SUMMARY.md",
+              "ToolTip": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Documentation\\ERROR_HANDLING_IMPLEMENTATION_SUMMARY.md",
+              "RelativeToolTip": "FiberHelp\\Documentation\\ERROR_HANDLING_IMPLEMENTATION_SUMMARY.md",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAADkBAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001818|",
+              "WhenOpened": "2025-12-04T19:59:52.81Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 67,
+              "Title": "ERROR_HANDLING_VISUAL_GUIDE.md",
+              "DocumentMoniker": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Documentation\\ERROR_HANDLING_VISUAL_GUIDE.md",
+              "RelativeDocumentMoniker": "FiberHelp\\Documentation\\ERROR_HANDLING_VISUAL_GUIDE.md",
+              "ToolTip": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Documentation\\ERROR_HANDLING_VISUAL_GUIDE.md",
+              "RelativeToolTip": "FiberHelp\\Documentation\\ERROR_HANDLING_VISUAL_GUIDE.md",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAALgBAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001818|",
+              "WhenOpened": "2025-12-04T20:00:44.045Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 68,
+              "Title": "ERROR_HANDLING_QUICK_REFERENCE.md",
+              "DocumentMoniker": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Documentation\\ERROR_HANDLING_QUICK_REFERENCE.md",
+              "RelativeDocumentMoniker": "FiberHelp\\Documentation\\ERROR_HANDLING_QUICK_REFERENCE.md",
+              "ToolTip": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Documentation\\ERROR_HANDLING_QUICK_REFERENCE.md",
+              "RelativeToolTip": "FiberHelp\\Documentation\\ERROR_HANDLING_QUICK_REFERENCE.md",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAEYBAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001818|",
+              "WhenOpened": "2025-12-04T20:01:22.77Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 61,
+              "Title": "DASHBOARD_FIXES_SUMMARY.md",
+              "DocumentMoniker": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Documentation\\DASHBOARD_FIXES_SUMMARY.md",
+              "RelativeDocumentMoniker": "FiberHelp\\Documentation\\DASHBOARD_FIXES_SUMMARY.md",
+              "ToolTip": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Documentation\\DASHBOARD_FIXES_SUMMARY.md",
+              "RelativeToolTip": "FiberHelp\\Documentation\\DASHBOARD_FIXES_SUMMARY.md",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAALwBAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001818|",
+              "WhenOpened": "2025-12-04T19:49:39.35Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 62,
+              "Title": "DASHBOARD_QUICK_FIX_GUIDE.md",
+              "DocumentMoniker": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Documentation\\DASHBOARD_QUICK_FIX_GUIDE.md",
+              "RelativeDocumentMoniker": "FiberHelp\\Documentation\\DASHBOARD_QUICK_FIX_GUIDE.md",
+              "ToolTip": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Documentation\\DASHBOARD_QUICK_FIX_GUIDE.md",
+              "RelativeToolTip": "FiberHelp\\Documentation\\DASHBOARD_QUICK_FIX_GUIDE.md",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAO0AAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001818|",
+              "WhenOpened": "2025-12-04T19:50:19.488Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 60,
+              "Title": "BEFORE_AFTER_COMPARISON.md",
+              "DocumentMoniker": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Documentation\\BEFORE_AFTER_COMPARISON.md",
+              "RelativeDocumentMoniker": "FiberHelp\\Documentation\\BEFORE_AFTER_COMPARISON.md",
+              "ToolTip": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Documentation\\BEFORE_AFTER_COMPARISON.md",
+              "RelativeToolTip": "FiberHelp\\Documentation\\BEFORE_AFTER_COMPARISON.md",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAADsBAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001818|",
+              "WhenOpened": "2025-12-04T19:39:59.765Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 59,
+              "Title": "HYBRID_DASHBOARD_IMPLEMENTATION.md",
+              "DocumentMoniker": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Documentation\\HYBRID_DASHBOARD_IMPLEMENTATION.md",
+              "RelativeDocumentMoniker": "FiberHelp\\Documentation\\HYBRID_DASHBOARD_IMPLEMENTATION.md",
+              "ToolTip": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Documentation\\HYBRID_DASHBOARD_IMPLEMENTATION.md",
+              "RelativeToolTip": "FiberHelp\\Documentation\\HYBRID_DASHBOARD_IMPLEMENTATION.md",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAHEBAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001818|",
+              "WhenOpened": "2025-12-04T19:39:05.925Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 65,
+              "Title": "ToastNotification.razor",
+              "DocumentMoniker": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Components\\Shared\\ToastNotification.razor",
+              "RelativeDocumentMoniker": "FiberHelp\\Components\\Shared\\ToastNotification.razor",
+              "ToolTip": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Components\\Shared\\ToastNotification.razor",
+              "RelativeToolTip": "FiberHelp\\Components\\Shared\\ToastNotification.razor",
+              "ViewState": "AgIAABYBAAAAAAAAAIBJwBgBAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
+              "WhenOpened": "2025-12-04T19:57:27.938Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 64,
+              "Title": "ERROR_HANDLING_GUIDE.md",
+              "DocumentMoniker": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Documentation\\ERROR_HANDLING_GUIDE.md",
+              "RelativeDocumentMoniker": "FiberHelp\\Documentation\\ERROR_HANDLING_GUIDE.md",
+              "ToolTip": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Documentation\\ERROR_HANDLING_GUIDE.md",
+              "RelativeToolTip": "FiberHelp\\Documentation\\ERROR_HANDLING_GUIDE.md",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAADQCAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001818|",
+              "WhenOpened": "2025-12-04T19:56:09.952Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 63,
+              "Title": "ErrorHandlingService.cs",
+              "DocumentMoniker": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Services\\ErrorHandlingService.cs",
+              "RelativeDocumentMoniker": "FiberHelp\\Services\\ErrorHandlingService.cs",
+              "ToolTip": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Services\\ErrorHandlingService.cs",
+              "RelativeToolTip": "FiberHelp\\Services\\ErrorHandlingService.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAgBAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-12-04T19:53:09.539Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 58,
+              "Title": "ANALYTICS_QUICK_START.md",
+              "DocumentMoniker": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Documentation\\ANALYTICS_QUICK_START.md",
+              "RelativeDocumentMoniker": "FiberHelp\\Documentation\\ANALYTICS_QUICK_START.md",
+              "ToolTip": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Documentation\\ANALYTICS_QUICK_START.md",
+              "RelativeToolTip": "FiberHelp\\Documentation\\ANALYTICS_QUICK_START.md",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABEBAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001818|",
+              "WhenOpened": "2025-12-04T19:27:36.856Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 30,
+              "Title": "analytics.css",
+              "DocumentMoniker": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\wwwroot\\css\\analytics.css",
+              "RelativeDocumentMoniker": "FiberHelp\\wwwroot\\css\\analytics.css",
+              "ToolTip": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\wwwroot\\css\\analytics.css",
+              "RelativeToolTip": "FiberHelp\\wwwroot\\css\\analytics.css",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAOQBAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003000|",
+              "WhenOpened": "2025-12-04T19:20:15.416Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 31,
+              "Title": "SETUP_GUIDE.md",
+              "DocumentMoniker": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Database\\SETUP_GUIDE.md",
+              "RelativeDocumentMoniker": "FiberHelp\\Database\\SETUP_GUIDE.md",
+              "ToolTip": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Database\\SETUP_GUIDE.md",
+              "RelativeToolTip": "FiberHelp\\Database\\SETUP_GUIDE.md",
+              "ViewState": "AgIAAKUAAAAAAAAAAAAAALIAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001818|",
+              "WhenOpened": "2025-12-04T18:56:59.83Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 29,
+              "Title": "complete_setup.sql",
+              "DocumentMoniker": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Database\\complete_setup.sql",
+              "RelativeDocumentMoniker": "FiberHelp\\Database\\complete_setup.sql",
+              "ToolTip": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Database\\complete_setup.sql",
+              "RelativeToolTip": "FiberHelp\\Database\\complete_setup.sql",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000826|",
+              "WhenOpened": "2025-12-04T18:56:23.964Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 28,
+              "Title": "ANALYTICS_TESTING_CHECKLIST.md",
+              "DocumentMoniker": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Documentation\\ANALYTICS_TESTING_CHECKLIST.md",
+              "RelativeDocumentMoniker": "FiberHelp\\Documentation\\ANALYTICS_TESTING_CHECKLIST.md",
+              "ToolTip": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Documentation\\ANALYTICS_TESTING_CHECKLIST.md",
+              "RelativeToolTip": "FiberHelp\\Documentation\\ANALYTICS_TESTING_CHECKLIST.md",
+              "ViewState": "AgIAACEAAAAAAAAAAAAAAAsAAAAVAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001818|",
+              "WhenOpened": "2025-12-04T19:25:38.507Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 53,
+              "Title": "analytics.js",
+              "DocumentMoniker": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\wwwroot\\js\\analytics.js",
+              "RelativeDocumentMoniker": "FiberHelp\\wwwroot\\js\\analytics.js",
+              "ToolTip": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\wwwroot\\js\\analytics.js",
+              "RelativeToolTip": "FiberHelp\\wwwroot\\js\\analytics.js",
+              "ViewState": "AgIAAN4BAAAAAAAAAIBJwOABAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001646|",
+              "WhenOpened": "2025-12-04T19:20:50.242Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 54,
+              "Title": "index.html",
+              "DocumentMoniker": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\wwwroot\\index.html",
+              "RelativeDocumentMoniker": "FiberHelp\\wwwroot\\index.html",
+              "ToolTip": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\wwwroot\\index.html",
+              "RelativeToolTip": "FiberHelp\\wwwroot\\index.html",
+              "ViewState": "AgIAABsAAAAAAAAAAIBZwAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001512|",
+              "WhenOpened": "2025-12-04T19:22:04.189Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 55,
+              "Title": "ANALYTICS_README.md",
+              "DocumentMoniker": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Documentation\\ANALYTICS_README.md",
+              "RelativeDocumentMoniker": "FiberHelp\\Documentation\\ANALYTICS_README.md",
+              "ToolTip": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Documentation\\ANALYTICS_README.md",
+              "RelativeToolTip": "FiberHelp\\Documentation\\ANALYTICS_README.md",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAA0BAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001818|",
+              "WhenOpened": "2025-12-04T19:23:19.789Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 57,
+              "Title": "ANALYTICS_IMPLEMENTATION_SUMMARY.md",
+              "DocumentMoniker": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Documentation\\ANALYTICS_IMPLEMENTATION_SUMMARY.md",
+              "RelativeDocumentMoniker": "FiberHelp\\Documentation\\ANALYTICS_IMPLEMENTATION_SUMMARY.md",
+              "ToolTip": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Documentation\\ANALYTICS_IMPLEMENTATION_SUMMARY.md",
+              "RelativeToolTip": "FiberHelp\\Documentation\\ANALYTICS_IMPLEMENTATION_SUMMARY.md",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAADIBAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001818|",
+              "WhenOpened": "2025-12-04T19:26:46.144Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 56,
+              "Title": "ANALYTICS_VISUAL_GUIDE.md",
+              "DocumentMoniker": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Documentation\\ANALYTICS_VISUAL_GUIDE.md",
+              "RelativeDocumentMoniker": "FiberHelp\\Documentation\\ANALYTICS_VISUAL_GUIDE.md",
+              "ToolTip": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Documentation\\ANALYTICS_VISUAL_GUIDE.md",
+              "RelativeToolTip": "FiberHelp\\Documentation\\ANALYTICS_VISUAL_GUIDE.md",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAMAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001818|",
+              "WhenOpened": "2025-12-04T19:24:44.08Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 52,
+              "Title": "Expense.cs",
+              "DocumentMoniker": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Models\\Expense.cs",
+              "RelativeDocumentMoniker": "FiberHelp\\Models\\Expense.cs",
+              "ToolTip": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Models\\Expense.cs",
+              "RelativeToolTip": "FiberHelp\\Models\\Expense.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAA4AAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-12-04T17:55:14.237Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 33,
+              "Title": "MauiProgram.cs",
+              "DocumentMoniker": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\MauiProgram.cs",
+              "RelativeDocumentMoniker": "FiberHelp\\MauiProgram.cs",
+              "ToolTip": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\MauiProgram.cs",
+              "RelativeToolTip": "FiberHelp\\MauiProgram.cs",
+              "ViewState": "AgIAAHIAAAAAAAAAAABRwHUAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-11-28T05:17:29.372Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 32,
+              "Title": "appsettings.json",
+              "DocumentMoniker": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\appsettings.json",
+              "RelativeDocumentMoniker": "FiberHelp\\appsettings.json",
+              "ToolTip": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\appsettings.json",
+              "RelativeToolTip": "FiberHelp\\appsettings.json",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAIAAACeAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
+              "WhenOpened": "2025-12-01T08:20:18.504Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 50,
+              "Title": "OutboxMessage.cs",
+              "DocumentMoniker": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Models\\OutboxMessage.cs",
+              "RelativeDocumentMoniker": "FiberHelp\\Models\\OutboxMessage.cs",
+              "ToolTip": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Models\\OutboxMessage.cs",
+              "RelativeToolTip": "FiberHelp\\Models\\OutboxMessage.cs",
+              "ViewState": "AgIAAA4AAAAAAAAAAABBwA8AAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-12-03T14:09:19.627Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 51,
+              "Title": "SyncScheduler.cs",
+              "DocumentMoniker": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Services\\SyncScheduler.cs",
+              "RelativeDocumentMoniker": "FiberHelp\\Services\\SyncScheduler.cs",
+              "ToolTip": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Services\\SyncScheduler.cs",
+              "RelativeToolTip": "FiberHelp\\Services\\SyncScheduler.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAADMAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-12-04T12:57:25.189Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 34,
+              "Title": "online.cs",
+              "DocumentMoniker": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Data\\context\\online.cs",
+              "RelativeDocumentMoniker": "FiberHelp\\Data\\context\\online.cs",
+              "ToolTip": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Data\\context\\online.cs",
+              "RelativeToolTip": "FiberHelp\\Data\\context\\online.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAA0AAAAJAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-12-01T08:37:30.543Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 35,
+              "Title": "local.cs",
+              "DocumentMoniker": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Data\\context\\local.cs",
+              "RelativeDocumentMoniker": "FiberHelp\\Data\\context\\local.cs",
+              "ToolTip": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Data\\context\\local.cs",
+              "RelativeToolTip": "FiberHelp\\Data\\context\\local.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAoAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-12-01T08:33:36.531Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 36,
+              "Title": "DbInitializer.cs",
+              "DocumentMoniker": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Data\\DbInitializer.cs",
+              "RelativeDocumentMoniker": "FiberHelp\\Data\\DbInitializer.cs",
+              "ToolTip": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Data\\DbInitializer.cs",
+              "RelativeToolTip": "FiberHelp\\Data\\DbInitializer.cs",
+              "ViewState": "AgIAAEIAAAAAAAAAAMBdwEgAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-11-28T05:28:23.693Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 37,
+              "Title": "devLocalContext.cs",
+              "DocumentMoniker": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Data\\context\\devLocalContext.cs",
+              "RelativeDocumentMoniker": "FiberHelp\\Data\\context\\devLocalContext.cs",
+              "ToolTip": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Data\\context\\devLocalContext.cs",
+              "RelativeToolTip": "FiberHelp\\Data\\context\\devLocalContext.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAoAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-12-01T14:39:05.236Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 38,
+              "Title": "Login.razor",
+              "DocumentMoniker": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Components\\Layout\\Login.razor",
+              "RelativeDocumentMoniker": "FiberHelp\\Components\\Layout\\Login.razor",
+              "ToolTip": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Components\\Layout\\Login.razor",
+              "RelativeToolTip": "FiberHelp\\Components\\Layout\\Login.razor",
+              "ViewState": "AgIAANYAAAAAAAAAAIBJwNgAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
+              "WhenOpened": "2025-11-26T09:11:23.831Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 39,
+              "Title": "Ticket.cs",
+              "DocumentMoniker": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Models\\Ticket.cs",
+              "RelativeDocumentMoniker": "FiberHelp\\Models\\Ticket.cs",
+              "ToolTip": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Models\\Ticket.cs",
+              "RelativeToolTip": "FiberHelp\\Models\\Ticket.cs",
+              "ViewState": "AgIAACoAAAAAAAAAAMBUwC0AAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-11-29T15:18:50.302Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 49,
+              "Title": "Invoice.cs",
+              "DocumentMoniker": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Models\\Invoice.cs",
+              "RelativeDocumentMoniker": "FiberHelp\\Models\\Invoice.cs",
+              "ToolTip": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Models\\Invoice.cs",
+              "RelativeToolTip": "FiberHelp\\Models\\Invoice.cs",
+              "ViewState": "AgIAACsAAAAAAAAAAMBUwAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-11-30T06:11:01.371Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 41,
+              "Title": "dashboard.css",
+              "DocumentMoniker": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\wwwroot\\css\\dashboard.css",
+              "RelativeDocumentMoniker": "FiberHelp\\wwwroot\\css\\dashboard.css",
+              "ToolTip": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\wwwroot\\css\\dashboard.css",
+              "RelativeToolTip": "FiberHelp\\wwwroot\\css\\dashboard.css",
+              "ViewState": "AgIAAFcAAAAAAAAAAAAAAGIAAAAbAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003000|",
+              "WhenOpened": "2025-11-28T02:54:24.578Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 48,
+              "Title": "Client.cs",
+              "DocumentMoniker": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Models\\Client.cs",
+              "RelativeDocumentMoniker": "FiberHelp\\Models\\Client.cs",
+              "ToolTip": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Models\\Client.cs",
+              "RelativeToolTip": "FiberHelp\\Models\\Client.cs",
+              "ViewState": "AgIAABwAAAAAAAAAAEBVwCAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-11-29T12:52:53.15Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 40,
+              "Title": "Account.cs",
+              "DocumentMoniker": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Models\\Account.cs",
+              "RelativeDocumentMoniker": "FiberHelp\\Models\\Account.cs",
+              "ToolTip": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Models\\Account.cs",
+              "RelativeToolTip": "FiberHelp\\Models\\Account.cs",
+              "ViewState": "AgIAACEAAAAAAAAAAMBUwCQAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-11-26T14:42:20.533Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 47,
+              "Title": "Customer.cs",
+              "DocumentMoniker": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Models\\Customer.cs",
+              "RelativeDocumentMoniker": "FiberHelp\\Models\\Customer.cs",
+              "ToolTip": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Models\\Customer.cs",
+              "RelativeToolTip": "FiberHelp\\Models\\Customer.cs",
+              "ViewState": "AgIAAA4AAAAAAAAAAMBUwAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-11-28T05:00:01.55Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 45,
+              "Title": "AdminHeader.razor",
+              "DocumentMoniker": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Components\\Shared\\AdminHeader.razor",
+              "RelativeDocumentMoniker": "FiberHelp\\Components\\Shared\\AdminHeader.razor",
+              "ToolTip": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\Components\\Shared\\AdminHeader.razor",
+              "RelativeToolTip": "FiberHelp\\Components\\Shared\\AdminHeader.razor",
+              "ViewState": "AgIAACoAAAAAAAAAAABBwC4AAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
+              "WhenOpened": "2025-11-27T18:45:04.358Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 46,
+              "Title": "export.js",
+              "DocumentMoniker": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\wwwroot\\js\\export.js",
+              "RelativeDocumentMoniker": "FiberHelp\\wwwroot\\js\\export.js",
+              "ToolTip": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\wwwroot\\js\\export.js",
+              "RelativeToolTip": "FiberHelp\\wwwroot\\js\\export.js",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABIAAAACAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001646|",
+              "WhenOpened": "2025-11-27T19:12:04.976Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 42,
+              "Title": "admin-theme.css",
+              "DocumentMoniker": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\wwwroot\\css\\admin-theme.css",
+              "RelativeDocumentMoniker": "FiberHelp\\wwwroot\\css\\admin-theme.css",
+              "ToolTip": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\wwwroot\\css\\admin-theme.css",
+              "RelativeToolTip": "FiberHelp\\wwwroot\\css\\admin-theme.css",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAkAAAADAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003000|",
+              "WhenOpened": "2025-11-27T09:01:02.247Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 43,
+              "Title": "App.xaml.cs",
+              "DocumentMoniker": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\App.xaml.cs",
+              "RelativeDocumentMoniker": "FiberHelp\\App.xaml.cs",
+              "ToolTip": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\App.xaml.cs",
+              "RelativeToolTip": "FiberHelp\\App.xaml.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAwwAYAAAAiAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-11-26T08:41:01.29Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 44,
+              "Title": "MainPage.xaml.cs",
+              "DocumentMoniker": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\MainPage.xaml.cs",
+              "RelativeDocumentMoniker": "FiberHelp\\MainPage.xaml.cs",
+              "ToolTip": "C:\\Users\\Genita\\source\\repos\\FiberHelp\\FiberHelp\\MainPage.xaml.cs",
+              "RelativeToolTip": "FiberHelp\\MainPage.xaml.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-11-26T08:40:51.81Z"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

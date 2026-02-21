@@ -1,0 +1,219 @@
+﻿@page "/agent"
+@inject FiberHelp.Services.AdminService AdminService
+@inject FiberHelp.Services.AuthService AuthService
+@using FiberHelp.Models
+
+<link href="css/tickets.css" rel="stylesheet" />
+
+@if (!AuthService.IsAuthenticated)
+{
+    <div class="panel"><strong>Sign in required.</strong></div>
+}
+else
+{
+    <header class="topbar">
+        <div>
+            <p class="eyebrow">FIBERHELP — @((AuthService.Role ?? "").ToUpperInvariant())</p>
+            <h1 class="page-title">Agent Workspace</h1>
+        </div>
+        <div class="top-actions">
+            <button class="btn primary" @onclick="OpenCreateTicket">+ Create Ticket</button>
+        </div>
+    </header>
+
+    <section class="panel">
+        <div class="form-group" style="display:flex; gap:8px; align-items:center;">
+            <input class="form-input" style="flex:1" @bind="query" placeholder="Search account no., email, or name" />
+            <button class="btn" @onclick="SearchAsync">Search</button>
+        </div>
+
+        @if (isSearching)
+        {
+            <p>Searching…</p>
+        }
+
+        @if (foundCustomer != null)
+        {
+            <div class="selected-customer" style="margin-top:8px;">
+                <strong>Customer:</strong> @foundCustomer.Name (@foundCustomer.Email) — Plan: @foundCustomer.Plan
+            </div>
+
+            <h4 style="margin-top:16px;">Recent Tickets</h4>
+            @if (recentTickets?.Any() != true)
+            {
+                <p>No recent tickets.</p>
+            }
+            else
+            {
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Title</th>
+                            <th>Status</th>
+                            <th>Priority</th>
+                            <th>Created</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var t in recentTickets!)
+                        {
+                            <tr>
+                                <td>@t.Id</td>
+                                <td>@t.Title</td>
+                                <td>@t.Status</td>
+                                <td>@t.Priority</td>
+                                <td>@t.Created.ToLocalTime()</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+        }
+        else if (searchAttempted)
+        {
+            <p>No customer found for '@query'. You can still create a ticket manually.</p>
+        }
+    </section>
+
+    @if (showTicketForm)
+    {
+        <div style="position:fixed;inset:0;display:grid;place-items:center;background:rgba(0,0,0,0.45);z-index:9999;" @onclick="CloseCreateTicket">
+            <div class="panel" style="width:640px;max-width:95vw;" @onclick:stopPropagation>
+                <h3>Create Ticket</h3>
+                <div class="form-group">
+                    <label>Account Number (optional)</label>
+                    <input class="form-input" @bind="ticketAccountNumber" placeholder="ACCT-000123" />
+                </div>
+                <div class="form-group">
+                    <label>Subject</label>
+                    <input class="form-input" @bind="ticketTitle" />
+                </div>
+                <div class="form-group">
+                    <label>Description</label>
+                    <textarea class="form-input" @bind="ticketDescription"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Priority</label>
+                    <select class="form-input" @bind="ticketPriority">
+                        <option>Low</option>
+                        <option selected>Medium</option>
+                        <option>High</option>
+                        <option>Critical</option>
+                    </select>
+                </div>
+                <div style="display:flex;gap:8px;justify-content:flex-end;">
+                    <button class="btn" @onclick="CloseCreateTicket">Cancel</button>
+                    <button class="btn primary" @onclick="CreateTicketAsync" disabled="@isSubmitting">Create</button>
+                </div>
+                @if (!string.IsNullOrEmpty(formMessage))
+                {
+                    <p style="margin-top:8px;">@formMessage</p>
+                }
+            </div>
+        </div>
+    }
+}
+
+@code {
+    private string query = string.Empty;
+    private bool isSearching = false;
+    private bool searchAttempted = false;
+
+    private List<Customer>? customers;
+    private Customer? foundCustomer;
+    private List<Ticket>? recentTickets;
+
+    private bool showTicketForm = false;
+    private bool isSubmitting = false;
+    private string formMessage = string.Empty;
+
+    private string ticketAccountNumber = string.Empty;
+    private string ticketTitle = string.Empty;
+    private string ticketDescription = string.Empty;
+    private string ticketPriority = "Medium";
+
+    protected override async Task OnInitializedAsync()
+    {
+        customers = await AdminService.GetCustomersAsync();
+    }
+
+    private async Task SearchAsync()
+    {
+        isSearching = true;
+        searchAttempted = false;
+        foundCustomer = null;
+        recentTickets = null;
+
+        var q = (query ?? string.Empty).Trim();
+        if (!string.IsNullOrEmpty(q) && customers != null)
+        {
+            foundCustomer = customers.FirstOrDefault(c =>
+                string.Equals(c.Id, q, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(c.Email, q, StringComparison.OrdinalIgnoreCase)
+                || (!string.IsNullOrEmpty(c.Name) && c.Name.Contains(q, StringComparison.OrdinalIgnoreCase)));
+        }
+
+        if (foundCustomer != null)
+        {
+            var all = await AdminService.GetTicketsAsync();
+            recentTickets = all
+                .Where(t => string.Equals(t.Customer, foundCustomer.Id, StringComparison.OrdinalIgnoreCase)
+                         || string.Equals(t.CustomerName, foundCustomer.Name, StringComparison.OrdinalIgnoreCase))
+                .OrderByDescending(t => t.Created)
+                .Take(10)
+                .ToList();
+        }
+
+        isSearching = false;
+        searchAttempted = true;
+    }
+
+    private void OpenCreateTicket()
+    {
+        showTicketForm = true;
+        formMessage = string.Empty;
+        ticketTitle = foundCustomer != null ? $"Issue for {foundCustomer.Name}" : string.Empty;
+        ticketDescription = foundCustomer != null ? $"Customer: {foundCustomer.Name} ({foundCustomer.Email})" : string.Empty;
+        ticketPriority = "Medium";
+    }
+
+    private void CloseCreateTicket()
+    {
+        showTicketForm = false;
+        formMessage = string.Empty;
+    }
+
+    private async Task CreateTicketAsync()
+    {
+        isSubmitting = true;
+        formMessage = string.Empty;
+
+        var t = new Ticket
+        {
+            Title = string.IsNullOrWhiteSpace(ticketTitle) ? "(no subject)" : ticketTitle,
+            Customer = foundCustomer?.Id ?? query ?? string.Empty,
+            CustomerName = foundCustomer?.Name ?? query ?? string.Empty,
+            Priority = string.IsNullOrWhiteSpace(ticketPriority) ? "Medium" : ticketPriority,
+            Status = "Open",
+            Created = DateTime.UtcNow
+        };
+
+        var ok = await AdminService.CreateTicketAsync(t);
+        isSubmitting = false;
+
+        if (ok)
+        {
+            formMessage = "Ticket created successfully.";
+            showTicketForm = false;
+            if (foundCustomer != null)
+            {
+                await SearchAsync();
+            }
+        }
+        else
+        {
+            formMessage = $"Failed to create ticket: {AdminService.LastError}";
+        }
+    }
+}

@@ -1,0 +1,37 @@
+﻿using System;
+
+namespace FiberHelp.Models
+{
+ public class Invoice
+ {
+ // maps to DB column InvoiceId (int identity)
+ public int Id { get; set; }
+
+ // maps to AccountId in DB
+ public int AccountId { get; set; }
+
+ // maps to AccountName in DB
+ public string? AccountName { get; set; }
+
+ // maps to Amount
+ public decimal Amount { get; set; }
+
+ // maps to IssueDate
+ public DateTime IssueDate { get; set; }
+
+ // maps to DueDate
+ public DateTime? DueDate { get; set; }
+
+ // maps to Status (e.g., Pending, Paid)
+ public string Status { get; set; } = "Unpaid"; // Paid/Unpaid
+
+ // maps to PaymentRef
+ public string? PaymentRef { get; set; }
+
+ // maps to PaidDate
+ public DateTime? PaidDate { get; set; }
+
+ // maps to Notes
+ public string? Notes { get; set; }
+ }
+}

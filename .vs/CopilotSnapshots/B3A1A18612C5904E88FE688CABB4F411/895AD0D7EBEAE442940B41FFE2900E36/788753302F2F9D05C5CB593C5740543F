@@ -1,0 +1,133 @@
+﻿using FiberHelp.Models;
+using System.Security.Cryptography;
+using System.Text;
+using System;
+using System.Linq;
+using Microsoft.Data.SqlClient; // for direct SQL checks
+using Microsoft.EntityFrameworkCore;
+
+namespace FiberHelp.Data
+{
+ public static class DbInitializer
+ {
+ private static string HashPassword(string password)
+ {
+ using var sha = SHA256.Create();
+ var bytes = Encoding.UTF8.GetBytes(password ?? string.Empty);
+ var hash = sha.ComputeHash(bytes);
+ return Convert.ToHexString(hash); // uppercase hex
+ }
+
+ public static void Initialize(AppDbContext context)
+ {
+ context.Database.EnsureCreated();
+ // Removed PatchTicketSchema: now mapping uses existing legacy columns ClientId/ClientName
+
+ var adminEmail = "admin@fiberhelp.com";
+ var agentEmail = "agent@fiberhelp.com";
+ var adminPassword = "Adminlogin123@"; // required admin password
+ var agentPassword = "Agentlogin123@";
+ var adminHash = HashPassword(adminPassword);
+ var agentHash = HashPassword(agentPassword);
+
+ // Users table seeding
+ var admin = context.Users.FirstOrDefault(u => u.Email == adminEmail);
+ if (admin == null)
+ {
+ admin = new User { Email = adminEmail, PasswordHash = adminHash, Role = "Administrator", FullName = "System Admin" };
+ context.Users.Add(admin);
+ }
+ else if (admin.PasswordHash != adminHash)
+ {
+ admin.PasswordHash = adminHash;
+ context.Users.Update(admin);
+ }
+
+ var agent = context.Users.FirstOrDefault(u => u.Email == agentEmail);
+ if (agent == null)
+ {
+ agent = new User { Email = agentEmail, PasswordHash = agentHash, Role = "Agent", FullName = "Support Agent" };
+ context.Users.Add(agent);
+ }
+ else if (agent.PasswordHash != agentHash)
+ {
+ agent.PasswordHash = agentHash;
+ context.Users.Update(agent);
+ }
+
+ if (!context.Users.Any(u => u.Email == "csr@fiberhelp.com"))
+ {
+ context.Users.Add(new User { Email = "csr@fiberhelp.com", PasswordHash = HashPassword("csr123Strong!"), Role = "CSR", FullName = "Customer Rep" });
+ }
+
+ // Agents table seeding to support alternate login path
+ var aAdmin = context.Agents.FirstOrDefault(a => a.Email == adminEmail);
+ if (aAdmin == null)
+ {
+ context.Agents.Add(new Agent { Email = adminEmail, PasswordHash = adminHash, FullName = "System Admin", Department = "Admin", IsActive = true, IsLocked = false });
+ }
+ else
+ {
+ if (aAdmin.PasswordHash != adminHash) aAdmin.PasswordHash = adminHash;
+ aAdmin.IsActive = true; aAdmin.IsLocked = false;
+ context.Agents.Update(aAdmin);
+ }
+
+ var aAgent = context.Agents.FirstOrDefault(a => a.Email == agentEmail);
+ if (aAgent == null)
+ {
+ context.Agents.Add(new Agent { Email = agentEmail, PasswordHash = agentHash, FullName = "Support Agent", Department = "Support", IsActive = true, IsLocked = false });
+ }
+ else
+ {
+ if (aAgent.PasswordHash != agentHash) aAgent.PasswordHash = agentHash;
+ aAgent.IsActive = true; aAgent.IsLocked = false;
+ context.Agents.Update(aAgent);
+ }
+
+ context.SaveChanges();
+
+ // Seed Clients if none
+ if (!context.Clients.Any())
+ {
+ context.Clients.AddRange(
+ new Client { Name = "Contoso Ltd", Email = "contact@contoso.com", Plan = "Premium" },
+ new Client { Name = "Fabrikam", Email = "info@fabrikam.com", Plan = "Standard" }
+ );
+ context.SaveChanges();
+ }
+
+ // Seed Tickets if none
+ if (!context.Tickets.Any())
+ {
+ var c1 = context.Clients.First();
+ var c2 = context.Clients.Skip(1).FirstOrDefault() ?? c1;
+ context.Tickets.AddRange(
+ new Ticket { Title = "Sample ticket1", ClientId = c1.Id, ClientName = c1.Name, Priority = "High", Status = "Open" },
+ new Ticket { Title = "Sample ticket2", ClientId = c2.Id, ClientName = c2.Name, Priority = "Low", Status = "Open" }
+ );
+ context.SaveChanges();
+ }
+
+ if (!context.Invoices.Any())
+ {
+ context.Invoices.AddRange(
+ new Invoice { AccountId = null, AmountDue = 199.99m, IssueDate = DateTime.UtcNow.AddDays(-7), Status = "Pending" },
+ new Invoice { AccountId = null, AmountDue = 99.50m, IssueDate = DateTime.UtcNow.AddDays(-30), Status = "Paid" }
+ );
+ context.SaveChanges();
+ }
+
+ // Seed Expenses if none
+ if (!context.Expenses.Any())
+ {
+ context.Expenses.AddRange(
+ new Expense { Date = DateTime.UtcNow.AddDays(-20), Category = "Network", Description = "Fiber spool purchase", Amount = 1500m, Reference = "EXP-0001" },
+ new Expense { Date = DateTime.UtcNow.AddDays(-10), Category = "Utilities", Description = "Electric bill", Amount = 320m, Reference = "EXP-0002" },
+ new Expense { Date = DateTime.UtcNow.AddDays(-3), Category = "Payroll", Description = "Support staff salary", Amount = 4200m, Reference = "EXP-0003" }
+ );
+ context.SaveChanges();
+ }
+ }
+ }
+}

@@ -1,92 +1,72 @@
 using FiberHelp.Models;
 using System.Security.Cryptography;
 using System.Text;
+using System;
+using System.Linq;
+using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore;
 
 namespace FiberHelp.Data
 {
- public static class DbInitializer
- {
- private static string HashPassword(string password)
- {
- using var sha = SHA256.Create();
- var bytes = Encoding.UTF8.GetBytes(password);
- var hash = sha.ComputeHash(bytes);
- return Convert.ToHexString(hash);
- }
+    public static class DbInitializer
+    {
+        private static string HashPassword(string password)
+        {
+            using var sha = SHA256.Create();
+            var bytes = Encoding.UTF8.GetBytes(password ?? string.Empty);
+            var hash = sha.ComputeHash(bytes);
+            return Convert.ToHexString(hash); // uppercase hex
+        }
 
- public static void Initialize(AppDbContext context)
- {
- // Ensure database is created
- context.Database.EnsureCreated();
+        public static void Initialize(AppDbContext context)
+        {
+            try
+            {
+                context.Database.EnsureCreated();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"DbInitializer: EnsureCreated error: {ex.Message}");
+            }
 
- // Desired admin password
- var adminPassword = "Adminlogin123@";
- var adminHash = HashPassword(adminPassword);
+            var adminEmail = "admin@fiberhelp.com";
+            var adminPassword = "Adminlogin123@";
+            var adminHash = HashPassword(adminPassword);
 
- // Desired agent password
- var agentPassword = "Agentlogin123@";
- var agentHash = HashPassword(agentPassword);
+            System.Diagnostics.Debug.WriteLine($"DbInitializer: Admin hash = {adminHash}");
 
- // Seed Users (create if missing) and ensure admin password is set
- if (!context.Users.Any())
- {
- context.Users.AddRange(
- new User { Email = "admin@fiberhelp.com", PasswordHash = adminHash, Role = "Administrator", FullName = "System Admin" },
- new User { Email = "agent@fiberhelp.com", PasswordHash = agentHash, Role = "Agent", FullName = "Support Agent" },
- new User { Email = "csr@fiberhelp.com", PasswordHash = HashPassword("csr123"), Role = "CSR", FullName = "Customer Rep" }
- );
- context.SaveChanges();
- }
- else
- {
- // If users exist, ensure admin user has the desired password
- var admin = context.Users.FirstOrDefault(u => u.Email == "admin@fiberhelp.com");
- if (admin != null)
- {
- admin.PasswordHash = adminHash;
- context.Users.Update(admin);
- context.SaveChanges();
- }
- // Ensure agent user has the desired password as well
- var agent = context.Users.FirstOrDefault(u => u.Email == "agent@fiberhelp.com");
- if (agent != null)
- {
- agent.PasswordHash = agentHash;
- context.Users.Update(agent);
- context.SaveChanges();
- }
- }
+            // Users table seeding (ONLY Administrator - agents/technicians should be created manually)
+            try
+            {
+                var admin = context.Users.FirstOrDefault(u => u.Email == adminEmail);
+                if (admin == null)
+                {
+                    admin = new User { Email = adminEmail, PasswordHash = adminHash, Role = "Administrator", FullName = "System Admin" };
+                    context.Users.Add(admin);
+                    System.Diagnostics.Debug.WriteLine("DbInitializer: Created admin in Users table");
+                }
+                else
+                {
+                    // Always update to ensure correct password hash
+                    admin.PasswordHash = adminHash;
+                    admin.Role = "Administrator";
+                    context.Users.Update(admin);
+                    System.Diagnostics.Debug.WriteLine("DbInitializer: Updated admin in Users table");
+                }
+                
+                context.SaveChanges();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"DbInitializer: Users table error: {ex.Message}");
+            }
 
- // Seed Customers if none exist
- if (!context.Customers.Any())
- {
- context.Customers.AddRange(
- new Customer { Name = "Contoso Ltd", Email = "contact@contoso.com", Plan = "Premium" },
- new Customer { Name = "Fabrikam", Email = "info@fabrikam.com", Plan = "Standard" }
- );
- context.SaveChanges();
- }
+            // NOTE: Agents and Technicians are NOT auto-created anymore.
+            // They should be created manually through the application UI.
+            // This prevents inconsistent data after database cleanup.
 
- // Seed Tickets if none exist
- if (!context.Tickets.Any())
- {
- context.Tickets.AddRange(
- new Ticket { Title = "Sample ticket1", Customer = context.Customers.First().Name, Priority = "High", Status = "Open" },
- new Ticket { Title = "Sample ticket2", Customer = context.Customers.Skip(1).FirstOrDefault()?.Name ?? "Fabrikam", Priority = "Low", Status = "Open" }
- );
- context.SaveChanges();
- }
-
- // Seed Invoices for demo (match Invoice model: AmountDue, IssueDate, Status, AccountId)
- if (!context.Invoices.Any())
- {
- var c1 = context.Customers.First();
- context.Invoices.AddRange(
- new Invoice { AccountId = null, AmountDue =199.99m, IssueDate = DateTime.UtcNow.AddDays(-7), Status = "Pending" },
- new Invoice { AccountId = null, AmountDue =99.50m, IssueDate = DateTime.UtcNow.AddDays(-30), Status = "Paid" }
- );
- context.SaveChanges();
- }
- }
- }
+            System.Diagnostics.Debug.WriteLine("DbInitializer: Initialization complete");
+            System.Diagnostics.Debug.WriteLine($"DbInitializer: Default login - Admin: {adminEmail}/{adminPassword}");
+        }
+    }
 }

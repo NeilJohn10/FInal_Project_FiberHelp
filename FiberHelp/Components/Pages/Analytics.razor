@@ -1,0 +1,12 @@
+@* DEPRECATED: Analytics is now embedded in Dashboard.razor *@
+@* This page is kept for reference but redirects to Dashboard *@
+@page "/analytics"
+@inject NavigationManager Navigation
+
+@code {
+    protected override void OnInitialized()
+    {
+        // Redirect to Dashboard where Analytics is now embedded
+        Navigation.NavigateTo("/", true);
+    }
+}

@@ -1,0 +1,685 @@
+﻿@page "/billing"
+@inject FiberHelp.Services.AuthService AuthService
+@inject FiberHelp.Services.BillingService BillingService
+@inject NavigationManager Nav
+@inject Microsoft.JSInterop.IJSRuntime JS
+
+@if (!(AuthService.Role ?? "").Equals("Administrator", StringComparison.OrdinalIgnoreCase))
+{
+    <p>Redirecting...</p>
+}
+else
+{
+    <div>
+        <header class="topbar agents-header">
+            <div>
+                <p class="eyebrow">FIBERHELP · ADMINISTRATOR</p>
+                <h1 class="page-title">@(_activeTab == "billing" ? "Billing" : "Accounting")</h1>
+            </div>
+            <div class="agents-controls top-actions">
+                @if (_activeTab == "billing")
+                {
+                    <button class="btn-primary" @onclick="() => ShowCreateInvoiceModal()">+ New Invoice</button>
+                    <button class="btn-secondary" @onclick="GenerateMonthlyInvoices" title="Generate subscription invoices for all active clients">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:middle;margin-right:4px">
+                            <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/>
+                        </svg>
+                        Generate Monthly
+                    </button>
+                }
+                else
+                {
+                    <button class="btn-primary" @onclick="() => ShowCreateExpenseModal()">+ Add Expense</button>
+                    <select class="filter-select" @onchange="OnPeriodChanged">
+                        <option value="1">Last Month</option>
+                        <option value="3">Last 3 Months</option>
+                        <option value="6" selected>Last 6 Months</option>
+                        <option value="12">Last 12 Months</option>
+                        <option value="0">All Time</option>
+                    </select>
+                }
+                <button class="btn subtle" @onclick="ExportAccountingData">Export</button>
+            </div>
+        </header>
+
+        <style>
+            /* Tab Navigation */
+            .tab-nav { display:flex; gap:0; margin-bottom:24px; background:#f1f5f9; border-radius:12px; padding:4px; width:fit-content }
+            .tab-btn { padding:12px 32px; border:none; background:transparent; font-size:15px; font-weight:600; color:#64748b; cursor:pointer; border-radius:10px; transition:all 0.2s }
+            .tab-btn:hover { color:#1e293b }
+            .tab-btn.active { background:#fff; color:#2563eb; box-shadow:0 2px 8px rgba(0,0,0,0.08) }
+            .tab-icon { margin-right:8px }
+            
+            /* Collapsible section */
+            .collapsible-header { display:flex; justify-content:space-between; align-items:center; cursor:pointer; user-select:none; padding:12px 16px; background:#f8fafc; border-radius:10px; border:1px solid #e5e7eb; margin-bottom:12px; transition:all 0.2s }
+            .collapsible-header:hover { background:#f1f5f9; border-color:#cbd5e1 }
+            .collapsible-title { font-size:14px; font-weight:600; color:#475569; display:flex; align-items:center; gap:8px }
+            .collapsible-toggle { display:flex; align-items:center; gap:6px; font-size:12px; color:#64748b; font-weight:500 }
+            .collapsible-toggle svg { transition:transform 0.3s ease }
+            .collapsible-toggle.expanded svg { transform:rotate(180deg) }
+            .collapsible-body { max-height:0; overflow:hidden; transition:max-height 0.3s ease-out }
+            .collapsible-body.expanded { max-height:500px; transition:max-height 0.4s ease-in }
+            .collapsible-badge { background:#e0f2fe; color:#0369a1; padding:2px 8px; border-radius:999px; font-size:11px; font-weight:700 }
+            
+            .billing-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:16px; margin-bottom:24px }
+            .kpi-card { background:#fff; padding:16px 18px; border-radius:14px; box-shadow:0 8px 20px rgba(2,6,23,0.06); position:relative; overflow:hidden; }
+            .kpi-card:before { content:""; position:absolute; inset:0; background:linear-gradient(135deg,rgba(37,99,235,0.08),rgba(99,102,241,0.08)); opacity:0.6; pointer-events:none }
+            .kpi-value { font-size:28px; font-weight:700; line-height:1; margin-bottom:4px; position:relative; z-index:1 }
+            .kpi-label { font-size:12px; text-transform:uppercase; letter-spacing:.06em; font-weight:600; color:#64748b; position:relative; z-index:1 }
+            .kpi-sub { font-size:11px; color:#64748b; margin-top:2px; position:relative; z-index:1 }
+            .section-card { background:#fff; padding:20px; border-radius:14px; box-shadow:0 8px 20px rgba(2,6,23,0.06); margin-bottom:20px }
+            .section-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; border-bottom:2px solid #e5e7eb; padding-bottom:10px }
+            .section-title { font-size:18px; font-weight:700; margin:0; color:#1e293b }
+            .filter-select { padding:8px 12px; border-radius:10px; border:1px solid #e2e8f0; background:#fff; font-size:14px }
+            .data-table { width:100%; border-collapse:separate; border-spacing:0 6px }
+            .data-table thead th { text-align:left; font-size:12px; font-weight:700; padding:10px; color:#475569; background:#f8fafc; border-bottom:2px solid #e2e8f0 }
+            .data-table tbody td { background:#f9fafb; padding:12px 10px; font-size:13px; border-top:1px solid #edf2f7; border-bottom:1px solid #edf2f7 }
+            .data-table tbody tr td:first-child { border-left:1px solid #edf2f7; border-top-left-radius:8px; border-bottom-left-radius:8px }
+            .data-table tbody tr td:last-child { border-right:1px solid #edf2f7; border-top-right-radius:8px; border-bottom-right-radius:8px }
+            .data-table tbody tr:hover td { background:#f1f5f9 }
+            .status-badge { padding:5px 10px; border-radius:999px; font-size:11px; font-weight:700; display:inline-block }
+            .status-paid { background:#dcfce7; color:#065f46; border:1px solid #bbf7d0 }
+            .status-pending { background:#fef9c3; color:#92400e; border:1px solid #fde68a }
+            .status-overdue { background:#fee2e2; color:#991b1b; border:1px solid #fecaca }
+            .aging-list { list-style:none; padding:0; margin:0 }
+            .aging-list li { padding:10px 14px; background:#f9fafb; border-radius:8px; margin-bottom:6px; display:flex; justify-content:space-between; align-items:center; border:1px solid #e5e7eb }
+            .aging-label { font-weight:600; color:#475569; font-size:13px }
+            .aging-value { font-weight:700; color:#1e293b; font-size:14px }
+            .shimmer-row { animation: shimmer 1.2s linear infinite; background:linear-gradient(90deg,#f1f5f9 0%,#e2e8f0 50%,#f1f5f9 100%); background-size:400% 100%; height:48px; border-radius:10px }
+            @@keyframes shimmer { 0%{background-position:0% 0}100%{background-position:100% 0} }
+            .empty-state { text-align:center; padding:30px 20px; color:#64748b; font-size:14px }
+            .grid-2 { display:grid; grid-template-columns:repeat(2,1fr); gap:20px; margin-bottom:20px }
+            .amount-positive { color:#16a34a; font-weight:700 }
+            .amount-negative { color:#dc2626; font-weight:700 }
+            
+            /* Action buttons */
+            .btn-action { padding:5px 8px; border:none; border-radius:6px; cursor:pointer; margin-right:3px; font-size:13px; transition:all 0.2s }
+            .btn-action:hover { transform:scale(1.1) }
+            .btn-success { background:#dcfce7; color:#16a34a }
+            .btn-success:hover { background:#bbf7d0 }
+            .btn-warning { background:#fef3c7; color:#d97706 }
+            .btn-warning:hover { background:#fde68a }
+            .btn-info { background:#e0f2fe; color:#0284c7 }
+            .btn-info:hover { background:#bae6fd }
+            .btn-danger { background:#fee2e2; color:#dc2626 }
+            .btn-danger:hover { background:#fecaca }
+            .btn-primary { background:#2563eb; color:white; padding:10px 20px; border:none; border-radius:8px; cursor:pointer; font-weight:600 }
+            .btn-primary:hover { background:#1d4ed8 }
+            .btn-secondary { background:#e2e8f0; color:#475569; padding:10px 20px; border:none, border-radius:8px; cursor:pointer; font-weight:600 }
+            .btn-secondary:hover { background:#cbd5e1 }
+            
+            /* Modal styles */
+            .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center; z-index:1000 }
+            .modal-content { background:white; padding:24px; border-radius:14px; width:100%; max-width:480px; max-height:85vh; overflow-y:auto }
+            .modal-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; padding-bottom:10px; border-bottom:2px solid #e5e7eb }
+            .modal-title { font-size:18px; font-weight:700; color:#1e293b; margin:0 }
+            .modal-close { background:none; border:none; font-size:22px; cursor:pointer; color:#64748b }
+            .form-group { margin-bottom:14px }
+            .form-label { display:block; font-weight:600; margin-bottom:5px; color:#475569; font-size:13px }
+            .form-input { width:100%; padding:9px 12px; border:1px solid #e2e8f0; border-radius:8px; font-size:14px }
+            .form-input:focus { outline:none; border-color:#2563eb; box-shadow:0 0 0 3px rgba(37,99,235,0.1) }
+            .form-actions { display:flex; gap:10px; justify-content:flex-end; margin-top:20px }
+            
+            /* Pagination Styles */
+            .pagination-container{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:20px;padding:16px 0}
+            .pagination-btn{border:1px solid #e5e7eb;background:#fff;color:#475569;padding:8px 12px;border-radius:8px;cursor:pointer;font-size:14px;font-weight:600;transition:all 0.2s}
+            .pagination-btn:hover:not(:disabled){background:#f8fafc;border-color:#cbd5e1}
+            .pagination-btn:disabled{opacity:0.4;cursor:not-allowed}
+            .pagination-btn.active{background:#2563eb;color:#fff;border-color:#2563eb}
+            .pagination-arrow{display:flex;align-items:center;justify-content:center;width:36px;height:36px}
+            .pagination-info{color:#64748b;font-size:14px;padding:0 12px}
+        </style>
+
+        <section class="panel">
+            @if (_error != null)
+            {
+                <div style="padding:16px;background:#fee2e2;border:1px solid #fecaca;border-radius:10px;color:#991b1b;margin-bottom:20px">
+                    <strong>Error:</strong> @_error
+                    <button @onclick="async () => await LoadDataAsync()" style="margin-left:12px;padding:6px 14px;background:#dc2626;color:white;border:none;border-radius:6px;cursor:pointer">Retry</button>
+                </div>
+            }
+
+            <!-- Tab Navigation -->
+            <div class="tab-nav">
+                <button class="tab-btn @(_activeTab == "billing" ? "active" : "")" @onclick='() => SetActiveTab("billing")'>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:middle;margin-right:6px">
+                        <path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/>
+                    </svg>
+                    Billing
+                </button>
+                <button class="tab-btn @(_activeTab == "accounting" ? "active" : "")" @onclick='() => SetActiveTab("accounting")'>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:middle;margin-right:6px">
+                        <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/>
+                    </svg>
+                    Accounting
+                </button>
+            </div>
+
+            @if (_loading && _summary == null)
+            {
+                <div class="shimmer-row" style="margin-bottom:20px"></div>
+            }
+            else if (_summary != null)
+            {
+                <!-- ==================== BILLING TAB ==================== -->
+                @if (_activeTab == "billing")
+                {
+                    <!-- KPI Cards -->
+                    <div class="billing-grid">
+                        <div class="kpi-card">
+                            <div class="kpi-value">@_summary.TotalInvoices</div>
+                            <div class="kpi-label">Total Invoices</div>
+                            <div class="kpi-sub">@_summary.TotalAmount.ToString("C")</div>
+                        </div>
+                        <div class="kpi-card">
+                            <div class="kpi-value">@_summary.PaidCount</div>
+                            <div class="kpi-label">Paid</div>
+                            <div class="kpi-sub">@_summary.PaidAmount.ToString("C")</div>
+                        </div>
+                        <div class="kpi-card">
+                            <div class="kpi-value">@_summary.PendingCount</div>
+                            <div class="kpi-label">Pending</div>
+                            <div class="kpi-sub">@_summary.PendingAmount.ToString("C")</div>
+                        </div>
+                        <div class="kpi-card">
+                            <div class="kpi-value">@_summary.OverdueCount</div>
+                            <div class="kpi-label">Overdue</div>
+                            <div class="kpi-sub">@_summary.OverdueAmount.ToString("C")</div>
+                        </div>
+                        <div class="kpi-card">
+                            <div class="kpi-value" style="color:#16a34a">@_summary.PaidAmount.ToString("C")</div>
+                            <div class="kpi-label">Revenue Collected</div>
+                            <div class="kpi-sub">Lifetime</div>
+                        </div>
+                    </div>
+
+                    <!-- Aging Report - Collapsible -->
+                    <div class="collapsible-header" @onclick="ToggleAgingSection">
+                        <div class="collapsible-title">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/>
+                            </svg>
+                            Accounts Receivable Aging
+                            <span class="collapsible-badge">@(_summary?.AgingBuckets?.Values.Sum() ?? 0) total</span>
+                        </div>
+                        <div class="collapsible-toggle @(_showAgingSection ? "expanded" : "")">
+                            <span>@(_showAgingSection ? "Hide" : "Show")</span>
+                            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="collapsible-body @(_showAgingSection ? "expanded" : "")">
+                        <ul class="aging-list" style="margin-bottom:16px">
+                            @foreach (var kv in _summary.AgingBuckets)
+                            {
+                                <li>
+                                    <span class="aging-label">@GetAgingLabel(kv.Key)</span>
+                                    <span class="aging-value">@kv.Value invoices</span>
+                                </li>
+                            }
+                        </ul>
+                    </div>
+
+                    <!-- Invoices Table -->
+                    <div class="section-card">
+                        <div class="section-header">
+                            <h3 class="section-title">All Invoices</h3>
+                        </div>
+                        @if (_invoices == null)
+                        {
+                            <div class="shimmer-row"></div>
+                        }
+                        else if (_invoices.Count == 0)
+                        {
+                            <div class="empty-state">No invoices found</div>
+                        }
+                        else
+                        {
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Invoice #</th>
+                                        <th>Client/Account</th>
+                                        <th>Amount</th>
+                                        <th>Status</th>
+                                        <th>Due Date</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var inv in PaginatedInvoices)
+                                    {
+                                        <tr>
+                                            <td style="font-weight:600">#@inv.Id</td>
+                                            <td>@(inv.ClientName ?? inv.AccountName ?? inv.AccountId?.ToString() ?? "N/A")</td>
+                                            <td style="font-weight:600">@inv.AmountDue.ToString("C")</td>
+                                            <td><span class="status-badge @GetStatusClass(inv.Status)">@inv.Status</span></td>
+                                            <td>@((inv.DueDate ?? inv.IssueDate.AddDays(30)).ToString("MMM dd, yyyy"))</td>
+                                            <td>
+                                                @if (!string.Equals(inv.Status, "Paid", StringComparison.OrdinalIgnoreCase))
+                                                {
+                                                    <button class="btn-action btn-success" @onclick="() => MarkInvoicePaid(inv.Id)" title="Mark as Paid">
+                                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                                                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                                                        </svg>
+                                                    </button>
+                                                    <button class="btn-action btn-warning" @onclick="() => SendReminder(inv.Id)" title="Send Reminder">
+                                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                                                            <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/>
+                                                        </svg>
+                                                    </button>
+                                                }
+                                                <button class="btn-action btn-info" @onclick="() => ViewInvoiceDetails(inv)" title="View Details">
+                                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                                                        <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/>
+                                                    </svg>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                            
+                            @* Invoice Pagination Controls *@
+                            @if (InvoiceTotalPages > 1)
+                            {
+                              <div class="pagination-container">
+                                <button class="pagination-btn pagination-arrow" @onclick="InvoicePreviousPage" disabled="@(InvoiceCurrentPage == 1)">
+                                  <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                                  </svg>
+                                </button>
+                                
+                                @for (int i = 1; i <= InvoiceTotalPages; i++)
+                                {
+                                  int pageNum = i;
+                                  <button class="pagination-btn @(InvoiceCurrentPage == pageNum ? "active" : "")" @onclick="() => InvoiceGoToPage(pageNum)">
+                                    @pageNum
+                                  </button>
+                                }
+                                
+                                <button class="pagination-btn pagination-arrow" @onclick="InvoiceNextPage" disabled="@(InvoiceCurrentPage == InvoiceTotalPages)">
+                                  <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                                  </svg>
+                                </button>
+                                
+                                <span class="pagination-info">Page @InvoiceCurrentPage of @InvoiceTotalPages</span>
+                              </div>
+                            }
+                        }
+                    </div>
+                }
+
+                <!-- ==================== ACCOUNTING TAB ==================== -->
+                @if (_activeTab == "accounting")
+                {
+                    <!-- Cash Flow KPIs -->
+                    @if (_cashFlow != null)
+                    {
+                        <div class="billing-grid">
+                            <div class="kpi-card">
+                                <div class="kpi-value" style="color:#16a34a">@_cashFlow.Inflows.ToString("C")</div>
+                                <div class="kpi-label">Total Inflows</div>
+                                <div class="kpi-sub">From paid invoices</div>
+                            </div>
+                            <div class="kpi-card">
+                                <div class="kpi-value" style="color:#dc2626">@_cashFlow.Outflows.ToString("C")</div>
+                                <div class="kpi-label">Total Outflows</div>
+                                <div class="kpi-sub">Business expenses</div>
+                            </div>
+                            <div class="kpi-card">
+                                <div class="kpi-value" style="color:@(_cashFlow.Net >= 0 ? "#16a34a" : "#dc2626")">@_cashFlow.Net.ToString("C")</div>
+                                <div class="kpi-label">Net Cash Flow</div>
+                                <div class="kpi-sub">@(_cashFlow.Net >= 0 ? "Positive" : "Negative")</div>
+                            </div>
+                        </div>
+
+                        <!-- Monthly Breakdown -->
+                        <div class="grid-2">
+                            <div class="section-card">
+                                <div class="section-header">
+                                    <h3 class="section-title">Monthly Inflows</h3>
+                                </div>
+                                <ul class="aging-list">
+                                    @foreach (var kv in _cashFlow.InflowsByMonth)
+                                    {
+                                        <li>
+                                            <span class="aging-label">@kv.Key</span>
+                                            <span class="aging-value amount-positive">@kv.Value.ToString("C")</span>
+                                        </li>
+                                    }
+                                </ul>
+                            </div>
+                            <div class="section-card">
+                                <div class="section-header">
+                                    <h3 class="section-title">Monthly Outflows</h3>
+                                </div>
+                                <ul class="aging-list">
+                                    @foreach (var kv in _cashFlow.OutflowsByMonth)
+                                    {
+                                        <li>
+                                            <span class="aging-label">@kv.Key</span>
+                                            <span class="aging-value amount-negative">-@kv.Value.ToString("C")</span>
+                                        </li>
+                                    }
+                                </ul>
+                            </div>
+                        </div>
+                    }
+
+                    <!-- Expenses Table -->
+                    <div class="section-card">
+                        <div class="section-header">
+                            <h3 class="section-title">All Expenses</h3>
+                        </div>
+                        @if (_expenses == null)
+                        {
+                            <div class="shimmer-row"></div>
+                        }
+                        else if (_expenses.Count == 0)
+                        {
+                            <div class="empty-state">No expenses recorded</div>
+                        }
+                        else
+                        {
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Category</th>
+                                        <th>Description</th>
+                                        <th>Reference</th>
+                                        <th>Amount</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var exp in _expenses)
+                                    {
+                                        <tr>
+                                            <td>@exp.Date.ToString("MMM dd, yyyy")</td>
+                                            <td style="font-weight:600">@exp.Category</td>
+                                            <td>@exp.Description</td>
+                                            <td>@(exp.Reference ?? "-")</td>
+                                            <td class="amount-negative">-@exp.Amount.ToString("C")</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        }
+                    </div>
+
+                    <!-- Ledger -->
+                    <div class="section-card">
+                        <div class="section-header">
+                            <h3 class="section-title">Complete Ledger</h3>
+                        </div>
+                        @if (_invoices == null || _expenses == null)
+                        {
+                            <div class="shimmer-row"></div>
+                        }
+                        else
+                        {
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Type</th>
+                                        <th>Reference</th>
+                                        <th>Description</th>
+                                        <th>Debit</th>
+                                        <th>Credit</th>
+                                        <th>Balance</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @{
+                                        var balance = 0m;
+                                        var ledgerEntries = GetLedgerEntries();
+                                        @foreach (var entry in ledgerEntries)
+                                        {
+                                            balance += entry.Amount;
+                                            <tr>
+                                                <td>@entry.Date.ToString("MMM dd")</td>
+                                                <td style="font-weight:600">@entry.Type</td>
+                                                <td>@entry.Reference</td>
+                                                <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis">@entry.Description</td>
+                                                <td>@(entry.Amount > 0 ? entry.Amount.ToString("C") : "")</td>
+                                                <td>@(entry.Amount < 0 ? Math.Abs(entry.Amount).ToString("C") : "")</td>
+                                                <td style="font-weight:700;color:@(balance >= 0 ? "#16a34a" : "#dc2626")">@balance.ToString("C")</td>
+                                            </tr>
+                                        }
+                                    }
+                                </tbody>
+                            </table>
+                        }
+                    </div>
+                }
+            }
+        </section>
+
+        <Toast Message="@_toast" />
+    </div>
+
+    @* Create Invoice Modal *@
+    @if (_showInvoiceModal)
+    {
+        <div class="modal-overlay" @onclick="CloseModals">
+            <div class="modal-content" @onclick:stopPropagation>
+                <div class="modal-header">
+                    <h3 class="modal-title">@(_editingInvoice?.Id > 0 ? "Edit Invoice" : "Create New Invoice")</h3>
+                    <button class="modal-close" @onclick="CloseModals">×</button>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Invoice Type</label>
+                    <select class="form-input" @bind="_newInvoice.InvoiceType">
+                        <option value="Subscription">Subscription</option>
+                        <option value="Service">Service</option>
+                        <option value="OneTime">One-Time</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Client (Customer)</label>
+                    <select class="form-input" @bind="_newInvoice.ClientId" @oninput="OnClientSelected">
+                        <option value="">-- Select Client --</option>
+                        @foreach (var client in _clients)
+                        {
+                            <option value="@client.Id">@client.Name (@client.Plan)</option>
+                        }
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Account (Optional)</label>
+                    <select class="form-input" @bind="_newInvoice.AccountId">
+                        <option value="">-- Select Account --</option>
+                        @foreach (var acc in _accounts)
+                        {
+                            <option value="@acc.Id">@acc.Name</option>
+                        }
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Amount (?)</label>
+                    <input type="number" class="form-input" step="0.01" min="0" @bind="_newInvoice.AmountDue" />
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Issue Date</label>
+                    <input type="date" class="form-input" @bind="_newInvoice.IssueDate" />
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Due Date</label>
+                    <input type="date" class="form-input" @bind="_newInvoice.DueDate" />
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Notes</label>
+                    <textarea class="form-input" rows="2" @bind="_newInvoice.Notes"></textarea>
+                </div>
+                <div class="form-actions">
+                    <button class="btn-secondary" @onclick="CloseModals">Cancel</button>
+                    <button class="btn-primary" @onclick="SaveInvoice">@(_editingInvoice?.Id > 0 ? "Update" : "Create")</button>
+                </div>
+            </div>
+        </div>
+    }
+
+    @* Create Expense Modal *@
+    @if (_showExpenseModal)
+    {
+        <div class="modal-overlay" @onclick="CloseModals">
+            <div class="modal-content" @onclick:stopPropagation>
+                <div class="modal-header">
+                    <h3 class="modal-title">Add New Expense</h3>
+                    <button class="modal-close" @onclick="CloseModals">×</button>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Category</label>
+                    <select class="form-input" @bind="_newExpense.Category">
+                        <option value="Payroll">Payroll</option>
+                        <option value="Utilities">Utilities</option>
+                        <option value="Network">Network Equipment</option>
+                        <option value="Maintenance">Maintenance</option>
+                        <option value="Office">Office Supplies</option>
+                        <option value="Marketing">Marketing</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Description</label>
+                    <input type="text" class="form-input" @bind="_newExpense.Description" placeholder="e.g., Electric bill for December" />
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Amount (?)</label>
+                    <input type="number" class="form-input" step="0.01" min="0" @bind="_newExpense.Amount" />
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Date</label>
+                    <input type="date" class="form-input" @bind="_newExpense.Date" />
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Reference (optional)</label>
+                    <input type="text" class="form-input" @bind="_newExpense.Reference" placeholder="e.g., Receipt #12345" />
+                </div>
+                <div class="form-actions">
+                    <button class="btn-secondary" @onclick="CloseModals">Cancel</button>
+                    <button class="btn-primary" @onclick="SaveExpense">Add Expense</button>
+                </div>
+            </div>
+        </div>
+    }
+
+    @* Invoice Details Modal *@
+    @if (_showDetailsModal && _selectedInvoice != null)
+    {
+        <div class="modal-overlay" @onclick="CloseModals">
+            <div class="modal-content" @onclick:stopPropagation>
+                <div class="modal-header">
+                    <h3 class="modal-title">Invoice #@_selectedInvoice.Id</h3>
+                    <button class="modal-close" @onclick="CloseModals">×</button>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+                    <div>
+                        <div class="form-label">Client/Account</div>
+                        <div style="font-size:15px;font-weight:600">@(_selectedInvoice.ClientName ?? _selectedInvoice.AccountName ?? "N/A")</div>
+                    </div>
+                    <div>
+                        <div class="form-label">Amount</div>
+                        <div style="font-size:18px;font-weight:700;color:#1e293b">@_selectedInvoice.AmountDue.ToString("C")</div>
+                    </div>
+                    <div>
+                        <div class="form-label">Status</div>
+                        <span class="status-badge @GetStatusClass(_selectedInvoice.Status)">@_selectedInvoice.Status</span>
+                    </div>
+                    <div>
+                        <div class="form-label">Type</div>
+                        <div>@_selectedInvoice.InvoiceType</div>
+                    </div>
+                    <div>
+                        <div class="form-label">Issue Date</div>
+                        <div>@_selectedInvoice.IssueDate.ToString("MMM dd, yyyy")</div>
+                    </div>
+                    <div>
+                        <div class="form-label">Due Date</div>
+                        <div>@((_selectedInvoice.DueDate ?? _selectedInvoice.IssueDate.AddDays(30)).ToString("MMM dd, yyyy"))</div>
+                    </div>
+                    @if (_selectedInvoice.PaidDate.HasValue)
+                    {
+                        <div>
+                            <div class="form-label">Paid Date</div>
+                            <div>@_selectedInvoice.PaidDate.Value.ToString("MMM dd, yyyy")</div>
+                        </div>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(_selectedInvoice.PaymentRef))
+                    {
+                        <div>
+                            <div class="form-label">Payment Ref</div>
+                            <div>@_selectedInvoice.PaymentRef</div>
+                        </div>
+                    }
+                </div>
+                @if (!string.IsNullOrWhiteSpace(_selectedInvoice.Notes))
+                {
+                    <div style="margin-top:14px">
+                        <div class="form-label">Notes</div>
+                        <div style="background:#f8fafc;padding:10px;border-radius:8px;font-size:13px">@_selectedInvoice.Notes</div>
+                    </div>
+                }
+                <div class="form-actions">
+                    @if (!string.Equals(_selectedInvoice.Status, "Paid", StringComparison.OrdinalIgnoreCase))
+                    {
+                        <button class="btn-primary" @onclick="() => MarkInvoicePaid(_selectedInvoice.Id)">Mark as Paid</button>
+                    }
+                    <button class="btn-secondary" @onclick="CloseModals">Close</button>
+                </div>
+            </div>
+        </div>
+    }
+}
+
+@code {
+    // Active tab state
+    private string _activeTab = "billing";
+    
+    // Collapsible section states
+    private bool _showAgingSection = false;
+
+    private FiberHelp.Services.BillingService.AccountingSummary? _summary;
+    private FiberHelp.Services.BillingService.CashFlowSummary? _cashFlow;
+    private List<FiberHelp.Models.Invoice>? _invoices;
+    private List<FiberHelp.Models.Expense>? _expenses;
+    private List<FiberHelp.Models.Account> _accounts = new();
+    private List<FiberHelp.Models.Client> _clients = new();
+    private string _toast = string.Empty;
+    private int _monthsFilter = 6;
+    private bool _loading = true;
+    private string? _error;
+
+    // Modal states
+    private bool _showInvoiceModal = false;
+    private bool _showExpenseModal = false;
+    private bool _showDetailsModal = false;
+    private FiberHelp.Models.Invoice _newInvoice = new() { IssueDate = DateTime.UtcNow, DueDate = DateTime.UtcNow.AddDays(30) };
+    private FiberHelp.Models.Invoice? _editingInvoice = null;
+    private FiberHelp.Models.Expense _newExpense = new() { Date = DateTime.UtcNow, Category = "Other" };
+    private FiberHelp.Models.Invoice? _selectedInvoice = null;
+
+    // Pagination states
+    private int _currentPage = 1;
+    private const int _pageSize = 10;
+    private int _totalPages => (int)Math.Ceiling((_invoices?.Count ?? 0) / (double)_pageSize);
+
+    // Invoice pagination states
+    private int InvoiceCurrentPage { get; set; } = 1;
+    private int InvoiceTotalPages => (int)Math.Ceiling((_invoices?.Count ?? 0) / (double)_pageSize);
+    private IEnumerable<FiberHelp.Models.Invoice> PaginatedInvoices => _invoices?.Skip((InvoiceCurrentPage - 1) * _pageSize).Take(_pageSize);
+
+    private void ToggleAgingSection()
+    {
+        _showAgingSection = !_showAgingSection;
+        StateHasChanged();
+    }
+
+    private void SetActiveTab(string tab)
+    {
+        _activeTab = tab;
+        StateHasChanges

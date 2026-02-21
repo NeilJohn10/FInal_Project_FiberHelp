@@ -1,0 +1,1139 @@
+﻿@page "/tickets"
+@using FiberHelp.Models
+@using Microsoft.AspNetCore.Components.Web
+@inject FiberHelp.Services.AuthService AuthService
+@inject FiberHelp.Services.AdminService AdminService
+@inject NavigationManager Navigation
+@inject Microsoft.JSInterop.IJSRuntime JS
+
+<style>
+  .tickets-header{display:flex;align-items:center;justify-content:space-between;padding-bottom:20px;margin-bottom:22px;border-bottom:1px solid #e5e7eb}
+  .tickets-header .page-title{font-size:42px;line-height:1.1;margin:0 0 4px}
+  .tickets-controls{display:flex;gap:14px;align-items:center}
+  .tickets-search{width:360px;padding:12px 18px;border-radius:14px;border:1px solid #e5e7eb;background:#fff;box-shadow:0 8px 22px rgba(2,6,23,0.08);font-size:15px}
+  .tickets-controls .btn.subtle{background:#fff;color:#0f172a;border:1px solid #e5e7eb;border-radius:14px;padding:10px 22px;box-shadow:0 4px 10px rgba(2,6,23,0.04)}
+  .tickets-controls .btn.primary{background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;border:none;border-radius:14px;padding:10px 26px;box-shadow:0 14px 32px rgba(29,78,216,0.30);font-weight:600}
+  .tickets-table{width:100%;border-collapse:separate;border-spacing:0 10px}
+  .tickets-table thead th{font-size:13px;font-weight:700;padding:10px 12px;color:#475569;text-align:left;border-bottom:1px solid #e5e7eb}
+  .tickets-table tbody td{background:#f9fafb;padding:14px 12px;font-size:14px;border-top:1px solid #edf2f7;border-bottom:1px solid #edf2f7}
+  .tickets-table tbody tr td:first-child{border-left:1px solid #edf2f7;border-top-left-radius:12px;border-bottom-left-radius:12px}
+  .tickets-table tbody tr td:last-child{border-right:1px solid #edf2f7;border-top-right-radius:12px;border-bottom-right-radius:12px}
+  .tickets-table tbody tr.archived-row td{background:#f1f5f9;opacity:0.85}
+  .cust-cell{display:flex;align-items:center;gap:12px}
+  .cust-avatar{width:40px;height:40px;border-radius:999px;background:linear-gradient(135deg,#6366f1,#0ea5e9);display:grid;place-items:center;font-weight:800;color:#fff;font-size:14px;box-shadow:0 8px 18px rgba(99,102,241,0.25)}
+  .cust-name{font-weight:600}
+  .cust-email{font-size:11px;color:#64748b}
+  .badge{display:inline-block;padding:6px 10px;border-radius:999px;font-size:12px;font-weight:700}
+  .badge-prio-low{background:#e0f2fe;color:#075985;border:1px solid #bae6fd}
+  .badge-prio-medium{background:#fef9c3;color:#92400e;border:1px solid #fde68a}
+  .badge-prio-high{background:#fee2e2;color:#7f1d1d;border:1px solid #fecaca}
+  .badge-prio-critical{background:#ffe4e6;color:#881337;border:1px solid #fecdd3}
+  .badge-status-open{background:#e0f2fe;color:#075985;border:1px solid #bae6fd}
+  .badge-status-inprogress{background:#dbeafe;color:#1e3a8a;border:1px solid #bfdbfe}
+  .badge-status-resolved{background:#dcfce7;color:#065f46;border:1px solid #bbf7d0}
+  .badge-status-closed{background:#e2e8f0;color:#475569;border:1px solid #cbd5e1}
+  .badge-status-assigned{background:#fef3c7;color:#92400e;border:1px solid #fde68a}
+  .action-btn{border:none;background:transparent;padding:6px 8px;border-radius:10px;cursor:pointer}
+  .action-btn:hover{background:#eef2ff}
+  .modal-bg { position:fixed; inset:0; background:rgba(2,6,23,0.28); display:grid; place-items:center; z-index:60000; }
+  .modal-card { width:calc(100% - 160px); max-width:960px; background:#ffffff; border-radius:14px; padding:28px; box-shadow:0 40px 80px rgba(2,6,23,0.25); position:relative; }
+  .modal-header { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:8px }
+  .modal-header h3 { margin:0; font-size:22px }
+  .modal-desc { margin:6px 0 0; color:#64748b; font-size:0.95rem }
+  .modal-close { position:absolute; right:14px; top:12px; border:none; background:transparent; cursor:pointer; font-size:18px; color:#64748b; padding:6px; border-radius:8px }
+  .modal-close:hover { background:rgba(2,6,23,0.06); color:#111827 }
+  .form-group { display:flex; flex-direction:column; gap:6px; margin-top:10px }
+  .form-input { padding:10px 12px; border:1px solid #e6edf3; border-radius:8px; font-size:14px; background:#fff }
+  .form-input:focus { outline:3px solid rgba(37,99,235,0.12); box-shadow:0 6px 18px rgba(37,99,235,0.06) }
+  .client-panel { border:1px solid #eef2f7; border-radius:8px; padding:8px; background:#fff; max-height:340px; overflow:auto; margin-top:10px }
+  .dropdown-item { display:flex; justify-content:space-between; align-items:center; padding:12px; cursor:pointer; border-radius:6px }
+  .dropdown-item:hover { background:#f8fafc }
+  .dropdown-item.selected { background:linear-gradient(90deg, rgba(37,99,235,0.06), rgba(37,99,235,0.02)); border-left:3px solid #2563eb }
+  .two-col { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+  .modal-actions { display:flex; justify-content:flex-end; gap:10px; margin-top:16px }
+  /* Pagination Styles */
+  .pagination-container{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:20px;padding:16px 0}
+  .pagination-btn{border:1px solid #e5e7eb;background:#fff;color:#475569;padding:8px 12px;border-radius:8px;cursor:pointer;font-size:14px;font-weight:600;transition:all 0.2s}
+  .pagination-btn:hover:not(:disabled){background:#f8fafc;border-color:#cbd5e1}
+  .pagination-btn:disabled{opacity:0.4;cursor:not-allowed}
+  .pagination-btn.active{background:#2563eb;color:#fff;border-color:#2563eb}
+  .pagination-arrow{display:flex;align-items:center;justify-content:center;width:36px;height:36px}
+  .pagination-info{color:#64748b;font-size:14px;padding:0 12px}
+  /* View Toggle */
+  .view-toggle{display:flex;gap:4px;background:#f1f5f9;padding:4px;border-radius:12px}
+  .view-toggle button{padding:8px 16px;border:none;background:transparent;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;color:#64748b;transition:all 0.2s}
+  .view-toggle button.active{background:#fff;color:#1e293b;box-shadow:0 2px 8px rgba(0,0,0,0.08)}
+  .view-toggle button:hover:not(.active){color:#1e293b}
+  .archived-badge{background:#94a3b8;color:#fff;font-size:10px;padding:2px 6px;border-radius:4px;margin-left:6px}
+</style>
+
+<div>
+ <header class="tickets-header">
+   <div>
+     <p class="eyebrow">FIBERHELP · @GetRoleLabel()</p>
+     <h1 class="page-title">Tickets</h1>
+   </div>
+   <div class="tickets-controls">
+     <div class="view-toggle">
+       <button class="@(showArchived ? "" : "active")" @onclick="() => ToggleView(false)">
+         Active (@activeTicketCount)
+       </button>
+       <button class="@(showArchived ? "active" : "")" @onclick="() => ToggleView(true)">
+         Archived (@archivedTicketCount)
+       </button>
+     </div>
+     <input class="tickets-search" placeholder="Search tickets by id, title or client" @bind="ticketSearch" @oninput="_ => StateHasChanged()" />
+     <button class="btn subtle" @onclick="ExportTickets">Export</button>
+     @if (!showArchived && !AuthService.IsAdministrator)
+     {
+       <button class="btn primary" @onclick="ShowNewTicketModal">+ New Ticket</button>
+     }
+   </div>
+ </header>
+
+ <section class="panel">
+ <table class="tickets-table">
+ <thead>
+ <tr>
+ <th>Ticket ID</th>
+ <th>Title</th>
+ <th>Client</th>
+ <th>Priority</th>
+ <th>Status</th>
+ <th>@(showArchived ? "Archived" : "Created")</th>
+ @if (!AuthService.IsAdministrator)
+ {
+ <th>Action</th>
+ }
+ </tr>
+ </thead>
+ <tbody>
+ @if (PaginatedTickets != null && PaginatedTickets.Any())
+ {
+ @foreach (var ticket in PaginatedTickets)
+ {
+ <tr class="@(ticket.IsArchived ? "archived-row" : "")">
+   <td>@ticket.Id</td>
+   <td style="font-weight:600">
+     @ticket.Title
+     @if (ticket.IsArchived)
+     {
+       <span class="archived-badge">ARCHIVED</span>
+     }
+   </td>
+   <td>
+     <div class="cust-cell">
+       <div class="cust-avatar">@GetInitial(ticket)</div>
+       <div>
+         <div class="cust-name">@GetClientLabel(ticket)</div>
+         <div class="cust-email">@FormatLocal(ticket.Created)</div>
+       </div>
+     </div>
+   </td>
+   <td><span class="badge @(GetPriorityBadge(ticket.Priority))">@ticket.Priority</span></td>
+   <td><span class="badge @(GetStatusBadge(ticket.Status))">@ticket.Status</span></td>
+   <td>@(showArchived && ticket.ArchivedAt.HasValue ? GetTimeAgo(ticket.ArchivedAt.Value) : GetTimeAgo(ticket.Created))</td>
+   @if (!AuthService.IsAdministrator)
+   {
+   <td>
+     @if (!ticket.IsArchived)
+     {
+       <button class="action-btn edit" title="Edit" @onclick="() => ShowEditTicketModal(ticket)">
+         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+           <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25z" fill="#2563eb" />
+           <path d="M20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" fill="#2563eb" />
+         </svg>
+       </button>
+       <button class="action-btn" title="Archive" @onclick="() => ShowArchiveConfirmation(ticket)">
+         <!-- match Clients archive icon -->
+         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+           <path d="M20 8v12a2 2 0 01-2 2H6a2 2 0 01-2-2V8" stroke="#6366f1" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+           <path d="M2 4h20v4H2z" stroke="#6366f1" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+           <path d="M10 12h4" stroke="#6366f1" stroke-width="1.5" stroke-linecap="round"/>
+         </svg>
+       </button>
+     }
+     else
+     {
+       <button class="action-btn" title="Restore" @onclick="() => ShowUnarchiveConfirmation(ticket)">
+         <!-- match Clients restore icon -->
+         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+           <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" stroke="#10b981" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+           <path d="M3 3v5h5" stroke="#10b981" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+         </svg>
+       </button>
+       <button class="action-btn delete" title="Delete Permanently" @onclick="() => DeleteTicketAsync(ticket.Id)">
+         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+           <path d="M3 6h18" stroke="#ef4444" stroke-width="1.5" stroke-linecap="round" />
+           <path d="M8 6v12a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2V6" stroke="#ef4444" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+           <path d="M10 11v6" stroke="#ef4444" stroke-width="1.5" stroke-linecap="round" />
+           <path d="M14 11v6" stroke="#ef4444" stroke-width="1.5" stroke-linecap="round" />
+           <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" stroke="#ef4444" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+         </svg>
+       </button>
+     }
+   </td>
+   }
+ </tr>
+ }
+ }
+ else
+ {
+  <tr>
+    <td colspan="@(AuthService.IsAdministrator ? 6 : 7)" style="text-align:center;padding:40px;color:#64748b">
+      @(showArchived ? "No archived tickets" : "No active tickets found")
+    </td>
+  </tr>
+ }
+ </tbody>
+ </table>
+ 
+ @* Pagination Controls *@
+ @if (TotalPages > 1)
+ {
+  <div class="pagination-container">
+    <button class="pagination-btn pagination-arrow" @onclick="PreviousPage" disabled="@(CurrentPage == 1)">
+      <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+      </svg>
+    </button>
+    
+    @for (int i = 1; i <= TotalPages; i++)
+    {
+      int pageNum = i;
+      <button class="pagination-btn @(CurrentPage == pageNum ? "active" : "")" @onclick="() => GoToPage(pageNum)">
+        @pageNum
+      </button>
+    }
+    
+    <button class="pagination-btn pagination-arrow" @onclick="NextPage" disabled="@(CurrentPage == TotalPages)">
+      <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+      </svg>
+    </button>
+    
+    <span class="pagination-info">Page @CurrentPage of @TotalPages</span>
+  </div>
+ }
+ </section>
+
+ @* New Ticket modal - keep existing code *@
+ @if (showNewTicketModal)
+ {
+ <div class="modal-bg" @onclick="CloseNewTicketModal">
+ <div @onclick:stopPropagation class="modal-card" role="dialog" aria-modal="true" aria-labelledby="newTicketTitle">
+   <button class="modal-close" @onclick="CloseNewTicketModal" aria-label="Close">
+     <svg width="18" height="18" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M18.3 5.7a1 1 0 0 0-1.4 0L12 10.6 7.1 5.7a1 1 0 1 0-1.4 1.4L10.6 12l-4.9 4.9a1 1 0 1 0 1.4 1.4L12 13.4l4.9 4.9a1 1 0 0 0 1.4-1.4L13.4 12l4.9-4.9a1 1 0 0 0 0-1.4z" fill="#64748b"/></svg>
+   </button>
+   <div class="modal-header">
+     <div>
+       <h3 id="newTicketTitle">New Ticket</h3>
+       <div class="modal-desc">Select an account (type to search) then enter ticket details. Client auto-links from account.</div>
+     </div>
+   </div>
+   <div class="form-group">
+     <label>Account</label>
+     <input class="form-input" placeholder="Type to search account (id, name, or email)" list="accountList" @bind="accountText" @bind:event="oninput" @bind:after="OnAccountTextChanged" />
+     <datalist id="accountList">
+       @if(accounts != null)
+       {
+         foreach(var a in accounts)
+         {
+           <option value="@a.Id">@a.Id - @(string.IsNullOrWhiteSpace(a.Name)?"(no name)":a.Name) (@(a.ContactEmail ?? "no email"))</option>
+         }
+       }
+     </datalist>
+     @if(selectedAccount != null)
+     {
+       <div class="selected-customer" style="margin-top:6px">Plan: @selectedAccount.ServicePlan — Status: @(selectedAccount.ServiceStatus ?? "Active")</div>
+     }
+     @if(!string.IsNullOrEmpty(newTicketClientName))
+     {
+       <div class="selected-customer" style="margin-top:4px">Client: @newTicketClientName (@newTicketClientId)</div>
+     }
+   </div>
+   <div class="two-col">
+     <div class="form-group">
+       <label for="ticketTitle">Title</label>
+       <input id="ticketTitle" class="form-input" @bind="newTicketTitle" placeholder="Enter ticket title" list="complaintList" />
+       <datalist id="complaintList">
+         <option value="No internet" />
+         <option value="Slow internet" />
+         <option value="Intermittent connection" />
+         <option value="High latency" />
+         <option value="Frequent disconnections" />
+         <option value="Router not working" />
+         <option value="Cable cut" />
+         <option value="Billing issue" />
+         <option value="Account suspended" />
+         <option value="Wrong credentials" />
+         <option value="Cannot access website/app" />
+         <option value="Service outage in area" />
+       </datalist>
+     </div>
+     <div class="form-group">
+       <label>Priority</label>
+       <select class="form-input" @bind="newTicketPriority">
+         <option value="Low">Low</option>
+         <option value="Medium">Medium</option>
+         <option value="High">High</option>
+         <option value="Critical">Critical</option>
+       </select>
+     </div>
+   </div>
+   <div class="two-col">
+     <div class="form-group">
+       <label>Status</label>
+       <select class="form-input" @bind="newTicketStatus">
+         <option value="Open">Open</option>
+         <option value="In Progress">In Progress</option>
+         <option value="Resolved">Resolved</option>
+         <option value="Closed">Closed</option>
+       </select>
+     </div>
+     <div class="form-group">
+       <label>Assign Technician</label>
+       <select class="form-input" @bind="newTicketTechnicianId">
+         <option value="">(No technician assigned)</option>
+         @if (technicians != null && technicians.Any())
+         {
+           @foreach (var tech in technicians)
+           {
+             <option value="@tech.Id">@tech.FullName (@tech.Email)</option>
+           }
+         }
+       </select>
+       @if (technicians == null || !technicians.Any())
+       {
+         <div style="font-size:12px;color:#64748b;margin-top:4px">No technicians available. Create technicians in the Technicians page.</div>
+       }
+     </div>
+   </div>
+   <div class="form-group">
+     <label>Account Id (auto)</label>
+     <input class="form-input" value="@(newTicketAccountId?.ToString() ?? "(none)")" disabled />
+   </div>
+   <div class="modal-actions">
+     <button class="btn subtle" @onclick="CloseNewTicketModal">Cancel</button>
+     <button class="btn primary" @onclick="ShowSaveConfirmation">Create</button>
+   </div>
+   @if (!string.IsNullOrEmpty(serviceError)) { <p style="color:#dc2626;font-size:0.85rem;margin-top:8px">@serviceError</p> }
+ </div>
+ </div>
+ }
+
+ @* Edit Ticket modal - keep existing code *@
+ @if (showEditTicketModal && editingTicket != null)
+ {
+ <div class="modal-bg" @onclick="CloseEditTicketModal">
+ <div @onclick:stopPropagation class="modal-card">
+   <button class="modal-close" @onclick="CloseEditTicketModal" aria-label="Close">
+     <svg width="18" height="18" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M18.3 5.7a1 1 0 0 0-1.4 0L12 10.6 7.1 5.7a1 1 0 1 0-1.4 1.4L10.6 12l-4.9 4.9a1 1 0 1 0 1.4 1.4L12 13.4l4.9 4.9a1 1 0 0 0 1.4-1.4L13.4 12l4.9-4.9a1 1 0 0 0 0-1.4z" fill="#64748b"/></svg>
+   </button>
+   <div class="modal-header">
+     <div>
+       <h3>Edit Ticket</h3>
+       <div class="modal-desc">Change ticket details and save updates.</div>
+     </div>
+   </div>
+   <div class="form-group">
+   <label>Ticket ID</label>
+   <input class="form-input" value="@editingTicket.Id" disabled />
+   </div>
+   <div class="form-group">
+   <label>Title</label>
+   <input class="form-input" @bind="editingTicket.Title" placeholder="Enter ticket title" />
+   </div>
+   <div class="form-group">
+   <label>Client</label>
+   <select class="form-input" @bind="editingTicket.ClientId" disabled>
+   <option value="">Select client</option>
+   @if (customers != null)
+   {
+   @foreach (var c in customers)
+   {
+   <option value="@c.Id">@c.Name</option>
+   }
+   }
+   </select>
+   </div>
+   <div class="form-group">
+   <label>Priority</label>
+   <select class="form-input" @bind="editingTicket.Priority">
+   <option value="Low">Low</option>
+   <option value="Medium">Medium</option>
+   <option value="High">High</option>
+   <option value="Critical">Critical</option>
+   </select>
+   </div>
+   <div class="form-group">
+   <label>Status</label>
+   <select class="form-input" @bind="editingTicket.Status">
+   <option value="Open">Open</option>
+   <option value="In Progress">In Progress</option>
+   <option value="Resolved">Resolved</option>
+   <option value="Closed">Closed</option>
+   </select>
+   </div>
+   <div class="form-group">
+   <label>Created</label>
+   <input class="form-input" value="@editingTicket.Created.ToString("yyyy-MM-dd HH:mm")" disabled />
+   </div>
+   <div class="modal-actions">
+   <button class="btn" @onclick="CloseEditTicketModal">Cancel</button>
+   <button class="btn primary" @onclick="ShowUpdateConfirmation">Update</button>
+   </div>
+ </div>
+ </div>
+ }
+
+ @* Confirmation modal for save/update - keep existing code *@
+ @if(showSaveConfirm)
+ {
+ <div class="modal-bg" @onclick="() => showSaveConfirm=false">
+ <div class="modal-card" style="max-width:500px" @onclick:stopPropagation>
+   <div class="modal-header">
+     <h3>@(editingTicket != null ? "Confirm Changes" : "Confirm Ticket Creation")</h3>
+   </div>
+   <div style="padding:10px 0">
+     @if(editingTicket != null)
+     {
+       <p>Are you sure you want to save changes for ticket <strong>@editingTicket.Title</strong>?</p>
+     }
+     else
+     {
+       <p>You are about to create a new ticket:</p>
+       <div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:10px;padding:12px;margin:12px 0">
+         <div style="margin-bottom:8px"><strong>Title:</strong> @newTicketTitle</div>
+         <div style="margin-bottom:8px"><strong>Client:</strong> @newTicketClientName</div>
+         <div style="margin-bottom:8px"><strong>Priority:</strong> @newTicketPriority</div>
+         <div style="margin-bottom:8px"><strong>Status:</strong> @newTicketStatus</div>
+         <div style="margin-bottom:8px"><strong>Technician:</strong> @GetTechnicianDisplayName(newTicketTechnicianId)</div>
+         <div><strong>Account ID:</strong> @newTicketAccountId</div>
+       </div>
+     }
+   </div>
+   <div class="modal-actions">
+     <button class="btn" @onclick="() => showSaveConfirm=false">Cancel</button>
+     <button class="btn primary" @onclick="@(editingTicket != null ? ConfirmUpdateTicket : ConfirmSaveTicket)">
+       @(editingTicket != null ? "Save Changes" : "Create Ticket")
+     </button>
+   </div>
+ </div>
+ </div>
+ }
+
+ @* Confirmation modal for archive *@
+ @if(showArchiveConfirm)
+ {
+ <div class="modal-bg" @onclick="() => showArchiveConfirm=false">
+ <div class="modal-card" style="max-width:500px" @onclick:stopPropagation>
+   <div class="modal-header">
+     <h3>Archive Ticket</h3>
+   </div>
+   <div style="padding:10px 0">
+     <p>Are you sure you want to archive ticket <strong>@archiveTargetTitle</strong>?</p>
+     <p style="color:#64748b;font-size:13px">Archived tickets can be restored later from the Archive view.</p>
+   </div>
+   <div class="modal-actions">
+     <button class="btn" @onclick="() => { showArchiveConfirm=false; archiveTargetId=0; archiveTargetTitle=string.Empty; }">Cancel</button>
+     <button class="btn primary" style="background:#6366f1" @onclick="ConfirmArchive">Archive Ticket</button>
+   </div>
+ </div>
+ </div>
+ }
+
+ @* Confirmation modal for unarchive/restore *@
+ @if(showUnarchiveConfirm)
+ {
+ <div class="modal-bg" @onclick="() => showUnarchiveConfirm=false">
+ <div class="modal-card" style="max-width:500px" @onclick:stopPropagation>
+   <div class="modal-header">
+     <h3>Restore Ticket</h3>
+   </div>
+   <div style="padding:10px 0">
+     <p>Are you sure you want to restore ticket <strong>@archiveTargetTitle</strong>?</p>
+     <p style="color:#64748b;font-size:13px">The ticket will be moved back to Active tickets.</p>
+   </div>
+   <div class="modal-actions">
+     <button class="btn" @onclick="() => { showUnarchiveConfirm=false; archiveTargetId=0; archiveTargetTitle=string.Empty; }">Cancel</button>
+     <button class="btn primary" style="background:#10b981" @onclick="ConfirmUnarchive">Restore Ticket</button>
+   </div>
+ </div>
+ </div>
+ }
+
+ @* Confirmation modal for delete - keep existing code *@
+ @if(showDeleteConfirm)
+ {
+ <div class="modal-bg" @onclick="() => showDeleteConfirm=false">
+ <div class="modal-card" style="max-width:500px" @onclick:stopPropagation>
+   <div class="modal-header">
+     <h3>Confirm Deletion</h3>
+   </div>
+   <div style="padding:10px 0">
+     <p>Are you sure you want to delete ticket <strong>@deleteTargetTitle</strong>?</p>
+     <p style="color:#ef4444;font-size:13px">This action cannot be undone.</p>
+   </div>
+   <div class="modal-actions">
+     <button class="btn" @onclick="() => { showDeleteConfirm=false; deleteTargetId=0; deleteTargetTitle=string.Empty; }">Cancel</button>
+     <button class="btn primary" style="background:#ef4444" @onclick="ConfirmDelete">Delete Ticket</button>
+   </div>
+ </div>
+ </div>
+ }
+
+ <Toast Message="@ticketToast" />
+</div>
+
+@code {
+ private List<Ticket>? tickets;
+ private List<Client>? customers;
+ private List<Account>? accounts;
+ private List<Technician>? technicians;
+ private string ticketSearch="";
+ private bool showNewTicketModal=false;
+ private bool showSaveConfirm=false;
+ private bool showDeleteConfirm=false;
+ private bool showArchiveConfirm=false;
+ private bool showUnarchiveConfirm=false;
+ private bool showArchived=false;
+ private string newTicketTitle="";
+ private int? newTicketAccountId=null;
+ private string newTicketClientId="";
+ private string newTicketClientName="";
+ private string newTicketPriority="Medium";
+ private string newTicketStatus="Open";
+ private string newTicketTechnicianId="";
+ private string accountText="";
+ private Account? selectedAccount=null;
+ private bool showEditTicketModal=false;
+ private Ticket? editingTicket=null;
+ private string ticketToast="";
+ private string serviceError="";
+ private string fallbackClientName = string.Empty;
+ private bool isCreating = false;
+ private int deleteTargetId = 0;
+ private string deleteTargetTitle = string.Empty;
+ private int archiveTargetId = 0;
+ private string archiveTargetTitle = string.Empty;
+ private int activeTicketCount = 0;
+ private int archivedTicketCount = 0;
+ 
+ // Pagination
+ private int CurrentPage = 1;
+ private int PageSize = 10;
+ private int TotalPages => FilteredTickets == null || !FilteredTickets.Any() ? 1 : (int)Math.Ceiling(FilteredTickets.Count() / (double)PageSize);
+ private IEnumerable<Ticket>? PaginatedTickets => FilteredTickets?.Skip((CurrentPage - 1) * PageSize).Take(PageSize);
+ 
+ protected override async Task OnInitializedAsync()
+ {
+   try
+   {
+     if(!AuthService.IsAuthenticated)
+     {
+       Navigation.NavigateTo("/login",true);
+       return;
+     }
+     
+     await LoadDataAsync();
+     accounts = await AdminService.GetAccountsAsync();
+     technicians = await AdminService.GetActiveTechniciansAsync();
+     
+     if (!string.IsNullOrEmpty(AdminService.LastError))
+     {
+       ticketToast = $"? Error loading accounts: {AdminService.LastError}";
+       accounts = new List<Account>();
+     }
+   }
+   catch (Exception ex)
+   {
+     ticketToast = $"? Failed to initialize: {ex.Message}";
+     System.Diagnostics.Debug.WriteLine($"[Tickets] OnInitializedAsync error: {ex}");
+     tickets = new List<Ticket>();
+     customers = new List<Client>();
+     accounts = new List<Account>();
+     technicians = new List<Technician>();
+   }
+ }
+ 
+ private async Task LoadDataAsync()
+ {
+   try
+   {
+     // Load all tickets first to get counts - force fresh query
+     var allTickets = await AdminService.GetTicketsAsync();
+     
+     if (!string.IsNullOrEmpty(AdminService.LastError))
+     {
+       ticketToast = $"⚠️ Error loading tickets: {AdminService.LastError}";
+       allTickets = new List<Ticket>();
+     }
+     
+     // Debug logging
+     System.Diagnostics.Debug.WriteLine($"[Tickets] LoadDataAsync: Total tickets loaded = {allTickets?.Count ?? 0}");
+     
+     // Filter based on view
+     tickets = showArchived 
+       ? allTickets?.Where(t => t.IsArchived).ToList() 
+       : allTickets?.Where(t => !t.IsArchived).ToList();
+     
+     // Update counts
+     activeTicketCount = allTickets?.Count(t => !t.IsArchived) ?? 0;
+     archivedTicketCount = allTickets?.Count(t => t.IsArchived) ?? 0;
+     
+     System.Diagnostics.Debug.WriteLine($"[Tickets] LoadDataAsync: Active={activeTicketCount}, Archived={archivedTicketCount}, ShowArchived={showArchived}");
+     
+     customers = await AdminService.GetCustomersAsync();
+     
+     if (!string.IsNullOrEmpty(AdminService.LastError))
+     {
+       ticketToast = $"⚠️ Error loading clients: {AdminService.LastError}";
+       customers = new List<Client>();
+     }
+     
+     CurrentPage = 1;
+     StateHasChanged();
+   }
+   catch (Exception ex)
+   {
+     ticketToast = $"⚠️ Error loading data: {ex.Message}";
+     System.Diagnostics.Debug.WriteLine($"[Tickets] LoadDataAsync error: {ex}");
+     tickets = new List<Ticket>();
+     customers = new List<Client>();
+     StateHasChanged();
+   }
+ }
+ 
+ // Pagination Methods
+ private void GoToPage(int page)
+ {
+   if (page >= 1 && page <= TotalPages)
+   {
+     CurrentPage = page;
+     StateHasChanged();
+   }
+ }
+ 
+ private void NextPage()
+ {
+   if (CurrentPage < TotalPages)
+   {
+     CurrentPage++;
+     StateHasChanged();
+   }
+ }
+ 
+ private void PreviousPage()
+ {
+   if (CurrentPage > 1)
+   {
+     CurrentPage--;
+     StateHasChanged();
+   }
+ }
+ 
+ private async Task ToggleView(bool showArchivedView)
+ {
+   showArchived = showArchivedView;
+   await LoadDataAsync();
+ }
+ 
+ private void ShowNewTicketModal()
+ { 
+   newTicketTitle=""; 
+   newTicketAccountId=null; 
+   newTicketClientId=""; 
+   newTicketClientName=""; 
+   newTicketPriority="Medium"; 
+   newTicketStatus="Open"; 
+   newTicketTechnicianId="";
+   accountText=""; 
+   selectedAccount=null; 
+   showNewTicketModal=true; 
+   serviceError=""; 
+ }
+ 
+ private void CloseNewTicketModal()
+ { 
+   showNewTicketModal=false; 
+   newTicketAccountId=null; 
+   newTicketClientId=""; 
+   newTicketClientName=""; 
+   newTicketTechnicianId="";
+   accountText=""; 
+   selectedAccount=null; 
+   fallbackClientName=""; 
+   serviceError=""; 
+ }
+ 
+ private void OnAccountTextChanged()
+ { 
+   var idPart = accountText.Split('-').FirstOrDefault()?.Trim(); 
+   if(int.TryParse(idPart, out var parsed))
+   { 
+     var acc = accounts?.FirstOrDefault(a => a.Id==parsed); 
+     if(acc!=null)
+     { 
+       selectedAccount = acc; 
+       newTicketAccountId = acc.Id; 
+       var linked = customers?.Where(c => c.AccountId == acc.Id).ToList() ?? new List<Client>(); 
+       if(linked.Count>0)
+       { 
+         var cust = linked[0]; 
+         newTicketClientId = cust.Id; 
+         newTicketClientName = cust.Name; 
+         fallbackClientName = string.Empty; 
+       } 
+       else 
+       { 
+         newTicketClientId=""; 
+         newTicketClientName=""; 
+       } 
+     } 
+   } 
+   StateHasChanged(); 
+ }
+ 
+ private void ShowSaveConfirmation()
+ {
+   if(newTicketAccountId==null)
+   {
+     serviceError = "? Account is required";
+     ticketToast="Account required";
+     StateHasChanged();
+     return;
+   }
+   if(string.IsNullOrWhiteSpace(newTicketTitle))
+   {
+     serviceError = "? Title is required";
+     ticketToast="Title required";
+     StateHasChanged();
+     return;
+   }
+   if (string.IsNullOrWhiteSpace(newTicketClientId))
+   {
+     serviceError = "? No linked client found for the selected account";
+     ticketToast = "Linked client required";
+     StateHasChanged();
+     return;
+   }
+   showSaveConfirm = true;
+   StateHasChanged();
+ }
+ 
+ private async Task ConfirmSaveTicket()
+ {
+   showSaveConfirm = false;
+   await OnCreateNewTicketClicked();
+ }
+ 
+ private async Task OnCreateNewTicketClicked()
+ {
+   if(isCreating) return;
+   
+   try
+   {
+     isCreating = true;
+     serviceError = string.Empty;
+     
+     if(newTicketAccountId==null)
+     {
+       serviceError = "? Account is required";
+       ticketToast="Account required";
+       StateHasChanged();
+       await Task.Delay(1600);
+       ticketToast="";
+       return;
+     }
+     
+     if(string.IsNullOrWhiteSpace(newTicketTitle))
+     {
+       serviceError = "? Title is required";
+       ticketToast="Title required";
+       StateHasChanged();
+       await Task.Delay(1600);
+       ticketToast="";
+       return;
+     }
+     
+     if (string.IsNullOrWhiteSpace(newTicketClientId))
+     {
+       serviceError = "? No linked client found for the selected account";
+       ticketToast = "Linked client required";
+       StateHasChanged();
+       await Task.Delay(1600);
+       ticketToast = "";
+       return;
+     }
+     
+     var t=new Ticket
+     {
+       Title=newTicketTitle,
+       AccountId=newTicketAccountId,
+       ClientId=newTicketClientId,
+       ClientName=newTicketClientName,
+       Priority=newTicketPriority,
+       Status=string.IsNullOrWhiteSpace(newTicketTechnicianId) ? newTicketStatus : "Assigned",
+       Created=DateTime.UtcNow,
+       AssignedTechnicianId=string.IsNullOrWhiteSpace(newTicketTechnicianId) ? null : newTicketTechnicianId,
+       AssignedAt=string.IsNullOrWhiteSpace(newTicketTechnicianId) ? null : DateTime.UtcNow
+     };
+     
+     var ok=await AdminService.CreateTicketAsync(t);
+     
+     if(!ok || !string.IsNullOrEmpty(AdminService.LastError))
+     {
+       serviceError = AdminService.LastError ?? "? Failed to create ticket";
+       ticketToast = "? Failed to create ticket";
+       StateHasChanged();
+       await Task.Delay(2000);
+       ticketToast="";
+       return;
+     }
+     
+     ticketToast = "? Ticket created successfully";
+     await LoadDataAsync();
+     CloseNewTicketModal();
+     StateHasChanged();
+     await Task.Delay(2000);
+     ticketToast="";
+   }
+   catch (Exception ex)
+   {
+     serviceError = $"? Error: {ex.Message}";
+     ticketToast = $"? Error: {ex.Message}";
+     System.Diagnostics.Debug.WriteLine($"[Tickets] OnCreateNewTicketClicked error: {ex}");
+     StateHasChanged();
+     await Task.Delay(2000);
+     ticketToast="";
+   }
+   finally
+   {
+     isCreating = false;
+     StateHasChanged();
+   }
+ }
+ 
+ private string GetTechnicianDisplayName(string? technicianId)
+ {
+   if (string.IsNullOrWhiteSpace(technicianId)) return "(Not assigned)";
+   var tech = technicians?.FirstOrDefault(t => t.Id == technicianId);
+   return tech != null ? $"{tech.FullName} ({tech.Email})" : "(Not assigned)";
+ }
+ 
+ // Edit modal
+ private void ShowEditTicketModal(Ticket ticket)
+ {
+   try
+   {
+     editingTicket = new Ticket
+     {
+       Id=ticket.Id,
+       Title=ticket.Title,
+       ClientId=ticket.ClientId,
+       Priority=ticket.Priority,
+       Status=ticket.Status,
+       Created=ticket.Created
+     };
+     showEditTicketModal=true;
+   }
+   catch (Exception ex)
+   {
+     ticketToast = $"? Error: {ex.Message}";
+     System.Diagnostics.Debug.WriteLine($"[Tickets] ShowEditTicketModal error: {ex}");
+   }
+ }
+ 
+ private void CloseEditTicketModal()
+ {
+   showEditTicketModal=false;
+   editingTicket=null;
+ }
+ 
+ private void ShowUpdateConfirmation()
+ {
+   if(editingTicket==null || string.IsNullOrWhiteSpace(editingTicket.Title))
+   {
+     ticketToast = "? Title is required";
+     StateHasChanged();
+     return;
+   }
+   showSaveConfirm = true;
+   StateHasChanged();
+ }
+ 
+ private async Task ConfirmUpdateTicket()
+ {
+   showSaveConfirm = false;
+   await UpdateTicketAsync();
+ }
+ 
+ private async Task UpdateTicketAsync()
+ {
+   try
+   {
+     if(editingTicket==null || string.IsNullOrWhiteSpace(editingTicket.Title))
+     {
+       ticketToast = "? Title is required";
+       StateHasChanged();
+       return;
+     }
+     
+     await AdminService.UpdateTicketAsync(editingTicket);
+     
+     if (!string.IsNullOrEmpty(AdminService.LastError))
+     {
+       ticketToast = $"? Update failed: {AdminService.LastError}";
+     }
+     else
+     {
+       ticketToast = "? Ticket updated successfully";
+     }
+     
+     await LoadDataAsync();
+     CloseEditTicketModal();
+     StateHasChanged();
+     await Task.Delay(2000);
+     ticketToast="";
+   }
+   catch (Exception ex)
+   {
+     ticketToast = $"? Update error: {ex.Message}";
+     System.Diagnostics.Debug.WriteLine($"[Tickets] UpdateTicketAsync error: {ex}");
+     StateHasChanged();
+     await Task.Delay(2000);
+     ticketToast="";
+   }
+ }
+ 
+ // Archive methods
+ private void ShowArchiveConfirmation(Ticket ticket)
+ {
+   archiveTargetId = ticket.Id;
+   archiveTargetTitle = ticket.Title ?? $"Ticket #{ticket.Id}";
+   showArchiveConfirm = true;
+   StateHasChanged();
+ }
+ 
+ private void ShowUnarchiveConfirmation(Ticket ticket)
+ {
+   archiveTargetId = ticket.Id;
+   archiveTargetTitle = ticket.Title ?? $"Ticket #{ticket.Id}";
+   showUnarchiveConfirm = true;
+   StateHasChanged();
+ }
+ 
+ private async Task ConfirmArchive()
+ {
+   showArchiveConfirm = false;
+   
+   try
+   {
+     if(archiveTargetId <= 0) return;
+     
+     var success = await AdminService.ArchiveTicketAsync(archiveTargetId, AuthService.UserId);
+     
+     if (!success || !string.IsNullOrEmpty(AdminService.LastError))
+     {
+       ticketToast = $"Archive failed: {AdminService.LastError}";
+     }
+     else
+     {
+       ticketToast = "Ticket archived successfully";
+     }
+     
+     await LoadDataAsync();
+     archiveTargetId = 0;
+     archiveTargetTitle = string.Empty;
+     
+     StateHasChanged();
+     await Task.Delay(2000);
+     ticketToast="";
+   }
+   catch (Exception ex)
+   {
+     ticketToast = $"Archive error: {ex.Message}";
+     System.Diagnostics.Debug.WriteLine($"[Tickets] ConfirmArchive error: {ex}");
+     StateHasChanged();
+     await Task.Delay(2000);
+     ticketToast="";
+   }
+ }
+ 
+ private async Task ConfirmUnarchive()
+ {
+   showUnarchiveConfirm = false;
+   
+   try
+   {
+     if(archiveTargetId <= 0) return;
+     
+     var success = await AdminService.UnarchiveTicketAsync(archiveTargetId);
+     
+     if (!success || !string.IsNullOrEmpty(AdminService.LastError))
+     {
+       ticketToast = $"Restore failed: {AdminService.LastError}";
+     }
+     else
+     {
+       ticketToast = "Ticket restored successfully";
+     }
+     
+     await LoadDataAsync();
+     archiveTargetId = 0;
+     archiveTargetTitle = string.Empty;
+     
+     StateHasChanged();
+     await Task.Delay(2000);
+     ticketToast="";
+   }
+   catch (Exception ex)
+   {
+     ticketToast = $"Restore error: {ex.Message}";
+     System.Diagnostics.Debug.WriteLine($"[Tickets] ConfirmUnarchive error: {ex}");
+     StateHasChanged();
+     await Task.Delay(2000);
+     ticketToast="";
+   }
+ }
+ 
+ private async Task DeleteTicketAsync(int id)
+ {
+   try
+   {
+     if(id<=0)
+     {
+       ticketToast = "? Invalid ticket ID";
+       StateHasChanged();
+       return;
+     }
+     
+     var ticket = tickets?.FirstOrDefault(t => t.Id == id);
+     if (ticket == null)
+     {
+       ticketToast = "? Ticket not found";
+       StateHasChanged();
+       return;
+     }
+     
+     deleteTargetId = id;
+     deleteTargetTitle = ticket.Title ?? $"Ticket #{id}";
+     showDeleteConfirm = true;
+     StateHasChanged();
+   }
+   catch (Exception ex)
+   {
+     ticketToast = $"? Error: {ex.Message}";
+     System.Diagnostics.Debug.WriteLine($"[Tickets] DeleteTicketAsync error: {ex}");
+     StateHasChanged();
+   }
+ }
+ 
+ private async Task ConfirmDelete()
+ {
+   showDeleteConfirm = false;
+   
+   try
+   {
+     if(deleteTargetId<=0) return;
+     
+     await AdminService.DeleteTicketAsync(deleteTargetId);
+     
+     if (!string.IsNullOrEmpty(AdminService.LastError))
+     {
+       ticketToast = $"Delete failed: {AdminService.LastError}";
+     }
+     else
+     {
+       ticketToast = "Ticket deleted successfully";
+     }
+     
+     await LoadDataAsync();
+     
+     deleteTargetId = 0;
+     deleteTargetTitle = string.Empty;
+     
+     StateHasChanged();
+     await Task.Delay(2000);
+     ticketToast="";
+   }
+   catch (Exception ex)
+   {
+     ticketToast = $"Delete error: {ex.Message}";
+     System.Diagnostics.Debug.WriteLine($"[Tickets] ConfirmDelete error: {ex}");
+     StateHasChanged();
+     await Task.Delay(2000);
+     ticketToast="";
+   }
+ }
+ 
+ private async void ExportTickets()
+ {
+   try
+   {
+     var rows = tickets ?? new List<Ticket>();
+     
+     if (rows.Count == 0)
+     {
+       ticketToast = "? No tickets to export";
+       StateHasChanged();
+       await Task.Delay(2000);
+       ticketToast="";
+       return;
+     }
+     
+     var sb=new System.Text.StringBuilder();
+     sb.AppendLine("Id,Title,Client,Priority,Status,Created,IsArchived");
+     
+     foreach(var r in rows)
+       sb.AppendLine($"{r.Id},{Escape(r.Title)},{Escape(GetClientLabel(r))},{r.Priority},{r.Status},{r.Created:yyyy-MM-dd HH:mm},{r.IsArchived}");
+     
+     await JS.InvokeAsync<bool>("FiberExport.saveFile","tickets.csv",sb.ToString());
+     
+     ticketToast=$"? Exported {rows.Count} ticket(s)";
+     StateHasChanged();
+     await Task.Delay(2000);
+     ticketToast="";
+   }
+   catch (Exception ex)
+   {
+     ticketToast = $"? Export failed: {ex.Message}";
+     System.Diagnostics.Debug.WriteLine($"[Tickets] ExportTickets error: {ex}");
+     StateHasChanged();
+     await Task.Delay(2000);
+     ticketToast="";
+   }
+ }
+ 
+ private async Task ClearToastAfterDelay(){ await Task.Delay(2200); ticketToast=""; StateHasChanged(); }
+ private string Escape(string? s)=> string.IsNullOrEmpty(s)?"":s.Replace("\"","\"\"");
+ private string GetTimeAgo(DateTime createdUtc){ var utc=DateTime.SpecifyKind(createdUtc,DateTimeKind.Utc); var span=DateTime.UtcNow-utc; if(span.TotalMinutes<1) return "just now"; if(span.TotalMinutes<60) return $"{(int)span.TotalMinutes} mins ago"; if(span.TotalHours<24) return $"{(int)span.TotalHours} hrs ago"; return $"{(int)span.TotalDays} days ago"; }
+ private string GetCustomerDisplay(string id){ if(string.IsNullOrEmpty(id)||customers==null) return ""; var c=customers.FirstOrDefault(x=>x.Id==id); return c?.Name ?? id; }
+ private IEnumerable<Ticket>? FilteredTickets => string.IsNullOrWhiteSpace(ticketSearch)?tickets: tickets?.Where(t => t.Id.ToString().Contains(ticketSearch,StringComparison.OrdinalIgnoreCase) || (t.Title??"").Contains(ticketSearch,StringComparison.OrdinalIgnoreCase) || GetCustomerDisplay(t.ClientId??"").Contains(ticketSearch,StringComparison.OrdinalIgnoreCase));
+ private string GetPriorityBadge(string? p){ if(string.IsNullOrWhiteSpace(p)) return "badge-prio-low"; return p.ToLowerInvariant() switch {"low"=>"badge-prio-low","medium"=>"badge-prio-medium","high"=>"badge-prio-high","critical"=>"badge-prio-critical", _=>"badge-prio-low"}; }
+ private string GetStatusBadge(string? s)
+ { 
+   if(string.IsNullOrWhiteSpace(s)) return "badge-status-open"; 
+   var v=s.ToLowerInvariant(); 
+   if(v=="in progress") v="inprogress"; 
+   return v switch
+   {
+     "open"=>"badge-status-open",
+     "inprogress"=>"badge-status-inprogress",
+     "assigned"=>"badge-status-assigned",
+     "resolved"=>"badge-status-resolved",
+     "closed"=>"badge-status-closed", 
+     _=>"badge-status-open"
+   }; 
+ }
+ private string GetRoleLabel(){ var role=AuthService?.Role; return string.IsNullOrWhiteSpace(role)?"ADMIN VIEW":role.ToUpperInvariant(); }
+ private string GetInitial(Ticket t){ var label= GetClientLabel(t); if(string.IsNullOrWhiteSpace(label)) label=t.Title ?? "T"; label=label.Trim(); return label.Length==0?"T":label.Substring(0,1).ToUpperInvariant(); }
+ private string FormatLocal(DateTime createdUtc)=> DateTime.SpecifyKind(createdUtc,DateTimeKind.Utc).ToLocalTime().ToString("yyyy-MM-dd HH:mm");
+ private string GetClientLabel(Ticket t)
+ {
+   if (t == null) return string.Empty;
+   if (!string.IsNullOrWhiteSpace(t.ClientName)) return t.ClientName;
+   return GetCustomerDisplay(t.ClientId ?? "");
+ }
+}

@@ -1,0 +1,15 @@
+﻿using System;
+
+namespace FiberHelp.Models
+{
+    public class OutboxMessage
+    {
+        public int Id { get; set; }
+        public string EntityName { get; set; } = string.Empty; // e.g., Ticket, Client
+        public string Operation { get; set; } = string.Empty;  // Create, Update, Delete
+        public string Payload { get; set; } = string.Empty;    // JSON
+        public string? Key { get; set; }                       // optional business key or local Id
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime? ProcessedAt { get; set; }
+    }
+}

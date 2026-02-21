@@ -1,0 +1,115 @@
+﻿using Microsoft.Extensions.Logging;
+using FiberHelp.Services;
+using Microsoft.EntityFrameworkCore;
+using FiberHelp.Data.context;
+using Microsoft.Extensions.DependencyInjection;
+using FiberHelp.Data;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Maui.Storage;
+using System.IO;
+
+namespace FiberHelp
+{
+    public static class MauiProgram
+    {
+        public static MauiApp CreateMauiApp()
+        {
+            var builder = MauiApp.CreateBuilder();
+            builder
+                .UseMauiApp<App>()
+                .ConfigureFonts(fonts =>
+                {
+                    fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
+                });
+
+            // Load configuration from appsettings.json (copied to output via csproj)
+            builder.Configuration
+                   .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true);
+
+            builder.Services.AddMauiBlazorWebView();
+            
+            // Change AuthService to Singleton to persist authentication state across navigations
+            builder.Services.AddSingleton<AuthService>();
+            builder.Services.AddScoped<AdminService>();
+            builder.Services.AddScoped<BillingService>();
+            builder.Services.AddSingleton<DataSyncService>();
+            builder.Services.AddSingleton<DualWriteService>();
+            builder.Services.AddSingleton<OutboxProcessor>();
+            builder.Services.AddSingleton<SyncScheduler>();
+
+            var localDbPath = Path.Combine(FileSystem.AppDataDirectory, "fiberhelp_local.db");
+            var sqliteConn = $"Data Source={localDbPath}";
+
+            var sqlLocal = builder.Configuration.GetConnectionString("DefaultConnection")
+                ?? "Server=(localdb)\\mssqllocaldb;Database=FiberhelpDB;Trusted_Connection=True;MultipleActiveResultSets=true";
+            var sqlOnline = builder.Configuration.GetConnectionString("OnlineConnection") ?? string.Empty;
+
+            // Register contexts: SQLite (offline), SqlServer (online), SqlServer local dev
+            builder.Services.AddDbContext<localContext>(o => o.UseSqlite(sqliteConn));
+            builder.Services.AddDbContext<onlineContext>(o => {
+                if (!string.IsNullOrWhiteSpace(sqlOnline))
+                    o.UseSqlServer(sqlOnline, sql => sql.EnableRetryOnFailure());
+            });
+            builder.Services.AddDbContext<devLocalContext>(o => o.UseSqlServer(sqlLocal));
+
+            // Default to LOCAL SQLite for AppDbContext. Cloud/dev are used for sync only.
+            builder.Services.AddScoped<AppDbContext>(sp =>
+            {
+                // Always prefer local
+                var local = sp.GetRequiredService<localContext>();
+                return local;
+            });
+
+#if DEBUG
+            builder.Services.AddBlazorWebViewDeveloperTools();
+            builder.Logging.AddDebug();
+#endif
+
+            var app = builder.Build();
+
+            // Initialize LOCAL database and seed if needed
+            using (var scope = app.Services.CreateScope())
+            {
+                try
+                {
+                    var local = scope.ServiceProvider.GetRequiredService<localContext>();
+                    // For SQLite local, ensure database is created without needing migrations
+                    local.Database.EnsureCreated();
+                    DbInitializer.Initialize(local);
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Local DB init error: {ex.Message}");
+                }
+            }
+
+            // Ensure local Outbox table exists on startup
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    using var scope = app.Services.CreateScope();
+                    var local = scope.ServiceProvider.GetRequiredService<localContext>();
+                    await DualWriteService.EnsureOutboxTableAsync(local);
+                }
+                catch { }
+            });
+
+            // Start periodic cloud -> local sync
+            _ = Task.Run(() =>
+            {
+                var scheduler = app.Services.GetRequiredService<SyncScheduler>();
+                scheduler.Start();
+            });
+
+            // Start outbox processor to push local offline writes to cloud when online
+            _ = Task.Run(() =>
+            {
+                var proc = app.Services.GetRequiredService<OutboxProcessor>();
+                proc.Start();
+            });
+
+            return app;
+        }
+    }
+}

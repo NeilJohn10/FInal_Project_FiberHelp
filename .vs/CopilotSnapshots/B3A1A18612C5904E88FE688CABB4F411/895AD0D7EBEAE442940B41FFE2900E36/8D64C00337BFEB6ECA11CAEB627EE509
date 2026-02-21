@@ -1,0 +1,21 @@
+﻿using System;
+
+namespace FiberHelp.Models
+{
+ public class Agent
+ {
+ public string Id { get; set; } = Guid.NewGuid().ToString();
+ public string Email { get; set; } = string.Empty;
+ public string PasswordHash { get; set; } = string.Empty;
+ public string FullName { get; set; } = string.Empty;
+ public string Department { get; set; } = string.Empty;
+ public string Phone { get; set; } = string.Empty;
+ public bool IsActive { get; set; } = true;
+ public bool IsLocked { get; set; } = false;
+ public int FailedLoginCount { get; set; } =0;
+ public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+ public DateTime? UpdatedAt { get; set; }
+ public DateTime? LastLoginAt { get; set; }
+ public DateTime? PasswordChangedAt { get; set; }
+ }
+}

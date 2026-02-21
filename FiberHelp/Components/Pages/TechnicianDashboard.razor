@@ -1,0 +1,496 @@
+@page "/technician"
+@page "/technician/dashboard"
+@using FiberHelp.Models
+@using System.Linq
+@inject FiberHelp.Services.AdminService AdminService
+@inject FiberHelp.Services.AuthService AuthService
+@inject FiberHelp.Services.TransactionService TransactionService
+@inject NavigationManager NavigationManager
+
+<style>
+    .tech-dashboard { padding: 20px; }
+    .tech-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+    .tech-header h1 { font-size: 28px; font-weight: 700; color: #0f172a; margin: 0; }
+    .tech-welcome { color: #64748b; font-size: 14px; }
+    .tech-service-area { display: flex; align-items: center; gap: 8px; color: #10b981; font-size: 14px; margin-top: 4px; }
+    
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+    .stat-card { background: #fff; border-radius: 12px; padding: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+    .stat-card.pending { border-left: 4px solid #f59e0b; }
+    .stat-card.inprogress { border-left: 4px solid #3b82f6; }
+    .stat-card.resolved { border-left: 4px solid #10b981; }
+    .stat-card.feedback { border-left: 4px solid #8b5cf6; }
+    .stat-value { font-size: 32px; font-weight: 800; color: #0f172a; }
+    .stat-label { font-size: 13px; color: #64748b; margin-top: 4px; }
+    
+    .panel { background: #fff; border-radius: 14px; padding: 20px; box-shadow: 0 8px 24px rgba(2,6,23,0.08); margin-bottom: 20px; }
+    .panel-title { font-size: 18px; font-weight: 700; margin-bottom: 16px; color: #0f172a; display: flex; align-items: center; gap: 8px; }
+    
+    .ticket-list { display: flex; flex-direction: column; gap: 12px; }
+    .ticket-item { background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 10px; padding: 16px; transition: all 0.2s; }
+    .ticket-item:hover { border-color: #10b981; box-shadow: 0 4px 12px rgba(16,185,129,0.15); }
+    .ticket-item-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+    .ticket-id { font-weight: 700; color: #10b981; }
+    .ticket-title { font-weight: 600; color: #0f172a; margin-bottom: 4px; }
+    .ticket-meta { font-size: 12px; color: #64748b; }
+    
+    .badge { display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 11px; font-weight: 700; }
+    .badge.assigned { background: #fef3c7; color: #92400e; }
+    .badge.inprogress { background: #dbeafe; color: #1e40af; }
+    .badge.high { background: #fee2e2; color: #991b1b; }
+    .badge.medium { background: #fef3c7; color: #92400e; }
+    .badge.low { background: #d1fae5; color: #065f46; }
+    .badge.technician { background: linear-gradient(135deg, #10b981, #059669); color: #fff; }
+    .badge.proof { background: #dbeafe; color: #1e40af; font-size: 10px; }
+    .badge.feedback-received { background: #f3e8ff; color: #7c3aed; font-size: 10px; }
+    
+    .btn { padding: 8px 16px; border-radius: 8px; font-weight: 600; cursor: pointer; border: none; transition: all 0.2s; }
+    .btn.primary { background: linear-gradient(135deg, #10b981, #059669); color: #fff; }
+    .btn.primary:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(16,185,129,0.3); }
+    .btn.success { background: linear-gradient(135deg, #10b981, #059669); color: #fff; }
+    .btn.outline { background: transparent; border: 1px solid #e5e7eb; color: #475569; }
+    .btn.feedback { background: linear-gradient(135deg, #8b5cf6, #7c3aed); color: #fff; font-size: 12px; padding: 6px 12px; }
+    
+    .ticket-actions { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+    
+    .empty-state { text-align: center; padding: 40px; color: #64748b; }
+    .empty-state svg { width: 64px; height: 64px; margin-bottom: 16px; opacity: 0.5; }
+    
+    /* Resolve Modal */
+    .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: grid; place-items: center; z-index: 20000; }
+    .modal-card { background: #fff; border-radius: 16px; padding: 24px; width: 500px; max-width: 90vw; box-shadow: 0 24px 48px rgba(0,0,0,0.2); }
+    .modal-header { margin-bottom: 16px; }
+    .modal-header h3 { margin: 0; font-size: 20px; }
+    .modal-body { margin-bottom: 20px; }
+    .form-group { margin-bottom: 16px; }
+    .form-group label { display: block; font-weight: 600; margin-bottom: 6px; color: #374151; }
+    .form-input { width: 100%; padding: 10px 12px; border: 1px solid #e5e7eb; border-radius: 8px; font-size: 14px; }
+    .form-input:focus { outline: none; border-color: #10b981; box-shadow: 0 0 0 3px rgba(16,185,129,0.1); }
+    textarea.form-input { min-height: 100px; resize: vertical; }
+    .modal-actions { display: flex; justify-content: flex-end; gap: 10px; }
+    
+    .access-denied { text-align: center; padding: 60px 20px; }
+    .access-denied h2 { color: #ef4444; margin-bottom: 12px; }
+    
+    .client-name { color: #6366f1; font-weight: 600; }
+    
+    .proof-info { margin-top: 8px; padding: 8px 12px; background: linear-gradient(135deg, #f0fdf4, #dcfce7); border-radius: 8px; font-size: 12px; display: flex; align-items: center; gap: 8px; }
+    .proof-info .ref { font-family: monospace; font-weight: 600; color: #166534; }
+    
+    .resolution-notes { margin-top:8px;padding:8px;background:#f0fdf4;border-radius:6px;font-size:13px;color:#166534; }
+</style>
+
+@if (!AuthService.IsAuthenticated || !AuthService.IsTechnician)
+{
+    <div class="access-denied">
+        <h2>Access Denied</h2>
+        <p>This page is only accessible to Technicians.</p>
+        <p style="color: #64748b; margin-top: 12px;">Current Role: @(AuthService.Role ?? "Not logged in")</p>
+        <button class="btn primary" style="margin-top: 20px;" @onclick='() => NavigationManager.NavigateTo("/login")'>Go to Login</button>
+    </div>
+}
+else
+{
+    <div class="tech-dashboard">
+        <header class="tech-header">
+            <div>
+                <p class="tech-welcome">Welcome back,</p>
+                <h1>@AuthService.FullName</h1>
+                @if (!string.IsNullOrEmpty(AuthService.ServiceArea))
+                {
+                    <div class="tech-service-area">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                            <circle cx="12" cy="10" r="3"/>
+                        </svg>
+                        @AuthService.ServiceArea
+                    </div>
+                }
+            </div>
+            <div>
+                <span class="badge technician">Technician</span>
+            </div>
+        </header>
+
+        <!-- Stats Cards -->
+        <div class="stats-grid">
+            <div class="stat-card pending">
+                <div class="stat-value">@pendingCount</div>
+                <div class="stat-label">Pending Tickets</div>
+            </div>
+            <div class="stat-card inprogress">
+                <div class="stat-value">@inProgressCount</div>
+                <div class="stat-label">In Progress</div>
+            </div>
+            <div class="stat-card resolved">
+                <div class="stat-value">@resolvedTodayCount</div>
+                <div class="stat-label">Resolved Today</div>
+            </div>
+            <div class="stat-card feedback">
+                <div class="stat-value">@feedbackCount</div>
+                <div class="stat-label">Client Feedback</div>
+            </div>
+        </div>
+
+        <!-- Assigned Tickets -->
+        <section class="panel">
+            <h2 class="panel-title">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                    <line x1="16" y1="2" x2="16" y2="6"/>
+                    <line x1="8" y1="2" x2="8" y2="6"/>
+                    <line x1="3" y1="10" x2="21" y2="10"/>
+                </svg>
+                My Assigned Tickets
+            </h2>
+            
+            @if (isLoading)
+            {
+                <div class="empty-state">
+                    <p>Loading your tickets...</p>
+                </div>
+            }
+            else if (assignedTickets == null || !assignedTickets.Any())
+            {
+                <div class="empty-state">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" stroke-width="1.5"/>
+                    </svg>
+                    <p>No tickets assigned to you yet.</p>
+                    <p style="font-size: 13px; margin-top: 8px;">Check back later or contact your supervisor.</p>
+                </div>
+            }
+            else
+            {
+                <div class="ticket-list">
+                    @foreach (var ticket in assignedTickets.Where(t => t.Status != "Resolved" && t.Status != "Closed"))
+                    {
+                        <div class="ticket-item">
+                            <div class="ticket-item-header">
+                                <div>
+                                    <span class="ticket-id">#@ticket.Id</span>
+                                    <span class="badge @GetPriorityClass(ticket.Priority)">@ticket.Priority</span>
+                                </div>
+                                <span class="badge @GetStatusClass(ticket.Status)">@ticket.Status</span>
+                            </div>
+                            <div class="ticket-title">@ticket.Title</div>
+                            <div class="ticket-meta">
+                                <span>Client: <span class="client-name">@(string.IsNullOrEmpty(ticket.ClientName) ? "No Client" : ticket.ClientName)</span></span>
+                                <span style="margin-left: 16px;">Assigned: @(ticket.AssignedAt?.ToString("MMM dd, yyyy h:mm tt") ?? "N/A")</span>
+                            </div>
+                            <div class="ticket-actions">
+                                @if (ticket.Status == "Assigned")
+                                {
+                                    <button class="btn primary" @onclick="() => StartProgress(ticket)">Start Work</button>
+                                }
+                                @if (ticket.Status == "Assigned" || ticket.Status == "In Progress")
+                                {
+                                    <button class="btn success" @onclick="() => OpenResolveModal(ticket)">Resolve</button>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        </section>
+
+        <!-- Recently Resolved -->
+        <section class="panel">
+            <h2 class="panel-title">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                    <polyline points="22 4 12 14.01 9 11.01"/>
+                </svg>
+                Recently Resolved (with Transaction Proof)
+            </h2>
+            @if (resolvedTickets != null && resolvedTickets.Any())
+            {
+                <div class="ticket-list">
+                    @foreach (var ticket in resolvedTickets.Take(5))
+                    {
+                        <div class="ticket-item" style="opacity: 0.9;">
+                            <div class="ticket-item-header">
+                                <div>
+                                    <span class="ticket-id">#@ticket.Id</span>
+                                    @if (ticketProofs.ContainsKey(ticket.Id))
+                                    {
+                                        <span class="badge proof">? Proof Generated</span>
+                                    }
+                                    @if (ticketFeedbacks.Contains(ticket.Id))
+                                    {
+                                        <span class="badge feedback-received">? Feedback Received</span>
+                                    }
+                                </div>
+                                <span class="badge" style="background:#d1fae5;color:#065f46;">Resolved</span>
+                            </div>
+                            <div class="ticket-title">@ticket.Title</div>
+                            <div class="ticket-meta">
+                                <span>Client: <span class="client-name">@(string.IsNullOrEmpty(ticket.ClientName) ? "Unknown" : ticket.ClientName)</span></span>
+                                <span style="margin-left: 16px;">Resolved: @(ticket.ResolvedAt?.ToString("MMM dd, yyyy h:mm tt") ?? "N/A")</span>
+                            </div>
+                            @if (ticketProofs.ContainsKey(ticket.Id))
+                            {
+                                <div class="proof-info">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#166534" stroke-width="2">
+                                        <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                    </svg>
+                                    Transaction Proof: <span class="ref">@ticketProofs[ticket.Id]</span>
+                                </div>
+                            }
+                            @if (!string.IsNullOrWhiteSpace(ticket.ResolutionNotes))
+                            {
+                                <div class="resolution-notes">
+                                    <strong>Notes:</strong> @ticket.ResolutionNotes
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="empty-state">
+                    <p>No resolved tickets yet. Start working on your assigned tickets!</p>
+                </div>
+            }
+        </section>
+    </div>
+
+    <!-- Resolve Modal -->
+    @if (showResolveModal && selectedTicket != null)
+    {
+        <div class="modal-bg" @onclick="CloseResolveModal">
+            <div class="modal-card" @onclick:stopPropagation>
+                <div class="modal-header">
+                    <h3>Resolve Ticket #@selectedTicket.Id</h3>
+                </div>
+                <div class="modal-body">
+                    <p style="margin-bottom: 8px;"><strong>@selectedTicket.Title</strong></p>
+                    <p style="font-size: 13px; color: #64748b; margin-bottom: 16px;">
+                        Client: @(selectedTicket.ClientName ?? "Unknown")
+                    </p>
+                    <div style="background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 8px; padding: 12px; margin-bottom: 16px; font-size: 13px; color: #0369a1;">
+                        <strong>?? Note:</strong> A transaction proof will be automatically generated for the client when you resolve this ticket.
+                    </div>
+                    <div class="form-group">
+                        <label>Resolution Notes *</label>
+                        <textarea class="form-input" @bind="resolutionNotes" placeholder="Describe how the issue was resolved. This will be included in the transaction proof sent to the client."></textarea>
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button class="btn outline" @onclick="CloseResolveModal">Cancel</button>
+                    <button class="btn success" @onclick="ConfirmResolve" disabled="@isResolving">
+                        @(isResolving ? "Resolving..." : "Mark as Resolved")
+                    </button>
+                </div>
+            </div>
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(notification))
+    {
+        <div style="position:fixed;bottom:20px;right:20px;background:@notificationColor;color:#fff;padding:12px 20px;border-radius:10px;box-shadow:0 4px 12px rgba(0,0,0,0.15);z-index:30000;display:flex;align-items:center;gap:8px;max-width:400px;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                <polyline points="22 4 12 14.01 9 11.01"/>
+            </svg>
+            @notification
+        </div>
+    }
+}
+
+@code {
+    private List<Ticket>? assignedTickets;
+    private List<Ticket>? resolvedTickets;
+    private Dictionary<int, string> ticketProofs = new();
+    private HashSet<int> ticketFeedbacks = new();
+    private int pendingCount;
+    private int inProgressCount;
+    private int resolvedTodayCount;
+    private int feedbackCount;
+    private bool isLoading = true;
+    
+    private bool showResolveModal;
+    private bool isResolving;
+    private Ticket? selectedTicket;
+    private string resolutionNotes = "";
+    private string notification = "";
+    private string notificationColor = "#10b981";
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!AuthService.IsAuthenticated || !AuthService.IsTechnician)
+            return;
+
+        await LoadTickets();
+    }
+
+    private async Task LoadTickets()
+    {
+        isLoading = true;
+        StateHasChanged();
+        
+        var techId = AuthService.UserId;
+        if (string.IsNullOrEmpty(techId))
+        {
+            isLoading = false;
+            return;
+        }
+
+        try
+        {
+            // Get all tickets assigned to this technician
+            assignedTickets = await AdminService.GetTicketsForTechnicianAsync(techId);
+            
+            // Also check for tickets resolved by this technician
+            var allTickets = await AdminService.GetTicketsAsync();
+            var myResolvedTickets = allTickets?.Where(t => 
+                t.ResolvedByTechnicianId == techId && 
+                (t.Status == "Resolved" || t.Status == "Closed"))
+                .ToList() ?? new List<Ticket>();
+            
+            // Merge resolved tickets
+            var assignedResolved = assignedTickets?.Where(t => t.Status == "Resolved" || t.Status == "Closed").ToList() ?? new List<Ticket>();
+            resolvedTickets = assignedResolved.Union(myResolvedTickets, new TicketComparer())
+                .OrderByDescending(t => t.ResolvedAt)
+                .ToList();
+
+            // Calculate KPIs
+            pendingCount = assignedTickets?.Count(t => t.Status == "Assigned" || t.Status == "Open") ?? 0;
+            inProgressCount = assignedTickets?.Count(t => t.Status == "In Progress") ?? 0;
+            
+            var today = DateTime.UtcNow.Date;
+            resolvedTodayCount = resolvedTickets?.Count(t => t.ResolvedAt?.Date == today) ?? 0;
+
+            // Load transaction proofs for resolved tickets
+            ticketProofs.Clear();
+            ticketFeedbacks.Clear();
+            
+            foreach (var ticket in resolvedTickets ?? Enumerable.Empty<Ticket>())
+            {
+                var proof = await AdminService.GetTicketProofAsync(ticket.Id);
+                if (proof != null)
+                {
+                    ticketProofs[ticket.Id] = proof.ReferenceNumber;
+                }
+                
+                if (await AdminService.HasFeedbackForTicketAsync(ticket.Id))
+                {
+                    ticketFeedbacks.Add(ticket.Id);
+                }
+            }
+            
+            feedbackCount = ticketFeedbacks.Count;
+            
+            System.Diagnostics.Debug.WriteLine($"[TechDashboard] Loaded {assignedTickets?.Count ?? 0} assigned, {resolvedTickets?.Count ?? 0} resolved, {ticketProofs.Count} proofs");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error loading technician tickets: {ex.Message}");
+        }
+        
+        isLoading = false;
+        StateHasChanged();
+    }
+
+    private async Task StartProgress(Ticket ticket)
+    {
+        ticket.Status = "In Progress";
+        await AdminService.UpdateTicketAsync(ticket);
+        await LoadTickets();
+        ShowNotification("Ticket marked as In Progress", "#3b82f6");
+    }
+
+    private void OpenResolveModal(Ticket ticket)
+    {
+        selectedTicket = ticket;
+        resolutionNotes = "";
+        showResolveModal = true;
+    }
+
+    private void CloseResolveModal()
+    {
+        showResolveModal = false;
+        selectedTicket = null;
+        resolutionNotes = "";
+    }
+
+    private async Task ConfirmResolve()
+    {
+        if (selectedTicket == null || string.IsNullOrEmpty(AuthService.UserId)) return;
+        if (string.IsNullOrWhiteSpace(resolutionNotes))
+        {
+            ShowNotification("Please provide resolution notes", "#ef4444");
+            return;
+        }
+
+        isResolving = true;
+        StateHasChanged();
+
+        try
+        {
+            // Use the new method that generates transaction proof
+            var (success, proofId) = await AdminService.ResolveTicketWithProofAsync(
+                selectedTicket.Id, 
+                AuthService.UserId,
+                AuthService.FullName,
+                resolutionNotes);
+
+            if (success)
+            {
+                CloseResolveModal();
+                await LoadTickets();
+                
+                if (proofId.HasValue)
+                {
+                    ShowNotification("? Ticket resolved! Transaction proof generated for client.", "#10b981");
+                }
+                else
+                {
+                    ShowNotification("? Ticket resolved successfully!", "#10b981");
+                }
+            }
+            else
+            {
+                ShowNotification("Failed: " + (AdminService.LastError ?? "Unknown error"), "#ef4444");
+            }
+        }
+        finally
+        {
+            isResolving = false;
+            StateHasChanged();
+        }
+    }
+
+    private void ShowNotification(string message, string color = "#10b981")
+    {
+        notification = message;
+        notificationColor = color;
+        StateHasChanged();
+        _ = Task.Delay(4000).ContinueWith(_ => 
+        {
+            notification = "";
+            InvokeAsync(StateHasChanged);
+        });
+    }
+
+    private string GetPriorityClass(string? priority) => priority?.ToLower() switch
+    {
+        "high" or "urgent" or "critical" => "high",
+        "medium" => "medium",
+        _ => "low"
+    };
+
+    private string GetStatusClass(string? status) => status?.ToLower() switch
+    {
+        "assigned" => "assigned",
+        "in progress" => "inprogress",
+        _ => "assigned"
+    };
+    
+    private class TicketComparer : IEqualityComparer<Ticket>
+    {
+        public bool Equals(Ticket? x, Ticket? y) => x?.Id == y?.Id;
+        public int GetHashCode(Ticket obj) => obj.Id.GetHashCode();
+    }
+}

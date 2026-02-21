@@ -10,5 +10,8 @@ namespace FiberHelp.Models
  public string Plan { get; set; } = string.Empty;
  public string Status { get; set; } = "Active";
  public DateTime JoinDate { get; set; } = DateTime.UtcNow;
+ // New dependency: each customer must belong to an Account
+ public int? AccountId { get; set; }
+ public Account? Account { get; set; }
  }
 }

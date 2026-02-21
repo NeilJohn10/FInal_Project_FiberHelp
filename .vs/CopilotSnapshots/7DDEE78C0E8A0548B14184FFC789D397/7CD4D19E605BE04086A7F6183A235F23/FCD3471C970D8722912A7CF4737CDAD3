@@ -1,0 +1,10 @@
+﻿@using Microsoft.AspNetCore.Components
+
+@if (!string.IsNullOrEmpty(Message))
+{
+  <div class="toast toast-global">@Message</div>
+}
+
+@code {
+  [Parameter] public string? Message { get; set; }
+}

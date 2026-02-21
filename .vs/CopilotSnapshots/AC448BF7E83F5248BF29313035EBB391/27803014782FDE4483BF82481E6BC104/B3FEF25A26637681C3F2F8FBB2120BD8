@@ -1,0 +1,535 @@
+﻿@page "/"
+@using FiberHelp.Models
+@inject FiberHelp.Services.AuthService AuthService
+@inject FiberHelp.Services.AdminService AdminService
+@inject FiberHelp.Services.BillingService BillingService
+@inject NavigationManager Navigation
+
+<link href="css/dashboard.css" rel="stylesheet" />
+<style>
+/* Clean-room styles inspired by modern admin dashboards */
+.kpi-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:20px;margin-bottom:18px;align-items:stretch}
+.kpi-card{padding:20px;border-radius:14px;color:#fff;display:flex;flex-direction:column;justify-content:space-between;min-height:180px;box-shadow:0 8px 20px rgba(2,6,23,0.06)}
+.kpi-icon{width:44px;height:44px;border-radius:10px;background:rgba(255,255,255,0.12);display:grid;place-items:center}
+.kpi-content .kpi-header{font-weight:700;margin-bottom:8px;color:rgba(255,255,255,0.95)}
+.kpi-content h2{font-size:32px;margin:0 0 6px 0;font-weight:900}
+.kpi-content .kpi-sub{opacity:0.95}
+.kpi-trend .trend-badge{display:inline-block;padding:6px 10px;border-radius:999px;background:rgba(255,255,255,0.12);font-weight:700}
+.card-gradient-red{background:linear-gradient(135deg,#f87171,#ef4444)}
+.card-gradient-blue{background:linear-gradient(135deg,#60a5fa,#3b82f6)}
+.card-gradient-purple{background:linear-gradient(135deg,#a78bfa,#8b5cf6)}
+.card-gradient-green{background:linear-gradient(135deg,#34d399,#10b981)}
+
+/* Interactions */
+.clickable{cursor:pointer;position:relative}
+.kpi-card.clickable:hover{transform:translateY(-6px) scale(1.01);box-shadow:0 18px 40px rgba(2,6,23,0.18)}
+.chart-card.clickable:hover{box-shadow:0 16px 36px rgba(2,6,23,0.14)}
+.kpi-card:focus-within{outline:3px solid rgba(255,255,255,0.45)}
+
+/* keep existing rules below */
+.toolbar {display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}
+.toolbar-left{display:flex;gap:8px;align-items:center}
+.chip{border:1px solid #e5e7eb;border-radius:999px;padding:6px 10px;font-size:12.5px;color:#334155;background:#fff}
+.chip.primary{border-color:#c7d2fe;color:#4338ca;background:#eef2ff}
+.chip .dot{width:8px;height:8px;border-radius:999px;background:#6366f1;margin-right:6px;display:inline-block}
+
+.grid-2{display:grid;grid-template-columns:2fr 1.3fr;gap:16px;margin-bottom:16px}
+.card{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:14px}
+.card h4{margin:0 0 6px 0;font-weight:800;color:#0f172a}
+.muted{color:#64748b;font-size:12.5px}
+
+/* small KPI row */
+.mini-kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:16px}
+.mini{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:12px}
+.mini .label{font-weight:700;color:#334155;font-size:12.5px;margin-bottom:6px}
+.mini .value{font-weight:900;font-size:18px;color:#0f172a}
+.mini .sub{font-size:12px;color:#94a3b8}
+
+/* simple charts */
+.bars{height:170px;display:flex;align-items:flex-end;gap:10px}
+.bar{flex:1;background:linear-gradient(180deg,#c7d2fe,#e0e7ff);border:1px solid #c7d2fe;border-radius:6px}
+.months{display:flex;justify-content:space-between;font-size:11.5px;color:#64748b;margin-top:6px}
+
+.gauge-wrap{display:flex;align-items:center;justify-content:center;height:200px}
+
+.line-wrap{height:220px}
+.line-canvas{width:100%;height:160px}
+.line-legend{display:flex;gap:12px;font-size:12px;color:#64748b;margin-top:6px}
+.legend-dot{width:10px;height:10px;border-radius:50%;display:inline-block;margin-right:6px}
+
+/* Responsive: 2 columns on medium, 1 on small */
+@@media (max-width:1200px) {
+  .kpi-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
+}
+@@media (max-width:640px) {
+  .kpi-grid { grid-template-columns: repeat(1, minmax(0,1fr)); }
+  .kpi-content h2 { font-size:28px; }
+}
+</style>
+
+<div class="dashboard-root">
+  <header class="topbar">
+    <div class="topbar-left">
+      <p class="eyebrow">FIBERHELP · @GetRoleLabel()</p>
+      <h1 class="page-title">Dashboard</h1>
+      <p class="welcome-text">Welcome back, @(AuthService.FullName ?? "User")! Here's what's happening today.</p>
+    </div>
+    <div class="top-actions">
+      @if (!(AuthService.Role ?? "").Equals("Agent", StringComparison.OrdinalIgnoreCase))
+      {
+        <button class="btn-icon" @onclick="() => {}">
+          <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+          </svg>
+        </button>
+        <button class="btn subtle" @onclick="ExportData">
+          <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+          </svg>
+          Export
+        </button>
+      }
+      <UserPill />
+    </div>
+  </header>
+
+  <div class="toolbar">
+    <div class="toolbar-left">
+      <span class="chip primary"><span class="dot"></span> Overview</span>
+      <span class="chip">Sort</span>
+      <span class="chip">Filter</span>
+    </div>
+    <div class="toolbar-right">
+      <span class="chip">Last Month</span>
+    </div>
+  </div>
+
+  <!-- KPI row (Tickets-focused KPIs kept) -->
+  <section class="kpi-grid">
+    <article class="kpi-card card-gradient-red clickable" role="button" tabindex="0" @onclick="GoToTickets" @onkeydown="(e=>OnCardKey(e, GoToTickets))">
+      <div class="kpi-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="kpi-content">
+        <div class="kpi-header">Open Tickets</div>
+        <h2>@OpenTickets</h2>
+        <p class="kpi-sub">Need attention</p>
+      </div>
+      <div class="kpi-trend"><span class="trend-badge">@OpenTrend</span></div>
+    </article>
+
+    <article class="kpi-card card-gradient-blue clickable" role="button" tabindex="0" @onclick="GoToTickets" @onkeydown="(e=>OnCardKey(e, GoToTickets))">
+      <div class="kpi-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="kpi-content">
+        <div class="kpi-header">Total Tickets</div>
+        <h2>@TotalTickets</h2>
+        <p class="kpi-sub">Visible in system</p>
+      </div>
+      <div class="kpi-trend"><span class="trend-badge">@TotalTrend</span></div>
+    </article>
+
+    <article class="kpi-card card-gradient-purple clickable" role="button" tabindex="0" @onclick="GoToReports" @onkeydown="(e=>OnCardKey(e, GoToReports))">
+      <div class="kpi-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 8v4l3 3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="kpi-content">
+        <div class="kpi-header">Avg Response</div>
+        <h2>@AvgResponseLabel</h2>
+        <p class="kpi-sub">Estimated</p>
+      </div>
+      <div class="kpi-trend"><span class="trend-badge">@AvgTrend</span></div>
+    </article>
+
+    <article class="kpi-card card-gradient-green clickable" role="button" tabindex="0" @onclick="GoToTickets" @onkeydown="(e=>OnCardKey(e, GoToTickets))">
+      <div class="kpi-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 12l2 2 4-4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="kpi-content">
+        <div class="kpi-header">Resolved</div>
+        <h2>@ResolvedThisWeek</h2>
+        <p class="kpi-sub">This week</p>
+      </div>
+      <div class="kpi-trend"><span class="trend-badge">@ResolvedTrend</span></div>
+    </article>
+  </section>
+
+  <!-- Subsystem-related charts -->
+  <section class="charts-section">
+    <div class="chart-card clickable" role="button" tabindex="0" @onclick="GoToTickets" @onkeydown="(e=>OnCardKey(e, GoToTickets))">
+      <div class="chart-header">
+        <h3>Tickets by Status</h3>
+        <p class="chart-subtitle">Open vs In Progress vs Resolved vs Closed</p>
+      </div>
+      <div class="chart-body">
+        <div class="donut-container">
+          <div class="donut-wrap" style="width:180px;height:180px;">
+            <svg class="donut" width="180" height="180" viewBox="0 0 180 180" role="img" aria-label="Tickets by status">
+              <circle cx="90" cy="90" r="70" stroke="#e5e7eb" stroke-width="20" fill="transparent"></circle>
+              @foreach (var s in TicketDonut)
+              {
+                <circle cx="90" cy="90" r="70" stroke="@s.Color" stroke-width="20" fill="transparent" stroke-dasharray="@s.Dash @s.Gap" stroke-dashoffset="-@s.Offset"></circle>
+              }
+            </svg>
+            <div class="donut-center">
+              <div class="donut-total">@TotalTickets</div>
+              <div class="donut-label">total</div>
+            </div>
+          </div>
+          <div class="legend-wrap">
+            <ul class="legend-list">
+              @foreach (var s in TicketDonut)
+              {
+                <li>
+                  <span class="legend-dot" style="background:@s.Color"></span>
+                  <span class="legend-label">@s.Label</span>
+                  <span class="legend-value">@s.Count</span>
+                  <span class="legend-percent">@s.Percent%</span>
+                </li>
+              }
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="chart-card clickable" role="button" tabindex="0" @onclick="GoToBilling" @onkeydown="(e=>OnCardKey(e, GoToBilling))">
+      <div class="chart-header">
+        <h3>Billing · Invoices by Status</h3>
+        <p class="chart-subtitle">Paid vs Pending</p>
+      </div>
+      <div class="chart-body">
+        <div class="donut-container">
+          <div class="donut-wrap" style="width:180px;height:180px;">
+            <svg class="donut" width="180" height="180" viewBox="0 0 180 180" role="img" aria-label="Invoices by status">
+              <circle cx="90" cy="90" r="70" stroke="#e5e7eb" stroke-width="20" fill="transparent"></circle>
+              @foreach (var s in InvoiceDonut)
+              {
+                <circle cx="90" cy="90" r="70" stroke="@s.Color" stroke-width="20" fill="transparent" stroke-dasharray="@s.Dash @s.Gap" stroke-dashoffset="-@s.Offset"></circle>
+              }
+            </svg>
+            <div class="donut-center">
+              <div class="donut-total">@TotalInvoices</div>
+              <div class="donut-label">invoices</div>
+            </div>
+          </div>
+          <div class="legend-wrap">
+            <ul class="legend-list">
+              @foreach (var s in InvoiceDonut)
+              {
+                <li>
+                  <span class="legend-dot" style="background:@s.Color"></span>
+                  <span class="legend-label">@s.Label</span>
+                  <span class="legend-value">@s.Count</span>
+                  <span class="legend-percent">@s.Percent%</span>
+                </li>
+              }
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="card clickable" role="button" tabindex="0" @onclick="GoToCustomers" @onkeydown="(e=>OnCardKey(e, GoToCustomers))">
+    <h4>Customer Growth</h4>
+    <div class="muted">New customers (last 6 months)</div>
+    <div class="line-wrap">
+      <svg class="line-canvas" viewBox="0 0 600 180" preserveAspectRatio="none" role="img" aria-label="Customer growth line">
+        <path d="@CustomerLinePath" fill="none" stroke="#3b82f6" stroke-width="3"></path>
+      </svg>
+      <div class="line-legend">
+        @foreach (var m in Last6Months)
+        {
+          <span>@m</span>
+        }
+      </div>
+    </div>
+  </div>
+
+  <!-- LATEST TICKETS TABLE -->
+  <section class="tickets-section">
+    <div class="panel modern-panel">
+      <div class="panel-head">
+        <div>
+          <h2>Latest Tickets</h2>
+          <p class="muted-text">Most recent customer issues</p>
+        </div>
+        <div class="panel-actions">
+          <div class="filter-pill">This week</div>
+          <button class="btn-text" @onclick="NavigateToTickets">View all ?</button>
+        </div>
+      </div>
+
+      <div class="table-wrapper">
+        <table class="data-table modern-table">
+          <thead>
+            <tr>
+              <th>Ticket #</th>
+              <th>Customer</th>
+              <th>Subject</th>
+              <th>Status</th>
+              <th>Priority</th>
+              <th>Created</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            @if (tickets != null && tickets.Any())
+            {
+              foreach (var t in tickets.Take(5))
+              {
+                <tr>
+                  <td><span class="ticket-id">#@t.Id</span></td>
+                  <td>
+                    <div class="customer-cell">
+                      <div class="customer-avatar">@GetInitials(t.Customer)</div>
+                      <span>@t.Customer</span>
+                    </div>
+                  </td>
+                  <td><span class="ticket-subject">@t.Title</span></td>
+                  <td><span class="status-pill @GetStatusClass(t.Status)">@t.Status</span></td>
+                  <td><span class="priority-badge @GetPriorityClass(t.Priority)">@t.Priority</span></td>
+                  <td><span class="time-ago">@GetTimeAgo(t.Created)</span></td>
+                  <td>
+                    <button class="btn-action" @onclick="NavigateToTickets">
+                      <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                      </svg>
+                    </button>
+                  </td>
+                </tr>
+              }
+            }
+            else
+            {
+              <tr>
+                <td colspan="7" class="no-data">
+                  <svg width="48" height="48" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+                  </svg>
+                  <p>No tickets available</p>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+</div>
+
+@code {
+  private List<Ticket>? tickets;
+  private List<Client>? customers;
+  private List<Invoice>? invoices;
+
+  // KPI computed properties (tickets-focused)
+  private int OpenTickets { get; set; }
+  private int TotalTickets { get; set; }
+  private string AvgResponseLabel { get; set; } = "0 hrs";
+  private int ResolvedThisWeek { get; set; }
+  private string OpenTrend { get; set; } = "+0%";
+  private string TotalTrend { get; set; } = "0";
+  private string AvgTrend { get; set; } = "-";
+  private string ResolvedTrend { get; set; } = "+0%";
+
+  // Donut data structures
+  private const double DonutRadius = 70.0;
+  private double Circ => 2 * Math.PI * DonutRadius;
+  private record DonutSeg(string Label, int Count, string Color, string Percent, string Dash, string Gap, string Offset);
+  private List<DonutSeg> TicketDonut = new();
+  private List<DonutSeg> InvoiceDonut = new();
+  private int TotalInvoices => invoices?.Count ?? 0;
+
+  // Customer growth line (last 6 months)
+  private double[] CustomerGrowth = Array.Empty<double>();
+  private string[] Last6Months = Array.Empty<string>();
+  private string CustomerLinePath => BuildLinePath(CustomerGrowth);
+
+  protected override async Task OnInitializedAsync()
+  {
+    AuthService.AuthenticationStateChanged += OnAuthChanged;
+    if (!AuthService.IsAuthenticated)
+    {
+      Navigation.NavigateTo("/login", true);
+      return;
+    }
+
+    await LoadDataAsync();
+  }
+
+  private async void OnAuthChanged()
+  {
+    if (AuthService.IsAuthenticated)
+    {
+      await LoadDataAsync();
+    }
+    else
+    {
+      Navigation.NavigateTo("/login", true);
+    }
+    StateHasChanged();
+  }
+
+  private async Task LoadDataAsync()
+  {
+    tickets = await AdminService.GetTicketsAsync();
+    customers = await AdminService.GetCustomersAsync();
+    invoices = await BillingService.GetInvoicesAsync();
+    ComputeKpis();
+    BuildTicketDonut();
+    BuildInvoiceDonut();
+    BuildCustomerGrowth();
+    StateHasChanged();
+  }
+
+  private void ComputeKpis()
+  {
+    TotalTickets = tickets?.Count ?? 0;
+    OpenTickets = tickets?.Count(t => string.Equals(t.Status, "Open", StringComparison.OrdinalIgnoreCase)) ?? 0;
+
+    // Average response: estimate as average age (hours) of tickets (fallback)
+    if (tickets != null && tickets.Count > 0)
+    {
+      var avgHours = tickets.Average(t => (DateTime.UtcNow - t.Created).TotalHours);
+      AvgResponseLabel = $"~{Math.Round(avgHours)} hrs";
+    }
+    else AvgResponseLabel = "0 hrs";
+
+    // Resolved this week (based on Created timestamp and status)
+    var weekAgo = DateTime.UtcNow.AddDays(-7);
+    ResolvedThisWeek = tickets?.Count(t => (string.Equals(t.Status, "Resolved", StringComparison.OrdinalIgnoreCase) || string.Equals(t.Status, "Closed", StringComparison.OrdinalIgnoreCase)) && t.Created >= weekAgo) ?? 0;
+
+    // Simple trend placeholders – computed from current snapshot
+    OpenTrend = TotalTickets > 0 ? $"+{Math.Round((double)OpenTickets / Math.Max(1, TotalTickets) * 100)}%" : "+0%";
+    TotalTrend = "Same";
+    AvgTrend = "-5%";
+    ResolvedTrend = ResolvedThisWeek > 0 ? $"+{ResolvedThisWeek}%" : "+0%";
+  }
+
+  private void BuildTicketDonut()
+  {
+    var statusGroups = new (string key, string label, string color)[] {
+      ("Open", "Open", "#3b82f6"),
+      ("In Progress", "In Progress", "#f59e0b"),
+      ("Resolved", "Resolved", "#10b981"),
+      ("Closed", "Closed", "#94a3b8")
+    };
+
+    var counts = statusGroups.Select(s => new {
+      s.label, s.color,
+      count = tickets?.Count(t => string.Equals(t.Status, s.key, StringComparison.OrdinalIgnoreCase)) ?? 0
+    }).ToList();
+
+    TicketDonut = BuildDonut(counts.Select(c => (c.label, c.count, c.color)).ToList());
+  }
+
+  private void BuildInvoiceDonut()
+  {
+    var statusGroups = new (string key, string label, string color)[] {
+      ("Paid", "Paid", "#10b981"),
+      ("Pending", "Pending", "#f59e0b")
+    };
+    var counts = statusGroups.Select(s => new {
+      s.label, s.color,
+      count = invoices?.Count(i => string.Equals(i.Status, s.key, StringComparison.OrdinalIgnoreCase)) ?? 0
+    }).ToList();
+
+    InvoiceDonut = BuildDonut(counts.Select(c => (c.label, c.count, c.color)).ToList());
+  }
+
+  private List<DonutSeg> BuildDonut(List<(string label, int count, string color)> items)
+  {
+    var total = Math.Max(1, items.Sum(i => i.count));
+    double acc = 0;
+    var list = new List<DonutSeg>();
+    foreach (var it in items)
+    {
+      var percent = (double)it.count / total;
+      var dash = percent * Circ;
+      var gap = Circ - dash;
+      var seg = new DonutSeg(it.label, it.count, it.color,
+        Math.Round(percent * 100).ToString(),
+        dash.ToString("F2"),
+        gap.ToString("F2"),
+        acc.ToString("F2"));
+      list.Add(seg);
+      acc += dash;
+    }
+    return list;
+  }
+
+  private void BuildCustomerGrowth()
+  {
+    var labels = new List<string>();
+    var data = new List<double>();
+    for (int i = 5; i >= 0; i--)
+    {
+      var dt = DateTime.UtcNow.AddMonths(-i);
+      labels.Add(dt.ToString("MMM"));
+      var monthStart = new DateTime(dt.Year, dt.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+      var monthEnd = monthStart.AddMonths(1);
+      var count = customers?.Count(c => c.JoinDate >= monthStart && c.JoinDate < monthEnd) ?? 0;
+      data.Add(count);
+    }
+    Last6Months = labels.ToArray();
+    CustomerGrowth = data.ToArray();
+  }
+
+  private string BuildLinePath(double[] pts)
+  {
+    if (pts == null || pts.Length == 0) return string.Empty;
+    var max = Math.Max(1.0, pts.Max());
+    var step = 600.0 / (pts.Length - 1);
+    var d = $"M 0 {180 - (pts[0] / max) * 160}";
+    for (int i = 1; i < pts.Length; i++) d += $" L {i * step} {180 - (pts[i] / max) * 160}";
+    return d;
+  }
+
+  private string GetTimeAgo(DateTime date)
+  {
+    var span = DateTime.UtcNow - date;
+    if (span.TotalMinutes < 1) return "Just now";
+    if (span.TotalMinutes < 60) return $"{(int)span.TotalMinutes}m ago";
+    if (span.TotalHours < 24) return $"{(int)span.TotalHours}h ago";
+    if (span.TotalDays < 7) return $"{(int)span.TotalDays}d ago";
+    return date.ToString("MMM dd");
+  }
+
+  private void ExportData() => Navigation.NavigateTo("/customers");
+  private void NavigateToTickets() => Navigation.NavigateTo("/tickets");
+  private void GoToTickets() => Navigation.NavigateTo("/tickets");
+  private void GoToCustomers() => Navigation.NavigateTo("/customers");
+  private void GoToBilling() => Navigation.NavigateTo("/billing");
+  private void GoToReports() => Navigation.NavigateTo("/reports");
+  private void GoToAgents() => Navigation.NavigateTo("/agents");
+  private void GoToAccounts() => Navigation.NavigateTo("/accounts");
+
+  private void OnCardKey(KeyboardEventArgs e, Action navigate)
+  {
+    if e == null) return;
+    if e.Key == "Enter" || e.Key == " " || e.Code == "Space") navigate();
+  }
+
+  private string GetStatusClass(string status) => status?.ToLower().Replace(" ", "") ?? "unknown";
+  private string GetPriorityClass(string priority) => "priority-" + (priority?.ToLower() ?? "medium");
+
+  private string GetInitials(string name)
+  {
+    if (string.IsNullOrWhiteSpace(name)) return "?";
+    var parts = name.Split(new[] { ' ', '@', '.' }, StringSplitOptions.RemoveEmptyEntries);
+    if (parts.Length >= 2) return (parts[0][0].ToString() + parts[1][0].ToString()).ToUpper();
+    return parts[0].Length >= 2 ? parts[0].Substring(0, 2).ToUpper() : parts[0][0].ToString().ToUpper();
+  }
+
+  private string GetRoleLabel()
+  {
+    var role = AuthService?.Role;
+    if (string.IsNullOrWhiteSpace(role)) return "GUEST";
+    return role.ToUpperInvariant() + " VIEW";
+  }
+
+  public void Dispose() => AuthService.AuthenticationStateChanged -= OnAuthChanged;
+}

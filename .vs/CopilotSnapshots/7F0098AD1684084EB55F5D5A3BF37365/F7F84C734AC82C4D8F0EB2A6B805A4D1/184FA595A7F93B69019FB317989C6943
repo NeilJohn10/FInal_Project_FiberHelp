@@ -1,0 +1,109 @@
+﻿@page "/reports"
+@inject FiberHelp.Services.AuthService AuthService
+@inject NavigationManager Navigation
+@inject FiberHelp.Services.AdminService AdminService
+@inject Microsoft.JSInterop.IJSRuntime JS
+
+<link href="css/reports.css" rel="stylesheet" />
+
+<div>
+ <AdminHeader Title="Reports" RoleLabel="@GetRoleLabel()" ShowSearch="true" SearchPlaceholder="Search reports"
+              SearchTerm="@searchTerm" SearchTermChanged="@OnReportsSearchChanged"
+              ShowExport="true" Export="@ExportReports"
+              ShowPrimary="false" />
+ <section class="panel">
+ <h3>Ticket Summary</h3>
+ <div style="display:flex;gap:20px;">
+ <div class="kpi">
+ <div class="kpi-value">@totalTickets</div>
+ <div class="kpi-label">Total Tickets</div>
+ </div>
+ <div class="kpi">
+ <div class="kpi-value">@openTickets</div>
+ <div class="kpi-label">Open</div>
+ </div>
+ <div class="kpi">
+ <div class="kpi-value">@resolvedTickets</div>
+ <div class="kpi-label">Resolved</div>
+ </div>
+ </div>
+
+ <h3 style="margin-top:18px;">Recent Tickets</h3>
+ <table class="data-table">
+ <thead><tr><th>#</th><th>Subject</th><th>Customer</th><th>Status</th><th>Created</th></tr></thead>
+ <tbody>
+ @if (recentTickets != null)
+ {
+ foreach (var t in recentTickets)
+ {
+ <tr>
+ <td>@t.Id</td>
+ <td>@t.Title</td>
+ <td>@(string.IsNullOrWhiteSpace(t.CustomerName) ? t.Customer : t.CustomerName)</td>
+ <td>@t.Status</td>
+ <td>@t.Created.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</td>
+ </tr>
+ }
+ }
+ </tbody>
+ </table>
+ </section>
+ <Toast Message="@toast" />
+</div>
+
+@code {
+ private int totalTickets =0;
+ private int openTickets =0;
+ private int resolvedTickets =0;
+ private List<FiberHelp.Models.Ticket>? recentTickets;
+ private string searchTerm = string.Empty;
+ private string toast = string.Empty;
+
+ protected override async Task OnInitializedAsync()
+ {
+ if (!AuthService.IsAuthenticated) { Navigation.NavigateTo("/login", true); return; }
+ var tickets = await AdminService.GetTicketsAsync();
+ totalTickets = tickets.Count;
+ openTickets = tickets.Count(t => t.Status == "Open");
+ resolvedTickets = tickets.Count(t => t.Status == "Resolved");
+ var list = tickets.Take(10).ToList();
+ recentTickets = string.IsNullOrWhiteSpace(searchTerm) ? list : list.Where(t => (t.Title ?? string.Empty).Contains(searchTerm, StringComparison.OrdinalIgnoreCase) || (t.CustomerName ?? t.Customer ?? string.Empty).Contains(searchTerm, StringComparison.OrdinalIgnoreCase)).ToList();
+ }
+
+ private string GetRoleLabel()
+ {
+ var role = AuthService?.Role;
+ if (string.IsNullOrWhiteSpace(role)) return "GUEST";
+ return role.ToUpperInvariant();
+ }
+
+ private string GetAvatarLetters()
+ {
+ var name = AuthService?.Email ?? "";
+ if (string.IsNullOrWhiteSpace(name)) return "FH";
+ var parts = name.Split('@');
+ var left = parts[0];
+ if (left.Length >=2) return left.Substring(0,2).ToUpperInvariant();
+ return left.ToUpperInvariant();
+ }
+
+ private async void ExportReports()
+ {
+ var rows = recentTickets ?? new List<FiberHelp.Models.Ticket>();
+ var csv = new System.Text.StringBuilder();
+ csv.AppendLine("Id,Title,Customer,Status,Created");
+ foreach(var t in rows)
+ csv.AppendLine($"{t.Id},{Escape(t.Title)},{Escape(t.CustomerName ?? t.Customer)},{t.Status},{t.Created:yyyy-MM-dd HH:mm}");
+ await JS.InvokeAsync<bool>("FiberExport.saveFile", "reports.csv", csv.ToString());
+ toast = "Reports exported"; StateHasChanged(); await Task.Delay(2000); toast = string.Empty; StateHasChanged();
+ }
+
+ string Escape(string? s) => string.IsNullOrEmpty(s) ? "" : s!.Replace("\"","\"""");
+
+ private Task OnReportsSearchChanged(string val)
+ {
+ searchTerm = val;
+ StateHasChanged();
+ return Task.CompletedTask;
+ }
+}

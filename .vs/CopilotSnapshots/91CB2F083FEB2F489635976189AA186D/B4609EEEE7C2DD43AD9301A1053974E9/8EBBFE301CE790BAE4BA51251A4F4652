@@ -1,0 +1,58 @@
+﻿using Microsoft.Extensions.Logging;
+using FiberHelp.Services;
+using Microsoft.EntityFrameworkCore;
+using FiberHelp.Data;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace FiberHelp
+{
+    public static class MauiProgram
+    {
+        public static MauiApp CreateMauiApp()
+        {
+            var builder = MauiApp.CreateBuilder();
+            builder
+                .UseMauiApp<App>()
+                .ConfigureFonts(fonts =>
+                {
+                    fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
+                });
+
+            builder.Services.AddMauiBlazorWebView();
+            
+            // Change AuthService to Singleton to persist authentication state across navigations
+            builder.Services.AddSingleton<AuthService>();
+            builder.Services.AddScoped<AdminService>();
+            builder.Services.AddScoped<BillingService>();
+
+            // IMPORTANT: match the actual database name in SSMS (FiberhelpDB)
+            var connectionString = builder.Configuration["ConnectionStrings:DefaultConnection"]
+                ?? "Server=(localdb)\\mssqllocaldb;Database=FiberhelpDB;Trusted_Connection=True;MultipleActiveResultSets=true"; // fixed name
+
+            builder.Services.AddDbContext<AppDbContext>(options => options.UseSqlServer(connectionString));
+
+#if DEBUG
+            builder.Services.AddBlazorWebViewDeveloperTools();
+            builder.Logging.AddDebug();
+#endif
+
+            var app = builder.Build();
+
+            try
+            {
+                using var scope = app.Services.CreateScope();
+                var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+                // Use EnsureCreated since schema managed manually via SQL scripts
+                db.Database.EnsureCreated();
+                System.Diagnostics.Debug.WriteLine($"[DB] Connected to: {db.Database.GetDbConnection().DataSource} / {db.Database.GetDbConnection().Database}");
+                DbInitializer.Initialize(db);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Database init failed: {ex.Message}");
+            }
+
+            return app;
+        }
+    }
+}

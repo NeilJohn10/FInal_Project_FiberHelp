@@ -1,0 +1,76 @@
+﻿-- Migration script to add archive columns to Agents, Technicians, and Accounts tables
+-- Run this script against your database to add archive functionality
+
+-- ============================================
+-- AGENTS TABLE - Add Archive Columns
+-- ============================================
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('Agents') AND name = 'IsArchived')
+BEGIN
+    ALTER TABLE Agents ADD IsArchived BIT NOT NULL DEFAULT 0;
+    PRINT 'Added IsArchived to Agents table';
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('Agents') AND name = 'ArchivedAt')
+BEGIN
+    ALTER TABLE Agents ADD ArchivedAt DATETIME2 NULL;
+    PRINT 'Added ArchivedAt to Agents table';
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('Agents') AND name = 'ArchivedBy')
+BEGIN
+    ALTER TABLE Agents ADD ArchivedBy NVARCHAR(100) NULL;
+    PRINT 'Added ArchivedBy to Agents table';
+END
+GO
+
+-- ============================================
+-- TECHNICIANS TABLE - Add Archive Columns
+-- ============================================
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('Technicians') AND name = 'IsArchived')
+BEGIN
+    ALTER TABLE Technicians ADD IsArchived BIT NOT NULL DEFAULT 0;
+    PRINT 'Added IsArchived to Technicians table';
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('Technicians') AND name = 'ArchivedAt')
+BEGIN
+    ALTER TABLE Technicians ADD ArchivedAt DATETIME2 NULL;
+    PRINT 'Added ArchivedAt to Technicians table';
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('Technicians') AND name = 'ArchivedBy')
+BEGIN
+    ALTER TABLE Technicians ADD ArchivedBy NVARCHAR(100) NULL;
+    PRINT 'Added ArchivedBy to Technicians table';
+END
+GO
+
+-- ============================================
+-- ACCOUNTS TABLE - Add Archive Columns
+-- ============================================
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('Accounts') AND name = 'IsArchived')
+BEGIN
+    ALTER TABLE Accounts ADD IsArchived BIT NOT NULL DEFAULT 0;
+    PRINT 'Added IsArchived to Accounts table';
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('Accounts') AND name = 'ArchivedAt')
+BEGIN
+    ALTER TABLE Accounts ADD ArchivedAt DATETIME2 NULL;
+    PRINT 'Added ArchivedAt to Accounts table';
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('Accounts') AND name = 'ArchivedBy')
+BEGIN
+    ALTER TABLE Accounts ADD ArchivedBy NVARCHAR(100) NULL;
+    PRINT 'Added ArchivedBy to Accounts table';
+END
+GO
+
+PRINT 'Archive columns migration complete!';

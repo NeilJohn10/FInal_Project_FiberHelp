@@ -1,0 +1,353 @@
+﻿using System;
+using System.Text.Json;
+using System.Threading;
+using System.Threading.Tasks;
+using FiberHelp.Data;
+using FiberHelp.Data.context;
+using FiberHelp.Models;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace FiberHelp.Services
+{
+    public class DualWriteService
+    {
+        private readonly IServiceScopeFactory _scopeFactory;
+
+        public DualWriteService(IServiceScopeFactory scopeFactory)
+        {
+            _scopeFactory = scopeFactory;
+        }
+
+        public async Task EnqueueAsync<T>(string operation, T entity, string? key = null) where T : class
+        {
+            using var scope = _scopeFactory.CreateScope();
+            var local = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+            await EnsureOutboxTableAsync(local);
+            try { await local.Database.EnsureCreatedAsync(); } catch { }
+
+            // 1) Apply change to LOCAL DB immediately
+            await ApplyLocalAsync(local, operation, entity);
+            await local.SaveChangesAsync();
+
+            // 2) Enqueue message so the cloud gets the change
+            var json = JsonSerializer.Serialize(entity);
+            local.Outbox.Add(new OutboxMessage
+            {
+                EntityName = typeof(T).Name,
+                Operation = operation,
+                Payload = json,
+                Key = key,
+                CreatedAt = DateTime.UtcNow
+            });
+            await local.SaveChangesAsync();
+        }
+
+        // New: Only enqueue to Outbox (no second local write)
+        public async Task EnqueueOnlyAsync<T>(string operation, T entity, string? key = null) where T : class
+        {
+            using var scope = _scopeFactory.CreateScope();
+            var local = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+            await EnsureOutboxTableAsync(local);
+            try { await local.Database.EnsureCreatedAsync(); } catch { }
+
+            var json = JsonSerializer.Serialize(entity);
+            local.Outbox.Add(new OutboxMessage
+            {
+                EntityName = typeof(T).Name,
+                Operation = operation,
+                Payload = json,
+                Key = key,
+                CreatedAt = DateTime.UtcNow
+            });
+            await local.SaveChangesAsync();
+        }
+
+        private static Task ApplyLocalAsync<T>(DbContext local, string operation, T entity) where T : class
+        {
+            try
+            {
+                var payload = JsonSerializer.Serialize(entity);
+                var copy = JsonSerializer.Deserialize<T>(payload);
+                if (copy == null) return Task.CompletedTask;
+
+                switch (operation)
+                {
+                    case "Create":
+                        local.Set<T>().Add(copy);
+                        break;
+                    case "Update":
+                        local.Set<T>().Update(copy);
+                        break;
+                    case "Delete":
+                        local.Set<T>().Remove(copy);
+                        break;
+                }
+            }
+            catch { }
+            return Task.CompletedTask;
+        }
+
+        public static async Task EnsureOutboxTableAsync(DbContext local)
+        {
+            try
+            {
+                var provider = local.Database.ProviderName ?? string.Empty;
+                if (provider.Contains("Sqlite", StringComparison.OrdinalIgnoreCase))
+                {
+                    await local.Database.ExecuteSqlRawAsync(
+                        "CREATE TABLE IF NOT EXISTS OutboxMessages (\n" +
+                        " Id INTEGER PRIMARY KEY AUTOINCREMENT,\n" +
+                        " EntityName TEXT NOT NULL,\n" +
+                        " Operation TEXT NOT NULL,\n" +
+                        " Payload TEXT NOT NULL,\n" +
+                        " Key TEXT NULL,\n" +
+                        " CreatedAt TEXT NOT NULL,\n" +
+                        " ProcessedAt TEXT NULL\n" +
+                        ")");
+                }
+                else if (provider.Contains("SqlServer", StringComparison.OrdinalIgnoreCase))
+                {
+                    await local.Database.ExecuteSqlRawAsync(@"
+IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = 'dbo' AND TABLE_NAME = 'OutboxMessages')
+BEGIN
+    CREATE TABLE [dbo].[OutboxMessages](
+        [Id] INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+        [EntityName] NVARCHAR(100) NOT NULL,
+        [Operation] NVARCHAR(20) NOT NULL,
+        [Payload] NVARCHAR(MAX) NOT NULL,
+        [Key] NVARCHAR(100) NULL,
+        [CreatedAt] DATETIME2 NOT NULL,
+        [ProcessedAt] DATETIME2 NULL
+    );
+END");
+                }
+                else
+                {
+                    await local.Database.EnsureCreatedAsync();
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"EnsureOutboxTableAsync error: {ex.Message}");
+            }
+        }
+    }
+
+    public class OutboxProcessor
+    {
+        private readonly IServiceScopeFactory _scopeFactory;
+        private static readonly TimeSpan Interval = TimeSpan.FromSeconds(10);
+        private CancellationTokenSource? _cts;
+
+        public OutboxProcessor(IServiceScopeFactory scopeFactory)
+        {
+            _scopeFactory = scopeFactory;
+        }
+
+        public void Start()
+        {
+            _cts = new CancellationTokenSource();
+            _ = Task.Run(() => RunAsync(_cts.Token));
+        }
+
+        public void Stop()
+        {
+            _cts?.Cancel();
+        }
+
+        private async Task RunAsync(CancellationToken token)
+        {
+            while (!token.IsCancellationRequested)
+            {
+                try
+                {
+                    using var scope = _scopeFactory.CreateScope();
+                    var online = scope.ServiceProvider.GetRequiredService<onlineContext>();
+                    var local = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+                    try { if (!online.Database.CanConnect()) goto Sleep; } catch { goto Sleep; }
+
+                    await DualWriteService.EnsureOutboxTableAsync(local);
+
+                    var batch = await local.Outbox
+                        .OrderBy(o => o.Id)
+                        .Where(o => o.ProcessedAt == null)
+                        .Take(200)
+                        .ToListAsync(token);
+
+                    if (batch.Count == 0) goto Sleep;
+
+                    // Reorder by dependency to reduce FK issues
+                    int Priority(OutboxMessage m) => m.EntityName switch
+                    {
+                        nameof(Account) => 0,
+                        nameof(Client) => 1,
+                        nameof(User) => 2,
+                        nameof(Agent) => 3,
+                        nameof(Invoice) => 4,
+                        nameof(Ticket) => 5,
+                        _ => 9
+                    };
+                    var ordered = batch.OrderBy(Priority).ThenBy(m => m.Id).ToList();
+
+                    foreach (var msg in ordered)
+                    {
+                        try
+                        {
+                            switch (msg.EntityName)
+                            {
+                                case nameof(Ticket):
+                                    await ApplyAsync<Ticket>(online, msg);
+                                    break;
+                                case nameof(Client):
+                                    await ApplyClientAsync(online, msg);
+                                    break;
+                                case nameof(Account):
+                                    await ApplyAccountAsync(online, msg);
+                                    break;
+                                case nameof(Invoice):
+                                    await ApplyAsync<Invoice>(online, msg);
+                                    break;
+                                case nameof(User):
+                                    await ApplyAsync<User>(online, msg);
+                                    break;
+                                case nameof(Agent):
+                                    await ApplyAsync<Agent>(online, msg);
+                                    break;
+                                default:
+                                    msg.ProcessedAt = DateTime.UtcNow;
+                                    break;
+                            }
+
+                            // Try saving just this change
+                            var changed = online.ChangeTracker.HasChanges();
+                            if (changed)
+                            {
+                                await online.SaveChangesAsync(token);
+                            }
+                            // Mark processed on success
+                            msg.ProcessedAt = DateTime.UtcNow;
+                            await local.SaveChangesAsync(token);
+                        }
+                        catch (Exception ex)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"OutboxProcessor message error Id={msg.Id} Entity={msg.EntityName} Op={msg.Operation}: {ex.Message}");
+                            // leave ProcessedAt null to retry next cycle
+                            // Clear pending changes to avoid blocking subsequent messages
+                            try
+                            {
+                                foreach (var entry in online.ChangeTracker.Entries().ToList())
+                                {
+                                    switch (entry.State)
+                                    {
+                                        case EntityState.Added:
+                                        case EntityState.Modified:
+                                        case EntityState.Deleted:
+                                            entry.State = EntityState.Detached;
+                                            break;
+                                    }
+                                }
+                            }
+                            catch { }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"OutboxProcessor cycle error: {ex.Message}");
+                }
+
+            Sleep:
+                try { await Task.Delay(TimeSpan.FromSeconds(5), token); } catch { }
+            }
+        }
+
+        private static async Task ApplyAsync<T>(DbContext online, OutboxMessage msg) where T : class
+        {
+            try
+            {
+                var entity = System.Text.Json.JsonSerializer.Deserialize<T>(msg.Payload);
+                if (entity == null) { msg.ProcessedAt = DateTime.UtcNow; return; }
+                switch (msg.Operation)
+                {
+                    case "Create":
+                        // reset int identity key to allow cloud to generate new id
+                        try
+                        {
+                            var prop = typeof(T).GetProperty("Id");
+                            if (prop != null && prop.PropertyType == typeof(int))
+                            {
+                                prop.SetValue(entity, 0);
+                            }
+                        }
+                        catch { }
+                        online.Set<T>().Add(entity);
+                        break;
+                    case "Update":
+                        online.Set<T>().Update(entity);
+                        break;
+                    case "Delete":
+                        online.Set<T>().Remove(entity);
+                        break;
+                    default:
+                        msg.ProcessedAt = DateTime.UtcNow;
+                        break;
+                }
+            }
+            catch { }
+        }
+
+        private static async Task ApplyClientAsync(DbContext online, OutboxMessage msg)
+        {
+            try
+            {
+                var entity = System.Text.Json.JsonSerializer.Deserialize<Client>(msg.Payload);
+                if (entity == null) { msg.ProcessedAt = DateTime.UtcNow; return; }
+                if (string.Equals(msg.Operation, "Delete", StringComparison.OrdinalIgnoreCase))
+                {
+                    var hasTickets = await online.Set<Ticket>().AnyAsync(t => t.ClientId == entity.Id);
+                    if (hasTickets) { msg.ProcessedAt = DateTime.UtcNow; return; }
+                    online.Set<Client>().Remove(entity);
+                }
+                else if (string.Equals(msg.Operation, "Create", StringComparison.OrdinalIgnoreCase))
+                {
+                    online.Set<Client>().Add(entity);
+                }
+                else if (string.Equals(msg.Operation, "Update", StringComparison.OrdinalIgnoreCase))
+                {
+                    online.Set<Client>().Update(entity);
+                }
+            }
+            catch { }
+        }
+
+        private static async Task ApplyAccountAsync(DbContext online, OutboxMessage msg)
+        {
+            try
+            {
+                var entity = System.Text.Json.JsonSerializer.Deserialize<Account>(msg.Payload);
+                if (entity == null) { msg.ProcessedAt = DateTime.UtcNow; return; }
+                if (string.Equals(msg.Operation, "Delete", StringComparison.OrdinalIgnoreCase))
+                {
+                    var hasClients = await online.Set<Client>().AnyAsync(c => c.AccountId == entity.Id);
+                    var hasTickets = await online.Set<Ticket>().AnyAsync(t => t.AccountId == entity.Id);
+                    if (hasClients || hasTickets) { msg.ProcessedAt = DateTime.UtcNow; return; }
+                    online.Set<Account>().Remove(entity);
+                }
+                else if (string.Equals(msg.Operation, "Create", StringComparison.OrdinalIgnoreCase))
+                {
+                    entity.Id = 0; // let cloud generate identity
+                    online.Set<Account>().Add(entity);
+                }
+                else if (string.Equals(msg.Operation, "Update", StringComparison.OrdinalIgnoreCase))
+                {
+                    online.Set<Account>().Update(entity);
+                }
+            }
+            catch { }
+        }
+    }
+}

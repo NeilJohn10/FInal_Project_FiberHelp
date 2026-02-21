@@ -1,0 +1,291 @@
+﻿@page "/admin/accounts"
+@using FiberHelp.Models
+@inject FiberHelp.Services.AdminService AdminService
+@inject FiberHelp.Services.AuthService AuthService
+
+<link href="css/dashboard.css" rel="stylesheet" />
+
+<style>
+/* Accounts page enhancements */
+.accounts-card { background:#fff; border-radius:12px; padding:18px; box-shadow:0 6px 20px rgba(2,6,23,0.06); }
+.accounts-table { width:100%; border-collapse:collapse; }
+.accounts-table thead th { text-align:left; padding:12px 8px; color:#334155; font-weight:700; border-bottom:1px solid #edf2f7; }
+.accounts-table tbody td { padding:14px 8px; color:#0f172a; }
+.accounts-actions button { margin-left:8px; }
+.btn-add { background: linear-gradient(135deg,#2563eb,#1d4ed8); color:#fff; padding:10px 16px; border-radius:10px; border:none; box-shadow:0 6px 18px rgba(37,99,235,0.18); cursor:pointer; }
+.btn-edit { background:transparent; border:none; color:#0f172a; font-weight:700; cursor:pointer; }
+.btn-delete { background:transparent; border:none; color:#ef4444; font-weight:700; cursor:pointer; }
+
+/* Modal */
+.modal-backdrop { position:fixed; inset:0; background:rgba(2,6,23,0.45); display:grid; place-items:center; z-index:20000; }
+.modal-card { width:640px; max-width:94vw; background:#fff; border-radius:12px; padding:20px; box-shadow:0 24px 48px rgba(2,6,23,0.2); transform:translateY(0); }
+.modal-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+.modal-actions { display:flex; gap:8px; justify-content:flex-end; margin-top:14px; }
+.form-row { display:flex; gap:12px; }
+.form-col { flex:1; display:flex; flex-direction:column; gap:6px; }
+.form-input { padding:10px 12px; border-radius:8px; border:1px solid #e6edf3; }
+.toast { position:fixed; right:20px; bottom:20px; background:#16a34a; color:#fff; padding:10px 14px; border-radius:8px; box-shadow:0 8px 20px rgba(16,185,129,0.18); z-index:25000; }
+
+@@media (max-width:640px) { .form-row { flex-direction:column; } .modal-card{ padding:14px } }
+</style>
+
+@if(!AuthService.IsAuthenticated || !string.Equals(AuthService.Role,"Administrator",StringComparison.OrdinalIgnoreCase))
+{
+    <div class="panel">Access denied.</div>
+}
+else
+{
+
+    <AdminHeader Title="Accounts" RoleLabel="ADMIN" ShowSearch="true" SearchPlaceholder="Search accounts"
+                 SearchTerm="@searchTerm" SearchTermChanged="@OnHeaderSearchChanged"
+                 ShowExport="true" Export="@ExportAccounts"
+                 ShowPrimary="true" PrimaryText="+ Add Account" PrimaryClick="@OpenNewAccount" />
+
+    <section class="accounts-card">
+        <table class="accounts-table">
+            <thead>
+                <tr>
+                    <th style="width:60px">Account ID</th>
+                    <th style="width:220px">Account Number</th>
+                    <th>Customer</th>
+                    <th style="width:160px">Plan</th>
+                    <th style="width:80px">Active</th>
+                    <th style="width:140px"></th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (accounts != null && accounts.Count>0)
+                {
+                    @foreach(var a in accounts)
+                    {
+                        <tr>
+                            <td>@a.Id</td>
+                            <td>@a.AccountNumber</td>
+                            <td>@GetCustomerName(a.CustomerId)</td>
+                            <td>@a.ServicePlan</td>
+                            <td>@(a.IsActive?"Yes":"No")</td>
+                            <td class="accounts-actions">
+                                <button class="action-btn edit" title="Edit" @onclick="() => EditAccount(a)">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                                        <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25z" fill="#2563eb" />
+                                        <path d="M20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" fill="#2563eb" />
+                                    </svg>
+                                </button>
+                                <button class="action-btn delete" title="Delete" @onclick="() => DeleteAccount(a.Id)">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                                        <path d="M3 6h18" stroke="#ef4444" stroke-width="1.5" stroke-linecap="round" />
+                                        <path d="M8 6v12a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2V6" stroke="#ef4444" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                                        <path d="M10 11v6" stroke="#ef4444" stroke-width="1.5" stroke-linecap="round" />
+                                        <path d="M14 11v6" stroke="#ef4444" stroke-width="1.5" stroke-linecap="round" />
+                                        <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" stroke="#ef4444" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                                    </svg>
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr><td colspan="6">No accounts found.</td></tr>
+                }
+            </tbody>
+        </table>
+    </section>
+
+    @if (showModal)
+    {
+        <div class="modal-backdrop" @onclick="CloseModal">
+            <div class="modal-card" @onclick:stopPropagation>
+                <div class="modal-head">
+                    <div>
+                        <h3>@(editingAccount==null?"Create Account":"Edit Account")</h3>
+                        <p style="margin:0;color:#64748b;font-size:0.95rem">Create or update account details. Account numbers should be unique.</p>
+                    </div>
+                    <button class="btn" @onclick="CloseModal">?</button>
+                </div>
+
+                <div>
+                    <div class="form-row">
+                        <div class="form-col">
+                            <label>Account Number</label>
+                            <input class="form-input" @bind="formAccountNumber" placeholder="ACCT-000123" />
+                        </div>
+                        <div class="form-col">
+                            <label>Customer</label>
+                            <select class="form-input" @bind="formCustomerId">
+                                <option value="">-- select customer --</option>
+                                @if(customers!=null)
+                                {
+                                    @foreach(var c in customers)
+                                    {
+                                        <option value="@c.Id">@c.Name</option>
+                                    }
+                                }
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-row" style="margin-top:12px;align-items:center;">
+                        <div class="form-col">
+                            <label>Service Plan</label>
+                            <input class="form-input" @bind="formServicePlan" placeholder="e.g. Standard / Premium" />
+                        </div>
+                        <div style="min-width:140px; display:flex; flex-direction:column; gap:6px;">
+                            <label>Active</label>
+                            <input type="checkbox" @bind="formIsActive" />
+                        </div>
+                    </div>
+
+                    <div class="modal-actions">
+                        <button class="btn" @onclick="CloseModal">Cancel</button>
+                        <button class="btn primary" @onclick="SaveAccount">Save Account</button>
+                    </div>
+
+                    @if(!string.IsNullOrEmpty(formMessage))
+                    {
+                        <p style="color:#ef4444;margin-top:8px">@formMessage</p>
+                    }
+                </div>
+            </div>
+        </div>
+    }
+
+    @if(!string.IsNullOrEmpty(pageToast))
+    {
+        <div class="toast">@pageToast</div>
+    }
+}
+
+@code{
+    private List<Models.Account>? accounts;
+    private List<Customer>? customers;
+    private string searchTerm = string.Empty;
+    private bool showModal=false;
+    private Models.Account? editingAccount=null;
+    private string formAccountNumber="";
+    private string formCustomerId="";
+    private string formServicePlan="";
+    private bool formIsActive = true;
+    private string formMessage="";
+    private string pageToast="";
+
+    protected override async Task OnInitializedAsync()
+    {
+        customers = await AdminService.GetCustomersAsync();
+        await LoadAccounts();
+    }
+
+    private async Task LoadAccounts()
+    {
+        var list = new List<Models.Account>();
+        if(customers!=null)
+        {
+            int i=1;
+            foreach(var c in customers)
+            {
+                list.Add(new Models.Account { Id = i, AccountNumber = "ACCT-" + (i+1).ToString("000000"), CustomerId = c.Id, ServicePlan = c.Plan, IsActive = true });
+                i++;
+            }
+        }
+        accounts = string.IsNullOrWhiteSpace(searchTerm) ? list : list.Where(a => (a.AccountNumber ?? "").Contains(searchTerm, StringComparison.OrdinalIgnoreCase) || GetCustomerName(a.CustomerId).Contains(searchTerm, StringComparison.OrdinalIgnoreCase) || (a.ServicePlan ?? "").Contains(searchTerm, StringComparison.OrdinalIgnoreCase)).ToList();
+    }
+
+    private string GetCustomerName(string id)
+    {
+        if(customers==null) return id;
+        var c = customers.FirstOrDefault(x=>x.Id==id);
+        return c?.Name ?? id;
+    }
+
+    private void OpenNewAccount()
+    {
+        editingAccount=null;
+        formAccountNumber="";
+        formCustomerId="";
+        formServicePlan="";
+        formIsActive=true;
+        formMessage="";
+        showModal=true;
+    }
+
+    private void EditAccount(Models.Account a)
+    {
+        if(a==null) return;
+        editingAccount=a;
+        formAccountNumber=a.AccountNumber;
+        formCustomerId=a.CustomerId;
+        formServicePlan=a.ServicePlan;
+        formIsActive=a.IsActive;
+        formMessage="";
+        showModal=true;
+    }
+
+    private void CloseModal()
+    {
+        showModal=false;
+        editingAccount=null;
+        formMessage="";
+    }
+
+    private async Task SaveAccount()
+    {
+        // validation
+        if(string.IsNullOrWhiteSpace(formAccountNumber) || string.IsNullOrWhiteSpace(formCustomerId))
+        {
+            formMessage = "Account number and customer are required.";
+            return;
+        }
+
+        // ensure uniqueness in the in-memory list
+        if(accounts != null && accounts.Any(a => a.AccountNumber.Equals(formAccountNumber, StringComparison.OrdinalIgnoreCase) && a != editingAccount))
+        {
+            formMessage = "Account number already exists.";
+            return;
+        }
+
+        if(editingAccount == null)
+        {
+            var newId = (accounts?.Count ?? 0) + 1;
+            var a = new Models.Account { Id=newId, AccountNumber=formAccountNumber, CustomerId=formCustomerId, ServicePlan=formServicePlan, IsActive=formIsActive };
+            accounts.Add(a);
+            pageToast = "Account created";
+        }
+        else
+        {
+            editingAccount.AccountNumber = formAccountNumber;
+            editingAccount.CustomerId = formCustomerId;
+            editingAccount.ServicePlan = formServicePlan;
+            editingAccount.IsActive = formIsActive;
+            pageToast = "Account updated";
+        }
+
+        // close modal and clear message
+        showModal = false;
+        formMessage = string.Empty;
+
+        // clear toast after short delay
+        _ = ClearToastAfterDelay();
+    }
+
+    private async Task ClearToastAfterDelay()
+    {
+        await Task.Delay(2200);
+        pageToast = string.Empty;
+        StateHasChanged();
+    }
+
+    private async Task DeleteAccount(int id)
+    {
+        var idx = accounts?.FindIndex(x=>x.Id==id) ?? -1;
+        if(idx>=0) { accounts.RemoveAt(idx); pageToast = "Account deleted"; _ = ClearToastAfterDelay(); }
+    }
+
+    private void ExportAccounts() { pageToast = "Export not implemented."; _ = ClearToastAfterDelay(); }
+
+    private async Task OnHeaderSearchChanged(string val)
+    {
+        searchTerm = val;
+        await LoadAccounts();
+        StateHasChanged();
+    }
+}

@@ -1,0 +1,100 @@
+﻿@page "/billing"
+@inject FiberHelp.Services.AuthService AuthService
+@inject FiberHelp.Services.BillingService BillingService
+@inject NavigationManager Nav
+
+@if (!(AuthService.Role ?? "").Equals("Administrator", StringComparison.OrdinalIgnoreCase))
+{
+    @* Redirect agents/others to tickets *@
+    @Nav.NavigateTo("/tickets")
+}
+else
+{
+    <div class="admin-billing">
+        <h2>Accounting Summary</h2>
+        @if (_summary == null)
+        {
+            <p>Loading...</p>
+        }
+        else
+        {
+            <div class="mini-kpis">
+                <div class="mini">
+                    <div class="label">Total Invoices</div>
+                    <div class="value">@_summary.TotalInvoices</div>
+                    <div class="sub">all</div>
+                </div>
+                <div class="mini">
+                    <div class="label">Paid</div>
+                    <div class="value">@_summary.PaidCount</div>
+                    <div class="sub">@_summary.PaidAmount:C</div>
+                </div>
+                <div class="mini">
+                    <div class="label">Pending</div>
+                    <div class="value">@_summary.PendingCount</div>
+                    <div class="sub">@_summary.PendingAmount:C</div>
+                </div>
+                <div class="mini">
+                    <div class="label">Overdue</div>
+                    <div class="value">@_summary.OverdueCount</div>
+                    <div class="sub">@_summary.OverdueAmount:C</div>
+                </div>
+                <div class="mini">
+                    <div class="label">Total Amount</div>
+                    <div class="value">@_summary.TotalAmount:C</div>
+                    <div class="sub">invoiced</div>
+                </div>
+            </div>
+
+            <h3>Aging Buckets</h3>
+            <ul>
+                @foreach (var kv in _summary.AgingBuckets)
+                {
+                    <li>@kv.Key: @kv.Value</li>
+                }
+            </ul>
+        }
+
+        <h2>Expenses</h2>
+        @if (_expenses == null)
+        {
+            <p>Loading...</p>
+        }
+        else if (_expenses.Count == 0)
+        {
+            <p>No expenses.</p>
+        }
+        else
+        {
+            <table class="data-table modern-table">
+                <thead>
+                    <tr><th>Date</th><th>Category</th><th>Description</th><th>Amount</th><th>Ref</th></tr>
+                </thead>
+                <tbody>
+                @foreach (var e in _expenses)
+                {
+                    <tr>
+                        <td>@e.Date.ToString("yyyy-MM-dd")</td>
+                        <td>@e.Category</td>
+                        <td>@e.Description</td>
+                        <td>@e.Amount.ToString("C")</td>
+                        <td>@e.Reference</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        }
+    </div>
+}
+
+@code {
+    private FiberHelp.Services.BillingService.AccountingSummary? _summary;
+    private List<FiberHelp.Models.Expense>? _expenses;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!(AuthService.Role ?? "").Equals("Administrator", StringComparison.OrdinalIgnoreCase)) return;
+        _summary = await BillingService.GetSummaryAsync();
+        _expenses = await BillingService.GetExpensesAsync();
+    }
+}

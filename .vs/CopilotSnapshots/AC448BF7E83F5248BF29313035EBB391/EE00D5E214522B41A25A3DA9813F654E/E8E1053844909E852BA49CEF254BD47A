@@ -1,0 +1,379 @@
+﻿@page "/admin/accounts"
+@using FiberHelp.Models
+@inject FiberHelp.Services.AdminService AdminService
+@inject FiberHelp.Services.AuthService AuthService
+@inject Microsoft.JSInterop.IJSRuntime JS
+
+<style>
+/* Accounts page enhancements */
+.topbar { padding-bottom:20px; margin-bottom:22px; border-bottom:1px solid #e5e7eb; }
+.topbar .page-title { font-size:42px; line-height:1.1; margin:0 0 4px; }
+.top-actions { gap:14px; }
+.top-actions .agents-search { width:360px; padding:12px 18px; border-radius:14px; border:1px solid #e5e7eb; background:#fff; box-shadow:0 8px 22px rgba(2,6,23,0.08); font-size:15px; }
+.top-actions .btn.subtle { background:#fff; color:#0f172a; border:1px solid #e5e7eb; border-radius:14px; padding:10px 22px; box-shadow:0 4px 10px rgba(2,6,23,0.04); }
+.top-actions .btn.primary { background:linear-gradient(135deg,#2563eb,#1d4ed8); color:#fff; border:none; border-radius:14px; padding:10px 26px; box-shadow:0 14px 32px rgba(29,78,216,0.30); font-weight:600; }
+.top-actions .btn.primary:hover { filter:brightness(1.08); }
+
+.accounts-card { display:block; background:#fff; border-radius:14px; padding:20px 20px 10px; box-shadow:0 12px 28px rgba(2,6,23,0.08); }
+.accounts-table { width:100%; border-collapse:separate; border-spacing:0 10px; }
+.accounts-table thead th { text-align:left; padding:10px 12px; color:#475569; font-weight:700; border-bottom:1px solid #e5e7eb; font-size:14px; }
+.accounts-table tbody td { background:#f9fafb; padding:14px 12px; color:#0f172a; font-size:14px; border-top:1px solid #eef2f7; border-bottom:1px solid #eef2f7; }
+.accounts-table tbody tr td:first-child { border-left:1px solid #eef2f7; border-top-left-radius:12px; border-bottom-left-radius:12px; }
+.accounts-table tbody tr td:last-child { border-right:1px solid #eef2f7; border-top-right-radius:12px; border-bottom-right-radius:12px; }
+.accounts-actions { white-space:nowrap; }
+.action-btn { border:none; background:transparent; padding:6px 8px; border-radius:10px; cursor:pointer; }
+.action-btn:hover { background:#eef2ff; }
+.action-btn.edit { color:#2563eb; }
+.action-btn.delete { color:#ef4444; }
+.badge { display:inline-block; padding:6px 10px; border-radius:999px; font-size:12px; font-weight:700; }
+.badge.on { color:#065f46; background:#ecfdf5; border:1px solid #a7f3d0; }
+.badge.off { color:#7f1d1d; background:#fee2e2; border:1px solid #fecaca; }
+.acct-customer-cell { display:flex; align-items:center; gap:12px; }
+.acct-initial { width:40px; height:40px; border-radius:999px; background:linear-gradient(135deg,#0ea5e9,#6366f1); display:grid; place-items:center; font-weight:800; color:#fff; font-size:14px; box-shadow:0 8px 18px rgba(99,102,241,0.25); }
+.acct-name { font-weight:600; }
+.acct-plan { font-size:12px; color:#64748b; }
+
+/* Modal visual parity with Agents */
+.modal-backdrop { position:fixed; inset:0; background:rgba(2,6,23,0.5); display:grid; place-items:center; z-index:20000; }
+.modal-card { width:680px; max-width:94vw; background:#fff; border-radius:16px; padding:22px; box-shadow:0 24px 58px rgba(2,6,23,0.28); }
+.modal-head h3 { margin:0; font-size:20px; }
+.modal-head p { margin:6px 0 0; color:#64748b; font-size:14px; }
+.form-row { display:flex; gap:14px; }
+.form-col { flex:1; display:flex; flex-direction:column; gap:6px; }
+.form-input { padding:10px 12px; border-radius:10px; border:1px solid #e6edf3; }
+.modal-actions { display:flex; gap:10px; justify-content:flex-end; margin-top:18px; }
+.btn.primary { background:linear-gradient(135deg,#2563eb,#1d4ed8); color:#fff; box-shadow:0 10px 22px rgba(29,78,216,0.25); }
+.btn { border-radius:10px; }
+</style>
+
+@if(!AuthService.IsAuthenticated || !string.Equals(AuthService.Role,"Administrator",StringComparison.OrdinalIgnoreCase))
+{
+    <div class="panel">Access denied.</div>
+}
+else
+{
+
+    <header class="topbar agents-header">
+      <div>
+        <p class="eyebrow">FIBERHELP · ADMIN</p>
+        <h1 class="page-title">Accounts</h1>
+      </div>
+      <div class="agents-controls top-actions">
+        <input class="agents-search" placeholder="Search by number or plan" @bind="searchTerm" @oninput="async _ => await OnHeaderSearchChanged(searchTerm)" />
+        <button class="btn subtle" @onclick="ExportAccounts">Export</button>
+        <button class="btn primary" @onclick="OpenNewAccount">+ Add Account</button>
+      </div>
+    </header>
+
+    <section class="accounts-card">
+        <table class="accounts-table">
+            <thead>
+                <tr>
+                    <th style="width:70px">Account ID</th>
+                    <th style="width:220px">Account Number</th>
+                    <th style="width:220px">Name</th>
+                    <th style="width:140px">Type</th>
+                    <th style="width:160px">Plan</th>
+                    <th style="width:140px">Status</th>
+                    <th style="width:110px">Active</th>
+                    <th style="text-align:right">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (accounts != null && accounts.Count>0)
+                {
+                    @foreach(var a in accounts)
+                    {
+                        <tr>
+                            <td>@a.Id</td>
+                            <td style="font-weight:600">@a.AccountNumber</td>
+                            <td>@(string.IsNullOrWhiteSpace(a.Name)?"—":a.Name)</td>
+                            <td>@(string.IsNullOrWhiteSpace(a.Type)?"—":a.Type)</td>
+                            <td>@(string.IsNullOrWhiteSpace(a.ServicePlan)?"—":a.ServicePlan)</td>
+                            <td>@(string.IsNullOrWhiteSpace(a.ServiceStatus)?"—":a.ServiceStatus)</td>
+                            <td><span class="badge @(a.IsActive?"on":"off")">@(a.IsActive?"Active":"Inactive")</span></td>
+                            <td class="accounts-actions" style="text-align:right">
+                                 <button class="action-btn edit" title="Edit" @onclick="() => EditAccount(a)">
+                                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                                         <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25z" fill="#2563eb" />
+                                         <path d="M20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" fill="#2563eb" />
+                                     </svg>
+                                 </button>
+                                 <button class="action-btn delete" title="Delete" @onclick="() => DeleteAccount(a.Id)">
+                                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                                         <path d="M3 6h18" stroke="#ef4444" stroke-width="1.5" stroke-linecap="round" />
+                                         <path d="M8 6v12a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2V6" stroke="#ef4444" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                                         <path d="M10 11v6" stroke="#ef4444" stroke-width="1.5" stroke-linecap="round" />
+                                         <path d="M14 11v6" stroke="#ef4444" stroke-width="1.5" stroke-linecap="round" />
+                                         <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" stroke="#ef4444" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                                     </svg>
+                                 </button>
+                             </td>
+                         </tr>
+                    }
+                }
+                else
+                {
+                    <tr><td colspan="8">@(!string.IsNullOrEmpty(AdminService.LastError) ? $"Error loading accounts: {AdminService.LastError}" : "No accounts found.")</td></tr>
+                }
+            </tbody>
+        </table>
+    </section>
+
+    @if (showModal)
+    {
+        <div class="modal-backdrop" @onclick="CloseModal">
+            <div class="modal-card" @onclick:stopPropagation>
+                <div class="modal-head">
+                    <div>
+                        <h3>@(editingAccount==null?"Create Account":"Edit Account")</h3>
+                        <p>Create or update account details. Account numbers are auto-generated.</p>
+                    </div>
+                    <button class="btn" style="background:#f1f5f9" @onclick="CloseModal">?</button>
+                </div>
+                <div>
+                    <div class="form-row">
+                        <div class="form-col">
+                            <label>Account Number</label>
+                            <input class="form-input" @bind="formAccountNumber" disabled />
+                        </div>
+                        <div style="min-width:140px; display:flex; flex-direction:column; gap:6px;">
+                            <label>Active</label>
+                            <input type="checkbox" @bind="formIsActive" />
+                        </div>
+                    </div>
+
+                    <div class="form-row" style="margin-top:14px;">
+                        <div class="form-col">
+                            <label>Name</label>
+                            <input class="form-input" @bind="formName" />
+                        </div>
+                        <div class="form-col">
+                            <label>Type</label>
+                            <select class="form-input" @bind="formType">
+                                <option value="">-- select type --</option>
+                                <option>Residential</option>
+                                <option>Business</option>
+                                <option>Government</option>
+                                <option>Education</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-row" style="margin-top:14px;align-items:center;">
+                        <div class="form-col">
+                            <label>Service Plan</label>
+                            <select class="form-input" @bind="formServicePlan">
+                                <option value="">-- select plan --</option>
+                                <option>Basic</option>
+                                <option>Standard</option>
+                                <option>Premium</option>
+                                <option>Enterprise</option>
+                            </select>
+                        </div>
+                        <div class="form-col">
+                            <label>Service Status</label>
+                            <select class="form-input" @bind="formServiceStatus">
+                                <option value="Active">Active</option>
+                                <option value="Suspended">Suspended</option>
+                                <option value="Cancelled">Cancelled</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-row" style="margin-top:14px;">
+                        <div class="form-col">
+                            <label>Contact Name</label>
+                            <input class="form-input" @bind="formContactName" />
+                        </div>
+                        <div class="form-col">
+                            <label>Contact Email</label>
+                            <input class="form-input" @bind="formContactEmail" />
+                        </div>
+                    </div>
+                    <div class="form-row" style="margin-top:14px;">
+                        <div class="form-col">
+                            <label>Contact Phone</label>
+                            <input class="form-input" @bind="formContactPhone" />
+                        </div>
+                        <div class="form-col">
+                            <label>Billing Address</label>
+                            <input class="form-input" @bind="formBillingAddress" />
+                        </div>
+                    </div>
+                    <div class="modal-actions">
+                        <button class="btn" @onclick="CloseModal">Cancel</button>
+                        <button class="btn primary" @onclick="SaveAccount">Save Account</button>
+                    </div>
+                    @if(!string.IsNullOrEmpty(formMessage))
+                    {
+                        <p style="color:#ef4444;margin-top:8px">@formMessage</p>
+                    }
+                </div>
+            </div>
+        </div>
+    }
+
+    <Toast Message="@pageToast" />
+}
+
+@code{
+    private List<Models.Account>? accounts;
+    private string searchTerm = string.Empty;
+    private bool showModal=false;
+    private Models.Account? editingAccount=null;
+    private string formAccountNumber="";
+    private string formServicePlan="";
+    private bool formIsActive = true;
+    private string formContactName="";
+    private string formContactEmail="";
+    private string formContactPhone="";
+    private string formBillingAddress="";
+    private string formServiceStatus="Active";
+    private string formName="";
+    private string formType="";
+    private string formMessage="";
+    private string pageToast="";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAccountsFromDb();
+    }
+
+    private async Task LoadAccountsFromDb()
+    {
+        var list = await AdminService.GetAccountsAsync();
+        accounts = string.IsNullOrWhiteSpace(searchTerm) ? list : list.Where(a => (a.AccountNumber ?? "").Contains(searchTerm, StringComparison.OrdinalIgnoreCase) || (a.ServicePlan ?? "").Contains(searchTerm, StringComparison.OrdinalIgnoreCase)).ToList();
+        StateHasChanged();
+    }
+
+    private void OpenNewAccount()
+    {
+        editingAccount=null;
+        formAccountNumber = "(auto)";
+        formServicePlan="";
+        formIsActive=true;
+        formContactName="";
+        formContactEmail="";
+        formContactPhone="";
+        formBillingAddress="";
+        formServiceStatus="Active";
+        formName="";
+        formType="";
+        formMessage="";
+        showModal=true;
+    }
+
+    private void EditAccount(Models.Account a)
+    {
+        if(a==null) return;
+        editingAccount=a;
+        formAccountNumber=a.AccountNumber;
+        formServicePlan=a.ServicePlan;
+        formIsActive=a.IsActive;
+        formContactName=a.ContactName ?? "";
+        formContactEmail=a.ContactEmail ?? "";
+        formContactPhone=a.ContactPhone ?? "";
+        formBillingAddress=a.BillingAddress ?? "";
+        formServiceStatus=a.ServiceStatus ?? "Active";
+        formName=a.Name ?? "";
+        formType=a.Type ?? "";
+        formMessage="";
+        showModal=true;
+    }
+
+    private void CloseModal()
+    {
+        showModal=false;
+        editingAccount=null;
+        formMessage="";
+    }
+
+    private async Task SaveAccount()
+    {
+        if(accounts != null && !string.IsNullOrWhiteSpace(formAccountNumber) && formAccountNumber!="(auto)" && accounts.Any(a => (a.AccountNumber ?? "").Equals(formAccountNumber, StringComparison.OrdinalIgnoreCase) && a != editingAccount))
+        {
+            formMessage = "Account number already exists.";
+            return;
+        }
+
+        bool ok;
+        if(editingAccount == null)
+        {
+            var a = new Models.Account {
+                AccountNumber="",
+                Name = formName ?? string.Empty,
+                Type = formType ?? string.Empty,
+                ServicePlan=formServicePlan ?? string.Empty,
+                IsActive=formIsActive,
+                ContactName=formContactName ?? string.Empty,
+                ContactEmail=formContactEmail ?? string.Empty,
+                ContactPhone=formContactPhone ?? string.Empty,
+                BillingAddress=formBillingAddress ?? string.Empty,
+                ServiceStatus=formServiceStatus ?? "Active"
+            };
+            ok = await AdminService.CreateAccountAsync(a);
+            pageToast = ok ? "Account created" : (AdminService.LastError ?? "Failed to create account");
+        }
+        else
+        {
+            editingAccount.Name = formName ?? string.Empty;
+            editingAccount.Type = formType ?? string.Empty;
+            editingAccount.ServicePlan = formServicePlan ?? string.Empty;
+            editingAccount.IsActive = formIsActive;
+            editingAccount.ContactName = formContactName ?? string.Empty;
+            editingAccount.ContactEmail = formContactEmail ?? string.Empty;
+            editingAccount.ContactPhone = formContactPhone ?? string.Empty;
+            editingAccount.BillingAddress = formBillingAddress ?? string.Empty;
+            editingAccount.ServiceStatus = formServiceStatus ?? "Active";
+            ok = await AdminService.UpdateAccountAsync(editingAccount);
+            pageToast = ok ? "Account updated" : (AdminService.LastError ?? "Failed to update account");
+        }
+
+        if (ok)
+        {
+            await LoadAccountsFromDb();
+        }
+
+        showModal = false;
+        formMessage = string.Empty;
+        _ = ClearToastAfterDelay();
+    }
+
+    private async Task ClearToastAfterDelay()
+    {
+        await Task.Delay(2200);
+        pageToast = string.Empty;
+        StateHasChanged();
+    }
+
+    private async Task DeleteAccount(int id)
+    {
+        var ok = await AdminService.DeleteAccountAsync(id);
+        pageToast = ok ? "Account deleted" : (AdminService.LastError ?? "Failed to delete account");
+        if (ok) await LoadAccountsFromDb();
+        _ = ClearToastAfterDelay();
+    }
+
+    private async void ExportAccounts()
+    {
+        var rows = accounts ?? new List<Models.Account>();
+        var csv = new System.Text.StringBuilder();
+        csv.AppendLine("Id,AccountNumber,ServicePlan,IsActive");
+        foreach(var r in rows)
+        {
+            csv.AppendLine($"{r.Id},{Escape(r.AccountNumber)},{Escape(r.ServicePlan)},{(r.IsActive?"Yes":"No")}");
+        }
+        await JS.InvokeAsync<bool>("FiberExport.saveFile", "accounts.csv", csv.ToString());
+        pageToast = "Accounts exported"; _ = ClearToastAfterDelay();
+    }
+
+    private string Escape(string? s) => string.IsNullOrEmpty(s) ? "" : s!.Replace("\"", "\"\"");
+
+    private async Task OnHeaderSearchChanged(string val)
+    {
+        searchTerm = val;
+        await LoadAccountsFromDb();
+        StateHasChanged();
+    }
+}

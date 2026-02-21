@@ -1,0 +1,234 @@
+﻿/* Tickets Page Styles */
+
+.topbar {
+ display: flex;
+ align-items: center;
+ justify-content: space-between;
+ padding-bottom:24px;
+ border-bottom:1px solid #e2e8f0;
+ margin-bottom:24px;
+ position: relative;
+ z-index:5;
+}
+
+.eyebrow {
+ text-transform: uppercase;
+ font-size:12px;
+ letter-spacing:0.15em;
+ color: #64748b;
+ margin-bottom:8px;
+ font-weight:700;
+}
+
+.page-title {
+ font-size:32px;
+ font-weight:900;
+ color: #1e293b;
+ margin:0;
+}
+
+.top-actions {
+ display: flex;
+ gap:12px;
+ align-items: center;
+ margin-left: auto; /* push actions to right */
+ z-index:10; /* ensure visible above other content */
+}
+
+.btn {
+ border: none;
+ padding:11px18px;
+ border-radius:10px;
+ font-size:15px;
+ cursor: pointer;
+ font-weight:600;
+ transition: all .2s ease;
+}
+
+/* Make primary button clearly visible */
+.btn.primary {
+ background-color: #2563eb; /* blue */
+ background-image: linear-gradient(135deg, #2563eb0%, #1e40af100%);
+ color: #ffffff !important;
+ box-shadow:08px24px rgba(37,99,235,0.12);
+ padding:12px20px;
+}
+
+.btn.primary:hover {
+ transform: translateY(-2px);
+ box-shadow:012px32px rgba(37,99,235,0.18);
+}
+
+.btn.subtle {
+ background: #ffffff;
+ border:1px solid #e2e8f0;
+ color: #475569;
+ padding:10px16px;
+}
+
+.btn.subtle:hover {
+ background: #f1f5f9;
+}
+
+.btn.danger {
+ background: #ef4444;
+ color: #fff;
+}
+
+.panel {
+ background: #ffffff;
+ border-radius:12px;
+ padding:24px;
+ border:1px solid #e2e8f0;
+ box-shadow:01px3px rgba(0,0,0,0.08);
+}
+
+.data-table {
+ width:100%;
+ border-collapse: collapse;
+ font-size:14px;
+}
+
+.data-table thead th {
+ text-align: left;
+ padding:14px12px;
+ color: #64748b;
+ font-weight:700;
+ border-bottom:1px solid #e2e8f0;
+ font-size:12px;
+ text-transform: uppercase;
+ letter-spacing:0.05em;
+}
+
+.data-table tbody tr {
+ border-bottom:1px solid #e2e8f0;
+ transition: background .2s ease;
+}
+
+.data-table tbody tr:hover {
+ background: #f8fafc;
+}
+
+.data-table td {
+ padding:16px12px;
+ color: #475569;
+ font-weight:500;
+}
+
+.data-table td:first-child {
+ font-weight:700;
+ color: #1e293b;
+}
+
+.status-pill {
+ display: inline-block;
+ padding:6px12px;
+ border-radius:20px;
+ font-weight:700;
+ font-size:12px;
+ text-transform: uppercase;
+}
+
+.status-pill.open {
+ background: rgba(239,68,68,0.15);
+ color: #ef4444;
+}
+
+.status-pill.resolved {
+ background: rgba(16,185,129,0.15);
+ color: #10b981;
+}
+
+.status-pill.in-progress,
+.status-pill.inprogress {
+ background: rgba(245,158,11,0.15);
+ color: #f59e0b;
+}
+
+.status-pill.priority {
+ background: rgba(168,85,247,0.15);
+ color: #a855f7;
+}
+
+/* Modal Styles */
+.modal-backdrop {
+ position: fixed;
+ inset:0;
+ background: rgba(2,6,23,0.45);
+ display: grid;
+ place-items: center;
+ z-index:9999;
+ padding:24px;
+}
+
+.modal {
+ width:100%;
+ max-width:640px;
+ background: #ffffff;
+ border-radius:12px;
+ padding:20px;
+ box-shadow:04px12px rgba(0,0,0,0.1);
+ border:1px solid #e2e8f0;
+ z-index:10000;
+ position: relative;
+}
+
+.modal h3 {
+ margin:0012px0;
+ font-size:20px;
+ font-weight:800;
+}
+
+.form-group {
+ display: flex;
+ flex-direction: column;
+ gap:6px;
+ margin-bottom:18px;
+}
+
+.form-group label {
+ display: block;
+ color: #1e293b;
+ font-weight:600;
+ font-size:14px;
+}
+
+.form-input {
+ width:100%;
+ padding:11px14px;
+ border:1.5px solid #e5e7eb;
+ border-radius:8px;
+ font-size:14px;
+ transition: all .2s;
+ background: #f9fafb;
+}
+
+.form-input:focus {
+ outline: none;
+ border-color: #3b82f6;
+ background: white;
+ box-shadow:03px8px rgba(37,99,235,0.04);
+}
+
+.modal-actions {
+ display: flex;
+ justify-content: flex-end;
+ gap:10px;
+ margin-top:16px;
+}
+
+/* Dropdown list tweaks */
+.dropdown-list {
+ list-style: none;
+ margin:4px000;
+ padding:0;
+ border:1px solid #ddd;
+ max-height:180px;
+ overflow: auto;
+ background: #fff;
+ box-shadow:02px6px rgba(0,0,0,0.06);
+ border-radius:6px;
+}
+.dropdown-list li { padding:8px12px; cursor: pointer; }
+.dropdown-list li:hover { background: #f6f6f6; }
+.selected-customer { margin-top:8px; font-size:0.95em; color: #333; }

@@ -1,0 +1,47 @@
+﻿@using Microsoft.AspNetCore.Components
+
+<div class="topbar">
+  <div>
+    <p class="eyebrow">FIBERHELP · @RoleLabel</p>
+    <h1 class="page-title">@Title</h1>
+  </div>
+  <div class="top-actions" style="display:flex;gap:12px;align-items:center">
+    @if (ShowSearch)
+    {
+      <input class="agents-search" placeholder="@SearchPlaceholder" value="@SearchTerm" @oninput="OnSearchInput" />
+    }
+    @if (ShowExport)
+    {
+      <button class="btn subtle" @onclick="Export">Export</button>
+    }
+    @if (ShowPrimary)
+    {
+      <button class="btn primary" @onclick="PrimaryClick">@PrimaryText</button>
+    }
+    <UserPill />
+  </div>
+</div>
+
+@code {
+  [Parameter] public string Title { get; set; } = "";
+  [Parameter] public string RoleLabel { get; set; } = "ADMIN";
+  [Parameter] public bool ShowSearch { get; set; } = true;
+  [Parameter] public string SearchPlaceholder { get; set; } = "Search";
+  [Parameter] public string? SearchTerm { get; set; }
+  [Parameter] public EventCallback<string> SearchTermChanged { get; set; }
+
+  [Parameter] public bool ShowExport { get; set; } = true;
+  [Parameter] public EventCallback Export { get; set; }
+
+  [Parameter] public bool ShowPrimary { get; set; } = true;
+  [Parameter] public string PrimaryText { get; set; } = "+ Action";
+  [Parameter] public EventCallback PrimaryClick { get; set; }
+
+  private async Task OnSearchInput(ChangeEventArgs e)
+  {
+    var val = e.Value?.ToString() ?? string.Empty;
+    SearchTerm = val;
+    if (SearchTermChanged.HasDelegate)
+      await SearchTermChanged.InvokeAsync(val);
+  }
+}

@@ -1,0 +1,179 @@
+﻿using Microsoft.EntityFrameworkCore;
+using FiberHelp.Models;
+using System;
+using System.Linq;
+
+namespace FiberHelp.Data
+{
+ public class AppDbContext : DbContext
+ {
+ public AppDbContext(DbContextOptions options) : base(options) { }
+
+ public DbSet<Ticket> Tickets { get; set; }
+ public DbSet<Client> Clients { get; set; }
+ public DbSet<User> Users { get; set; }
+ public DbSet<Invoice> Invoices { get; set; }
+ public DbSet<Agent> Agents { get; set; }
+ public DbSet<Account> Accounts { get; set; }
+ public DbSet<OutboxMessage> Outbox { get; set; }
+ public DbSet<Expense> Expenses { get; set; }
+ public DbSet<Technician> Technicians { get; set; }
+
+ protected override void OnModelCreating(ModelBuilder modelBuilder)
+ {
+ base.OnModelCreating(modelBuilder);
+
+ modelBuilder.Entity<Ticket>(entity =>
+ {
+ entity.HasKey(t => t.Id);
+ entity.Property(t => t.Id).HasColumnName("TicketId");
+ entity.Property(t => t.Title).HasColumnName("Subject").HasMaxLength(500);
+ entity.Property(t => t.Status).HasMaxLength(50);
+ entity.Property(t => t.Priority).HasMaxLength(50);
+ entity.Property(t => t.Created).HasColumnName("CreatedAt");
+ entity.Property(t => t.ClientId).HasColumnName("ClientId").HasMaxLength(50).IsRequired(false);
+ entity.Property(t => t.ClientName).HasColumnName("ClientName").HasMaxLength(256);
+ entity.Property(t => t.AccountId).HasColumnName("AccountId");
+ // Technician assignment fields
+ entity.Property(t => t.AssignedTechnicianId).HasColumnName("AssignedTechnicianId").HasMaxLength(50).IsRequired(false);
+ entity.Property(t => t.AssignedTechnicianName).HasColumnName("AssignedTechnicianName").HasMaxLength(256).IsRequired(false);
+ entity.Property(t => t.AssignedAt).HasColumnName("AssignedAt").IsRequired(false);
+ entity.Property(t => t.ResolvedAt).HasColumnName("ResolvedAt").IsRequired(false);
+ entity.Property(t => t.ResolutionNotes).HasColumnName("ResolutionNotes").HasMaxLength(2000).IsRequired(false);
+ // Optional FK: ClientId references Clients.Id when not null
+ entity.HasOne<Client>()
+ .WithMany()
+ .HasForeignKey(t => t.ClientId)
+ .HasPrincipalKey(c => c.Id)
+ .OnDelete(DeleteBehavior.Restrict);
+ });
+
+ modelBuilder.Entity<Client>(entity =>
+ {
+ entity.ToTable("Clients");
+ entity.HasKey(c => c.Id);
+ entity.Property(c => c.Name).HasMaxLength(200);
+ entity.Property(c => c.Email).HasMaxLength(200);
+ entity.Property(c => c.Plan).HasMaxLength(100);
+ entity.Property(c => c.AccountId).HasColumnName("AccountId");
+ entity.HasOne(c => c.Account).WithMany(a => a.Clients).HasForeignKey(c => c.AccountId).OnDelete(DeleteBehavior.Restrict);
+ });
+
+ modelBuilder.Entity<User>(entity =>
+ {
+ entity.HasKey(u => u.Id);
+ entity.Property(u => u.Email).HasMaxLength(256).IsRequired();
+ entity.HasIndex(u => u.Email).IsUnique();
+ entity.Property(u => u.Role).HasMaxLength(50);
+ entity.Property(u => u.FullName).HasMaxLength(200);
+ });
+
+ modelBuilder.Entity<Invoice>(entity =>
+ {
+ entity.HasKey(i => i.Id);
+ entity.Property(i => i.Id).HasColumnName("Id"); // map to actual SQL column
+ entity.Property(i => i.AccountId).HasColumnName("AccountId");
+ entity.Property(i => i.AccountName).HasColumnName("AccountName");
+ entity.Property(i => i.AmountDue).HasColumnName("AmountDue").HasColumnType("decimal(18,2)");
+ entity.Property(i => i.IssueDate).HasColumnName("IssueDate");
+ entity.Property(i => i.DueDate).HasColumnName("DueDate");
+ entity.Property(i => i.Status).HasColumnName("Status").HasMaxLength(50);
+ entity.Property(i => i.PaymentRef).HasColumnName("PaymentRef");
+ entity.Property(i => i.PaidDate).HasColumnName("PaidDate");
+ entity.Property(i => i.Notes).HasColumnName("Notes");
+ });
+
+ modelBuilder.Entity<Agent>(entity =>
+ {
+ entity.HasKey(a => a.Id);
+ entity.Property(a => a.Email).HasMaxLength(256).IsRequired();
+ entity.HasIndex(a => a.Email).IsUnique();
+ entity.Property(a => a.FullName).HasMaxLength(256);
+ entity.Property(a => a.Department).HasMaxLength(100);
+ entity.Property(a => a.Phone).HasMaxLength(50);
+ entity.Property(a => a.CreatedAt).HasColumnName("CreatedAt");
+ });
+
+ modelBuilder.Entity<Account>(entity =>
+ {
+ entity.HasKey(a => a.Id);
+ entity.Property(a => a.Id).HasColumnName("AccountId");
+ entity.Property(a => a.AccountNumber).IsRequired().HasMaxLength(100);
+ entity.HasIndex(a => a.AccountNumber).IsUnique();
+ entity.Property(a => a.ServicePlan).HasMaxLength(100);
+ entity.Property(a => a.CreatedAt).HasColumnName("CreatedAt");
+ entity.Property(a => a.ContactName).HasMaxLength(200);
+ entity.Property(a => a.ContactEmail).HasMaxLength(256);
+ entity.Property(a => a.ContactPhone).HasMaxLength(50);
+ entity.Property(a => a.BillingAddress).HasMaxLength(400);
+ entity.Property(a => a.ServiceStatus).HasColumnName("Status").HasMaxLength(50);
+ entity.Property(a => a.Name).HasMaxLength(200);
+ entity.Property(a => a.Type).HasMaxLength(100);
+ });
+
+ modelBuilder.Entity<OutboxMessage>(entity =>
+ {
+ entity.ToTable("OutboxMessages");
+ entity.HasKey(o => o.Id);
+ entity.Property(o => o.EntityName).HasMaxLength(100);
+ entity.Property(o => o.Operation).HasMaxLength(20);
+ entity.Property(o => o.Key).HasMaxLength(100);
+ entity.Property(o => o.Payload);
+ entity.Property(o => o.CreatedAt);
+ entity.Property(o => o.ProcessedAt);
+ });
+
+ modelBuilder.Entity<Expense>(entity =>
+ {
+ entity.HasKey(e => e.Id);
+ entity.Property(e => e.Date).HasColumnName("Date");
+ entity.Property(e => e.Category).HasMaxLength(100);
+ entity.Property(e => e.Description).HasMaxLength(400);
+ entity.Property(e => e.Amount).HasColumnType("decimal(18,2)");
+ entity.Property(e => e.Reference).HasMaxLength(100);
+ });
+
+ modelBuilder.Entity<Technician>(entity =>
+ {
+ entity.ToTable("Technicians");
+ entity.HasKey(t => t.Id);
+ entity.Property(t => t.Id).HasMaxLength(50);
+ entity.Property(t => t.Name).HasMaxLength(200).IsRequired();
+ entity.Property(t => t.Email).HasMaxLength(256).IsRequired();
+ entity.HasIndex(t => t.Email).IsUnique();
+ entity.Property(t => t.Phone).HasMaxLength(50);
+ entity.Property(t => t.Specialty).HasMaxLength(100);
+ entity.Property(t => t.Status).HasMaxLength(50);
+ entity.Property(t => t.Zone).HasMaxLength(100);
+ entity.Property(t => t.HireDate).HasColumnName("HireDate");
+ entity.Property(t => t.CreatedAt).HasColumnName("CreatedAt");
+ entity.Property(t => t.UpdatedAt).HasColumnName("UpdatedAt");
+ entity.Property(t => t.ActiveTicketCount).HasDefaultValue(0);
+ });
+ }
+
+ public override int SaveChanges()
+ {
+ AutoFillAccountNumbers();
+ return base.SaveChanges();
+ }
+ public override System.Threading.Tasks.Task<int> SaveChangesAsync(System.Threading.CancellationToken cancellationToken = default)
+ {
+ AutoFillAccountNumbers();
+ return base.SaveChangesAsync(cancellationToken);
+ }
+ private void AutoFillAccountNumbers()
+ {
+ // For newly added accounts without AccountNumber, generate ACCT-YYYYNNNN style
+ var newAccounts = ChangeTracker.Entries<Account>().Where(e => e.State == EntityState.Added && string.IsNullOrWhiteSpace(e.Entity.AccountNumber)).Select(e => e.Entity).ToList();
+ if (newAccounts.Count == 0) return;
+ // simple sequence based on current max Id; adjust pattern as needed
+ var max = Accounts.Any() ? Accounts.Max(a => a.Id) : 0;
+ foreach (var acct in newAccounts)
+ {
+ max++;
+ acct.AccountNumber = $"ACCT-{DateTime.UtcNow:yyyy}{max:0000}"; // e.g. ACCT-20250001
+ }
+ }
+ }
+}

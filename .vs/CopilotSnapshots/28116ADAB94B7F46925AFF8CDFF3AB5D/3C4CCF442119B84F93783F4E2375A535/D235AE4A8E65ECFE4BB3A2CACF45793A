@@ -1,0 +1,82 @@
+﻿using Microsoft.Extensions.Logging;
+using FiberHelp.Services;
+using Microsoft.EntityFrameworkCore;
+using FiberHelp.Data.context;
+using Microsoft.Extensions.DependencyInjection;
+using FiberHelp.Data; // Added to reference AppDbContext and DbInitializer
+using Microsoft.Extensions.Configuration;
+
+namespace FiberHelp
+{
+    public static class MauiProgram
+    {
+        public static MauiApp CreateMauiApp()
+        {
+            var builder = MauiApp.CreateBuilder();
+            builder
+                .UseMauiApp<App>()
+                .ConfigureFonts(fonts =>
+                {
+                    fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
+                });
+
+            // Load configuration from appsettings.json (copied to output via csproj)
+            builder.Configuration
+                   .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true);
+
+            builder.Services.AddMauiBlazorWebView();
+            
+            // Change AuthService to Singleton to persist authentication state across navigations
+            builder.Services.AddSingleton<AuthService>();
+            builder.Services.AddScoped<AdminService>();
+            builder.Services.AddScoped<BillingService>();
+
+            // Read connection strings and database mode
+            var localConnection = builder.Configuration.GetConnectionString("DefaultConnection")
+                ?? "Server=(localdb)\\mssqllocaldb;Database=FiberhelpDB;Trusted_Connection=True;MultipleActiveResultSets=true";
+
+            var onlineConnection = builder.Configuration.GetConnectionString("OnlineConnection")
+                ?? "Data Source=db33569.public.databaseasp.net;Persist Security Info=True;User ID=db33569;Password=njadlawan10;Pooling=False;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=True;Application Name=\"FiberHelpApp\";Command Timeout=0";
+
+            var modeFromConfig = builder.Configuration["Database:Mode"];
+            var useOnline = string.IsNullOrWhiteSpace(modeFromConfig)
+                ? true // default to Online if not specified so cloud is used when config isn't loaded on device
+                : string.Equals(modeFromConfig, "Online", StringComparison.OrdinalIgnoreCase);
+
+            if (useOnline)
+            {
+                // Register the cloud context and map AppDbContext to it
+                builder.Services.AddDbContext<onlineContext>(options => options.UseSqlServer(onlineConnection));
+                builder.Services.AddScoped<AppDbContext>(sp => sp.GetRequiredService<onlineContext>());
+            }
+            else
+            {
+                // Register the local context and map AppDbContext to it
+                builder.Services.AddDbContext<localContext>(options => options.UseSqlServer(localConnection));
+                builder.Services.AddScoped<AppDbContext>(sp => sp.GetRequiredService<localContext>());
+            }
+
+#if DEBUG
+            builder.Services.AddBlazorWebViewDeveloperTools();
+            builder.Logging.AddDebug();
+#endif
+
+            var app = builder.Build();
+
+            // Apply migrations and seed database on the selected context
+            try
+            {
+                using var scope = app.Services.CreateScope();
+                var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+                db.Database.Migrate();
+                DbInitializer.Initialize(db);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Database migration/initialization failed: {ex.Message}");
+            }
+
+            return app;
+        }
+    }
+}

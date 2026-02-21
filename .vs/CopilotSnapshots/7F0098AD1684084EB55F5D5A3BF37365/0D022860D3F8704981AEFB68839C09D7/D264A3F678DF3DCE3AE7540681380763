@@ -1,0 +1,265 @@
+﻿@page "/customers"
+@using FiberHelp.Models
+@inject FiberHelp.Services.AuthService AuthService
+@inject FiberHelp.Services.AdminService AdminService
+@inject NavigationManager Navigation
+
+<link href="css/customers.css" rel="stylesheet" />
+
+<style>
+.topbar { display: flex; align-items: center; justify-content: space-between; padding-bottom:16px; border-bottom:1px solid #e2e8f0; margin-bottom:16px; }
+.topbar > div:first-child { display:flex; flex-direction:column; }
+.top-actions { display:flex; gap:12px; align-items:center; }
+.toast { position: fixed; right:24px; bottom:24px; background:#111; color:#fff; padding:10px18px; border-radius:8px; box-shadow:06px22px rgba(0,0,0,0.2); }
+</style>
+
+<div>
+ <AdminHeader Title="Customers" RoleLabel="@GetRoleLabel()" ShowSearch="true" SearchPlaceholder="Search by name or email"
+              SearchTerm="@searchTerm" SearchTermChanged="@OnCustomersSearchChanged"
+              ShowExport="true" Export="@ExportCustomers"
+              ShowPrimary="@(!(AuthService.Role ?? "").Equals("Agent", StringComparison.OrdinalIgnoreCase))"
+              PrimaryText="+ Add Customer" PrimaryClick="@(()=> ShowNewCustomer(true))" />
+ <section class="panel">
+ <table class="data-table">
+ <thead>
+ <tr>
+ <th>Customer ID</th>
+ <th>Name</th>
+ <th>Email</th>
+ <th>Plan</th>
+ <th>Status</th>
+ <th>Join Date</th>
+ <th></th>
+ </tr>
+ </thead>
+ <tbody>
+ @if (customers != null)
+ {
+ @foreach (var customer in customers)
+ {
+ <tr>
+ <td>@customer.Id</td>
+ <td>@customer.Name</td>
+ <td>@customer.Email</td>
+ <td>@customer.Plan</td>
+ <td><span class="status-pill @customer.Status.ToLower()">@customer.Status</span></td>
+ <td>@customer.JoinDate.ToString("MMM dd, yyyy")</td>
+ <td>
+   <button class="action-btn edit" title="Edit" @onclick="() => EditCustomer(customer.Id)">
+     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+       <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25z" fill="#2563eb" />
+       <path d="M20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" fill="#2563eb" />
+     </svg>
+   </button>
+   @if (!(AuthService.Role ?? "").Equals("Agent", StringComparison.OrdinalIgnoreCase))
+   {
+     <button class="action-btn delete" title="Delete" @onclick="() => DeleteCustomer(customer.Id)">
+       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+         <path d="M3 6h18" stroke="#ef4444" stroke-width="1.5" stroke-linecap="round" />
+         <path d="M8 6v12a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2V6" stroke="#ef4444" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+         <path d="M10 11v6" stroke="#ef4444" stroke-width="1.5" stroke-linecap="round" />
+         <path d="M14 11v6" stroke="#ef4444" stroke-width="1.5" stroke-linecap="round" />
+         <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" stroke="#ef4444" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+       </svg>
+     </button>
+   }
+ </td>
+ </tr>
+ }
+ }
+ </tbody>
+ </table>
+ </section>
+
+ @* Centered modal with dim backdrop *@
+ @if (showNewCustomerModal)
+ {
+ <div style="position:fixed;top:0;left:0;width:100vw;height:100vh;display:grid;place-items:center;background:rgba(0,0,0,0.45);z-index:20000;" @onclick="() => ShowNewCustomer(false)">
+ <div @onclick:stopPropagation style="position:relative;z-index:20001;width:520px;max-width:90vw;background:#fff;border-radius:12px;padding:20px;box-shadow:020px60px rgba(0,0,0,0.18);">
+ <h3>@(isEditing ? "Edit Customer" : "New Customer")</h3>
+ <div class="form-group">
+ <label>Name</label>
+ <input class="form-input" @bind="newCustomerName" placeholder="Customer name" />
+ </div>
+ <div class="form-group">
+ <label>Email</label>
+ <input class="form-input" @bind="newCustomerEmail" placeholder="Email address" />
+ </div>
+ <div class="form-group">
+ <label>Plan</label>
+ <input class="form-input" @bind="newCustomerPlan" placeholder="Plan name" />
+ </div>
+ <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:12px;">
+ <button class="btn" @onclick="() => ShowNewCustomer(false)">Cancel</button>
+ <button class="btn primary" @onclick="OnCreateCustomerClicked">@(isEditing ? "Save" : "Add")</button>
+ </div>
+ </div>
+ </div>
+ }
+
+ @if (!string.IsNullOrEmpty(toastMessage))
+ {
+ <div class="toast">@toastMessage</div>
+ }
+</div>
+
+@code {
+ private List<Customer>? customers;
+ private bool showNewCustomerModal = false;
+ private bool isEditing = false;
+ private string editingCustomerId = string.Empty;
+ private string newCustomerName = "";
+ private string newCustomerEmail = "";
+ private string newCustomerPlan = "";
+ private string toastMessage = string.Empty;
+ private string searchTerm = string.Empty;
+
+ protected override async Task OnInitializedAsync()
+ {
+ // Check if user is authenticated
+ if (!AuthService.IsAuthenticated)
+ {
+ Navigation.NavigateTo("/login", true);
+ return;
+ }
+ await LoadCustomersAsync();
+ }
+
+ private async Task LoadCustomersAsync()
+ {
+ var all = await AdminService.GetCustomersAsync();
+ customers = string.IsNullOrWhiteSpace(searchTerm)
+   ? all
+   : all.Where(c => (c.Name ?? string.Empty).Contains(searchTerm, StringComparison.OrdinalIgnoreCase)
+                || (c.Email ?? string.Empty).Contains(searchTerm, StringComparison.OrdinalIgnoreCase)).ToList();
+ StateHasChanged();
+ }
+
+ // show = true -> open modal for create; show = false -> close; id != null -> edit specific customer
+ private void ShowNewCustomer(bool show, string? id = null)
+ {
+ showNewCustomerModal = show;
+ if (!show)
+ {
+ // reset
+ newCustomerName = "";
+ newCustomerEmail = "";
+ newCustomerPlan = "";
+ isEditing = false;
+ editingCustomerId = string.Empty;
+ }
+ else if (!string.IsNullOrEmpty(id))
+ {
+ // populate for edit
+ var c = customers?.FirstOrDefault(x => x.Id == id);
+ if (c != null)
+ {
+ isEditing = true;
+ editingCustomerId = c.Id;
+ newCustomerName = c.Name ?? string.Empty;
+ newCustomerEmail = c.Email ?? string.Empty;
+ newCustomerPlan = c.Plan ?? string.Empty;
+ }
+ }
+ StateHasChanged();
+ }
+
+ private async Task OnCreateCustomerClicked()
+ {
+ if ((AuthService.Role ?? "").Equals("Agent", StringComparison.OrdinalIgnoreCase))
+ {
+ // Agents are not allowed to create or edit customers
+ return;
+ }
+ if (string.IsNullOrWhiteSpace(newCustomerName) || string.IsNullOrWhiteSpace(newCustomerEmail))
+ {
+ toastMessage = "Name and Email are required.";
+ StateHasChanged();
+ await Task.Delay(2000);
+ toastMessage = string.Empty;
+ StateHasChanged();
+ return;
+ }
+
+ if (isEditing)
+ {
+ // update existing
+ var existing = await AdminService.GetCustomerAsync(editingCustomerId);
+ if (existing == null)
+ {
+ toastMessage = "Customer not found.";
+ StateHasChanged();
+ await Task.Delay(2000);
+ toastMessage = string.Empty;
+ StateHasChanged();
+ ShowNewCustomer(false);
+ return;
+ }
+ existing.Name = newCustomerName;
+ existing.Email = newCustomerEmail;
+ existing.Plan = newCustomerPlan;
+ await AdminService.UpdateCustomerAsync(existing);
+ toastMessage = "Customer updated.";
+ }
+ else
+ {
+ var c = new Customer { Name = newCustomerName, Email = newCustomerEmail, Plan = newCustomerPlan, JoinDate = DateTime.UtcNow, Status = "Active" };
+ var ok = await AdminService.CreateCustomerAsync(c);
+ if (ok)
+ {
+ toastMessage = "Customer added.";
+ }
+ else
+ {
+ toastMessage = "Failed to add customer. Check logs.";
+ }
+ }
+ await LoadCustomersAsync();
+ ShowNewCustomer(false);
+ StateHasChanged();
+ await Task.Delay(2000);
+ toastMessage = string.Empty;
+ StateHasChanged();
+ }
+
+ private async Task DeleteCustomer(string id)
+ {
+ if ((AuthService.Role ?? "").Equals("Agent", StringComparison.OrdinalIgnoreCase)) return;
+ if (string.IsNullOrEmpty(id)) return;
+ await AdminService.DeleteCustomerAsync(id);
+ await LoadCustomersAsync();
+ }
+
+ private void EditCustomer(string id)
+ {
+ ShowNewCustomer(true, id);
+ }
+
+ private string GetRoleLabel()
+ {
+ var role = AuthService?.Role;
+ if (string.IsNullOrWhiteSpace(role)) return "GUEST";
+ return role.ToUpperInvariant();
+ }
+
+ private string GetAvatarLetters()
+ {
+ var name = AuthService?.Email ?? "";
+ if (string.IsNullOrWhiteSpace(name)) return "FH";
+ var parts = name.Split('@');
+ var left = parts[0];
+ if (left.Length >=2) return left.Substring(0,2).ToUpperInvariant();
+ return left.ToUpperInvariant();
+ }
+
+ private void ExportCustomers()
+ {
+   toastMessage = "Export not implemented.";
+ }
+
+ private async Task OnCustomersSearchChanged(string val)
+ {
+   searchTerm = val;
+   await LoadCustomersAsync();
+ }
+}

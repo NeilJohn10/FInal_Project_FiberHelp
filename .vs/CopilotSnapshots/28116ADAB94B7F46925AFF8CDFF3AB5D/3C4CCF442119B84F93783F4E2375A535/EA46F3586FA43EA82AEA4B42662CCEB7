@@ -1,0 +1,7 @@
+﻿{
+ "ConnectionStrings": {
+  "DefaultConnection": "Data Source=(localdb)\\MSSQLLocalDB;Initial Catalog=FiberhelpDB;Integrated Security=True;Trust Server Certificate=True"
+  "OnlineConnection" : ""
+
+ }
+}

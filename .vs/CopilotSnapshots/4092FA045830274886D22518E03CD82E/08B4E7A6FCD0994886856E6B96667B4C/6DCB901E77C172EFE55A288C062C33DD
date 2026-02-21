@@ -1,0 +1,75 @@
+﻿using System.Collections.Generic;
+using System.Threading.Tasks;
+using FiberHelp.Data;
+using FiberHelp.Models;
+using Microsoft.EntityFrameworkCore;
+using System.Linq;
+using System;
+
+namespace FiberHelp.Services
+{
+ public class BillingService
+ {
+ private readonly AppDbContext _db;
+ public string? LastError { get; private set; }
+ public BillingService(AppDbContext db) { _db = db; }
+
+ public async Task<List<Invoice>> GetInvoicesAsync()
+ {
+ try
+ {
+ LastError = null;
+ return await _db.Invoices.OrderByDescending(i => i.IssueDate).ToListAsync();
+ }
+ catch (Exception ex)
+ {
+ LastError = ex.Message;
+ System.Diagnostics.Debug.WriteLine($"BillingService.GetInvoicesAsync error: {ex}");
+ return new List<Invoice>();
+ }
+ }
+
+ public async Task<Invoice?> GetInvoiceAsync(int id)
+ {
+ try { LastError = null; return await _db.Invoices.FindAsync(id); }
+ catch (Exception ex) { LastError = ex.Message; System.Diagnostics.Debug.WriteLine($"BillingService.GetInvoiceAsync error: {ex}"); return null; }
+ }
+
+ public async Task<bool> CreateAsync(Invoice inv)
+ {
+ try
+ {
+ LastError = null;
+ _db.Invoices.Add(inv);
+ return await _db.SaveChangesAsync() > 0;
+ }
+ catch (Exception ex)
+ {
+ LastError = ex.Message;
+ System.Diagnostics.Debug.WriteLine($"BillingService.CreateAsync error: {ex}");
+ return false;
+ }
+ }
+
+ public async Task<bool> MarkPaidAsync(int id)
+ {
+ try
+ {
+ LastError = null;
+ var inv = await _db.Invoices.FindAsync(id);
+ if (inv == null) return false;
+ inv.Status = "Paid";
+ inv.PaidDate = DateTime.UtcNow;
+ _db.Invoices.Update(inv);
+ await _db.SaveChangesAsync();
+ return true;
+ }
+ catch (Exception ex)
+ {
+ LastError = ex.Message;
+ System.Diagnostics.Debug.WriteLine($"BillingService.MarkPaidAsync error: {ex}");
+ return false;
+ }
+ }
+ }
+}

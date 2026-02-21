@@ -1,0 +1,15 @@
+﻿using System;
+
+namespace FiberHelp.Models
+{
+    public class Account
+    {
+        public int Id { get; set; }
+        public string AccountNumber { get; set; } = string.Empty;
+        public string CustomerId { get; set; } = string.Empty;
+        public Customer? Customer { get; set; }
+        public string ServicePlan { get; set; } = string.Empty;
+        public bool IsActive { get; set; } = true;
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    }
+}

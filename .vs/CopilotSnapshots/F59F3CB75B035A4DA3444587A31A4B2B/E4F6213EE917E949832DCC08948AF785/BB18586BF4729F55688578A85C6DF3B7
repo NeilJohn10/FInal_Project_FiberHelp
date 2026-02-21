@@ -1,0 +1,430 @@
+﻿@page "/admin/technicians"
+@using FiberHelp.Models
+@using System.Linq
+@inject FiberHelp.Services.AdminService AdminService
+@inject FiberHelp.Services.AuthService AuthService
+
+<style>
+ .tech-header { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:18px }
+ .tech-controls { display:flex; gap:12px; align-items:center }
+ .tech-search { padding:10px 14px; border-radius:12px; border:1px solid #e5e7eb; background:#fff; width:360px; box-shadow:0 6px 14px rgba(2,6,23,0.06) }
+ .tech-controls .btn.primary { background:linear-gradient(135deg,#2563eb,#1d4ed8); color:#fff; box-shadow:0 10px 22px rgba(29,78,216,0.25); border-radius:12px }
+ .tech-controls .btn.subtle { background:#fff; color:#0f172a; border:1px solid #e5e7eb; border-radius:12px }
+ .panel { background:#fff; border-radius:14px; padding:18px; box-shadow:0 12px 28px rgba(2,6,23,0.08); }
+ .modern-table { width:100%; border-collapse:separate; border-spacing:0 10px }
+ .modern-table thead th { font-weight:700; color:#475569; padding:10px 12px; border-bottom:1px solid #e5e7eb }
+ .modern-table tbody td { background:#f9fafb; padding:14px 12px; border-top:1px solid #eef2f7; border-bottom:1px solid #eef2f7 }
+ .modern-table tbody tr td:first-child { border-left:1px solid #eef2f7; border-top-left-radius:10px; border-bottom-left-radius:10px }
+ .modern-table tbody tr td:last-child { border-right:1px solid #eef2f7; border-top-right-radius:10px; border-bottom-right-radius:10px }
+ .modern-table tbody tr.archived-row td { background:#f1f5f9; opacity:0.85 }
+ .tech-avatar { width:40px; height:40px; border-radius:999px; background:linear-gradient(135deg,#0ea5e9,#6366f1); display:inline-grid; place-items:center; font-weight:800; color:#fff; margin-right:12px; box-shadow:0 8px 18px rgba(99,102,241,0.25) }
+ .badge { display:inline-block; padding:6px 10px; border-radius:999px; font-size:12px; font-weight:700 }
+ .badge.on { color:#065f46; background:#ecfdf5; border:1px solid #a7f3d0 }
+ .badge.off { color:#7f1d1d; background:#fee2e2; border:1px solid #fecaca }
+ .action-btn { border:none; background:transparent; padding:6px 8px; border-radius:10px; cursor:pointer }
+ .action-btn:hover { background:#eef2ff }
+ .action-btn.edit { color:#2563eb }
+ .action-btn.delete { color:#ef4444 }
+ .tech-modal-bg { position:fixed; inset:0; background:rgba(2,6,23,0.5); display:grid; place-items:center; z-index:20000 }
+ .tech-modal-card { width:720px; max-width:94vw; background:#fff; border-radius:16px; padding:20px; box-shadow:0 24px 58px rgba(2,6,23,0.28) }
+ .tech-modal-header h3 { margin:0; font-size:20px }
+ .tech-modal-desc { margin:6px 0 0; color:#64748b }
+ .tech-form-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px }
+ .tech-form-group { display:flex; flex-direction:column; gap:6px }
+ .tech-form-span-2 { grid-column:span 2 }
+ .tech-form-input { padding:10px 12px; border:1px solid #e6edf3; border-radius:10px }
+ .tech-label-hint { color:#94a3b8; font-size:12px }
+ .tech-checkbox-group { display:flex; align-items:center; gap:8px }
+ .tech-error-message { background:#fee2e2; color:#7f1d1d; border:1px solid #fecaca; padding:10px 12px; border-radius:10px; margin-bottom:10px }
+ .tech-modal-actions { display:flex; justify-content:flex-end; gap:10px; margin-top:16px }
+ .req-list { margin-top:8px; display:grid; grid-template-columns:1fr 1fr; gap:8px }
+ .req { font-size:12px; padding:8px 10px; border-radius:10px; border:1px solid #e5e7eb }
+ .req.ok { background:#ecfdf5; color:#065f46; border-color:#a7f3d0 }
+ .req.bad { background:#fef2f2; color:#7f1d1d; border-color:#fecaca }
+ .pagination-container{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:20px;padding:16px 0}
+ .pagination-btn{border:1px solid #e5e7eb;background:#fff;color:#475569;padding:8px 12px;border-radius:8px;cursor:pointer;font-size:14px;font-weight:600}
+ .pagination-btn:disabled{opacity:0.4;cursor:not-allowed}
+ .pagination-btn.active{background:#2563eb;color:#fff;border-color:#2563eb}
+ .pagination-info{color:#64748b;font-size:14px;padding:0 12px}
+ .stats-row { display:flex; gap:16px; margin-bottom:20px }
+ .stat-card { flex:1; background:#fff; border-radius:12px; padding:16px; box-shadow:0 4px 12px rgba(0,0,0,0.06); border-left:4px solid #2563eb }
+ .stat-value { font-size:28px; font-weight:700; color:#0f172a }
+ .stat-label { font-size:13px; color:#64748b }
+ .view-toggle{display:flex;gap:4px;background:#f1f5f9;padding:4px;border-radius:12px}
+ .view-toggle button{padding:8px 16px;border:none;background:transparent;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;color:#64748b;transition:all 0.2s}
+ .view-toggle button.active{background:#fff;color:#1e293b;box-shadow:0 2px 8px rgba(0,0,0,0.08)}
+ .view-toggle button:hover:not(.active){color:#1e293b}
+ .archived-badge{background:#94a3b8;color:#fff;font-size:10px;padding:2px 6px;border-radius:4px;margin-left:6px}
+</style>
+
+@if(!AuthService.IsAuthenticated || !string.Equals(AuthService.Role,"Administrator",StringComparison.OrdinalIgnoreCase))
+{
+ <div class="panel"><strong>Access denied.</strong></div>
+}
+else
+{
+ <header class="topbar tech-header">
+   <div>
+     <p class="eyebrow">FIBERHELP · ADMIN</p>
+     <h1 class="page-title">Technicians</h1>
+   </div>
+   <div class="tech-controls">
+     <div class="view-toggle">
+       <button class="@(showArchived ? "" : "active")" @onclick="() => ToggleView(false)">
+         Active (@activeCount)
+       </button>
+       <button class="@(showArchived ? "active" : "")" @onclick="() => ToggleView(true)">
+         Archived (@archivedCount)
+       </button>
+     </div>
+     <input class="tech-search" placeholder="Search by name, email or service area" @bind="searchTerm" @bind:event="oninput" />
+     @if (!showArchived)
+     {
+       <button class="btn primary" @onclick="() => OpenModal(null)">+ Add Technician</button>
+     }
+   </div>
+ </header>
+
+ <div class="stats-row">
+   <div class="stat-card">
+     <div class="stat-value">@(activeCount + archivedCount)</div>
+     <div class="stat-label">Total Technicians</div>
+   </div>
+   <div class="stat-card">
+     <div class="stat-value">@activeCount</div>
+     <div class="stat-label">Active</div>
+   </div>
+   <div class="stat-card">
+     <div class="stat-value">@archivedCount</div>
+     <div class="stat-label">Archived</div>
+   </div>
+ </div>
+
+ <section class="panel">
+ <div style="overflow:auto">
+ <table class="data-table modern-table">
+ <thead><tr><th>Technician</th><th>Service Area</th><th>Phone</th><th>Specialization</th><th>Status</th><th style="text-align:right">Action</th></tr></thead>
+ <tbody>
+ @if(PaginatedTechnicians != null && PaginatedTechnicians.Any())
+ {
+   @foreach(var t in PaginatedTechnicians)
+   {
+   <tr class="@(t.IsArchived ? "archived-row" : "")">
+   <td><div style="display:flex;align-items:center"><span class="tech-avatar">@GetInitials(t.FullName)</span><div><div style="font-weight:700">@t.FullName @if(t.IsArchived){<span class="archived-badge">ARCHIVED</span>}</div><div style="font-size:12px;color:#64748b">@t.Email</div></div></div></td>
+   <td>@(string.IsNullOrWhiteSpace(t.ServiceArea)?"—":t.ServiceArea)</td>
+   <td>@(string.IsNullOrWhiteSpace(t.Phone)?"—":t.Phone)</td>
+   <td>@(string.IsNullOrWhiteSpace(t.Specialization)?"—":t.Specialization)</td>
+   <td><span class="badge @(t.IsActive?"on":"off")">@(t.IsActive?"Active":"Inactive")</span></td>
+   <td class="actions">
+      @if (!t.IsArchived)
+      {
+        <button class="action-btn edit" title="Edit" @onclick="() => OpenModal(t)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25z" fill="#2563eb"/><path d="M20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" fill="#2563eb"/></svg></button>
+        <button class="action-btn" title="Archive" @onclick="() => ShowArchiveConfirmation(t)">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M20 8v12a2 2 0 01-2 2H6a2 2 0 01-2-2V8" stroke="#6366f1" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M2 4h20v4H2z" stroke="#6366f1" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M10 12h4" stroke="#6366f1" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+        </button>
+      }
+      else
+      {
+        <button class="action-btn" title="Restore" @onclick="() => ShowUnarchiveConfirmation(t)">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" stroke="#10b981" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M3 3v5h5" stroke="#10b981" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+        <button class="action-btn delete" title="Delete Permanently" @onclick="() => DeleteTechnician(t)">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+            <path d="M3 6h18" stroke="#ef4444" stroke-width="1.5" stroke-linecap="round"/>
+            <path d="M8 6v12a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2V6" stroke="#ef4444" stroke-width="1.5"/>
+            <path d="M10 11v6M14 11v6" stroke="#ef4444" stroke-width="1.5" stroke-linecap="round"/>
+            <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" stroke="#ef4444" stroke-width="1.5"/>
+          </svg>
+        </button>
+      }
+   </td>
+   </tr>
+   }
+ }
+ else
+ {
+   <tr><td colspan="6" style="text-align:center;padding:40px;color:#64748b">@(showArchived ? "No archived technicians" : "No active technicians found. Click \"+ Add Technician\" to create one.")</td></tr>
+ }
+ </tbody>
+ </table>
+ </div>
+ @if (TotalPages > 1)
+ {
+  <div class="pagination-container">
+    <button class="pagination-btn" @onclick="PreviousPage" disabled="@(CurrentPage == 1)">←</button>
+    @for (int i = 1; i <= TotalPages; i++) { int p = i; <button class="pagination-btn @(CurrentPage == p ? "active" : "")" @onclick="() => GoToPage(p)">@p</button> }
+    <button class="pagination-btn" @onclick="NextPage" disabled="@(CurrentPage == TotalPages)">→</button>
+    <span class="pagination-info">Page @CurrentPage of @TotalPages</span>
+  </div>
+ }
+ </section>
+
+ @if(!string.IsNullOrEmpty(notification))
+ {
+   <div class="panel" style="margin-top:12px;background:#dbeafe;color:#1e40af">✓ @notification</div>
+ }
+
+ @if(showModal)
+ {
+  <div class="tech-modal-bg" @onclick="CloseModal">
+   <div class="tech-modal-card" @onclick:stopPropagation>
+    <div class="tech-modal-header"><h3>@(isEditing ? "Edit Technician" : "Add Technician")</h3><p class="tech-modal-desc">@(isEditing ? "Modify technician details." : "Create a new field technician account.")</p></div>
+    <div class="tech-modal-body">
+     @if(!string.IsNullOrEmpty(errorMessage)){<div class="tech-error-message">@errorMessage</div>}
+     <div class="tech-form-grid">
+      <div class="tech-form-group tech-form-span-2"><label>Email</label><input type="email" class="tech-form-input" @bind="newEmail" placeholder="tech@domain.com" /></div>
+      <div class="tech-form-group tech-form-span-2"><label>Full Name</label><input class="tech-form-input" @bind="newFullName" placeholder="Juan Dela Cruz" /></div>
+      <div class="tech-form-group"><label>Service Area <span class="tech-label-hint">(coverage)</span></label><input class="tech-form-input" @bind="newServiceArea" placeholder="e.g. Metro Manila" /></div>
+      <div class="tech-form-group"><label>Specialization</label><input class="tech-form-input" @bind="newSpecialization" placeholder="e.g. Fiber Installation" /></div>
+      <div class="tech-form-group"><label>Phone</label><input type="tel" class="tech-form-input" @bind="newPhone" placeholder="+639123456789" /></div>
+      <div class="tech-form-group"><label>Department</label><input class="tech-form-input" @bind="newDept" placeholder="Field Operations" /></div>
+      <div class="tech-form-group tech-form-span-2"><label>Notes</label><textarea class="tech-form-input" @bind="newNotes" placeholder="Additional notes..." rows="2"></textarea></div>
+      <div class="tech-form-group tech-form-span-2"><div class="tech-checkbox-group"><input type="checkbox" id="activeCheck" @bind="newActive" /><label for="activeCheck">Active</label></div></div>
+      <div class="tech-form-group tech-form-span-2">
+       <label>@(isEditing ? "Password (leave blank to keep)" : "Password")</label>
+       <input type="password" class="tech-form-input" @bind="newPassword" @bind:event="oninput" placeholder="Enter password" />
+       @if(!isEditing && attempted && !IsValidPassword()){<div class="req-list"><div class="req @(LenOk?"ok":"bad")">12+ chars</div><div class="req @(UpperOk?"ok":"bad")">Uppercase</div><div class="req @(DigitOk?"ok":"bad")">Number</div><div class="req @(SpecialOk?"ok":"bad")">Special</div></div>}
+      </div>
+      @if(!isEditing){<div class="tech-form-group tech-form-span-2"><label>Confirm Password</label><input type="password" class="tech-form-input" @bind="confirmPassword" @bind:event="oninput" placeholder="Re-enter password" /></div>}
+     </div>
+     <div class="tech-modal-actions"><button class="btn" @onclick="CloseModal">Cancel</button><button class="btn primary" style="background:linear-gradient(135deg,#2563eb,#1d4ed8)" @onclick="SaveTechnician" disabled="@(!CanSubmit())">@(isEditing ? "Save" : "Create")</button></div>
+    </div>
+   </div>
+  </div>
+ }
+ 
+ @if(showConfirm)
+ {
+  <div class="tech-modal-bg" @onclick="() => showConfirm=false">
+    <div class="tech-modal-card" style="max-width:500px" @onclick:stopPropagation>
+      <div class="tech-modal-header"><h3>Confirm Deletion</h3></div>
+      <div class="tech-modal-body">
+        <p>Delete technician <strong>@confirmTargetFullName</strong> permanently?</p>
+        <p style="color:#ef4444;font-size:13px">This action cannot be undone.</p>
+      </div>
+      <div class="tech-modal-actions"><button class="btn" @onclick="() => { showConfirm=false; confirmTargetId=string.Empty; }">Cancel</button><button class="btn primary" style="background:#ef4444" @onclick="ConfirmDelete">Delete</button></div>
+    </div>
+  </div>
+ }
+ 
+ @if(showArchiveConfirm)
+ {
+  <div class="tech-modal-bg" @onclick="() => showArchiveConfirm=false">
+    <div class="tech-modal-card" style="max-width:500px" @onclick:stopPropagation>
+      <div class="tech-modal-header"><h3>Archive Technician</h3></div>
+      <div class="tech-modal-body">
+        <p>Are you sure you want to archive <strong>@archiveTargetFullName</strong>?</p>
+        <p style="color:#64748b;font-size:13px">Archived technicians can be restored later from the Archive view.</p>
+      </div>
+      <div class="tech-modal-actions">
+        <button class="btn" @onclick="() => { showArchiveConfirm=false; archiveTargetId=string.Empty; }">Cancel</button>
+        <button class="btn primary" style="background:#6366f1" @onclick="ConfirmArchive">Archive Technician</button>
+      </div>
+    </div>
+  </div>
+ }
+ 
+ @if(showUnarchiveConfirm)
+ {
+  <div class="tech-modal-bg" @onclick="() => showUnarchiveConfirm=false">
+    <div class="tech-modal-card" style="max-width:500px" @onclick:stopPropagation>
+      <div class="tech-modal-header"><h3>Restore Technician</h3></div>
+      <div class="tech-modal-body">
+        <p>Are you sure you want to restore <strong>@archiveTargetFullName</strong>?</p>
+        <p style="color:#64748b;font-size:13px">The technician will be moved back to Active technicians.</p>
+      </div>
+      <div class="tech-modal-actions">
+        <button class="btn" @onclick="() => { showUnarchiveConfirm=false; archiveTargetId=string.Empty; }">Cancel</button>
+        <button class="btn primary" style="background:#10b981" @onclick="ConfirmUnarchive">Restore Technician</button>
+      </div>
+    </div>
+  </div>
+ }
+}
+
+@code {
+ List<Technician>? technicianRecords;
+ int CurrentPage = 1; int PageSize = 10;
+ int TotalPages => FilteredTechnicians == null || !FilteredTechnicians.Any() ? 1 : (int)Math.Ceiling(FilteredTechnicians.Count() / (double)PageSize);
+ IEnumerable<Technician>? PaginatedTechnicians => FilteredTechnicians?.Skip((CurrentPage - 1) * PageSize).Take(PageSize);
+ IEnumerable<Technician> FilteredTechnicians => string.IsNullOrWhiteSpace(searchTerm) 
+   ? (technicianRecords ?? Enumerable.Empty<Technician>()) 
+   : (technicianRecords ?? Enumerable.Empty<Technician>()).Where(t => 
+       (t.FullName ?? "").Contains(searchTerm, StringComparison.OrdinalIgnoreCase) || 
+       (t.Email ?? "").Contains(searchTerm, StringComparison.OrdinalIgnoreCase) || 
+       (t.ServiceArea ?? "").Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
+       (t.Specialization ?? "").Contains(searchTerm, StringComparison.OrdinalIgnoreCase));
+ 
+ bool showModal, isEditing, attempted, newActive = true, showConfirm;
+ bool showArchived = false;
+ bool showArchiveConfirm = false;
+ bool showUnarchiveConfirm = false;
+ int activeCount = 0;
+ int archivedCount = 0;
+ string editingId = "", newEmail = "", newFullName = "", newPassword = "", confirmPassword = "", errorMessage = "", notification = "";
+ string newDept = "Field Operations", newPhone = "", newServiceArea = "", newSpecialization = "", newNotes = "", searchTerm = "";
+ string confirmTargetId = "", confirmTargetFullName = "";
+ string archiveTargetId = "", archiveTargetFullName = "";
+ 
+ bool LenOk => newPassword.Length >= 12; 
+ bool UpperOk => newPassword.Any(char.IsUpper); 
+ bool DigitOk => newPassword.Any(char.IsDigit); 
+ bool SpecialOk => newPassword.Any(c => !char.IsLetterOrDigit(c));
+ bool IsValidPassword() => LenOk && UpperOk && DigitOk && SpecialOk && !string.IsNullOrWhiteSpace(newEmail) && !string.IsNullOrWhiteSpace(newFullName);
+ bool CanSubmit() => isEditing 
+   ? (!string.IsNullOrWhiteSpace(newPassword) ? IsValidPassword() && newPassword == confirmPassword : !string.IsNullOrWhiteSpace(newEmail) && !string.IsNullOrWhiteSpace(newFullName)) 
+   : IsValidPassword() && newPassword == confirmPassword;
+ 
+ protected override async Task OnInitializedAsync() 
+ { 
+   if(AuthService.IsAuthenticated && string.Equals(AuthService.Role,"Administrator",StringComparison.OrdinalIgnoreCase)) 
+     await LoadDataAsync(); 
+ }
+ 
+ async Task LoadDataAsync()
+ {
+   try
+   {
+     var allTechnicians = await AdminService.GetAllTechniciansAsync();
+     
+     // Filter based on view
+     technicianRecords = showArchived 
+       ? allTechnicians?.Where(t => t.IsArchived).ToList() 
+       : allTechnicians?.Where(t => !t.IsArchived).ToList();
+     
+     // Update counts
+     activeCount = allTechnicians?.Count(t => !t.IsArchived) ?? 0;
+     archivedCount = allTechnicians?.Count(t => t.IsArchived) ?? 0;
+     
+     CurrentPage = 1;
+     StateHasChanged();
+   }
+   catch (Exception ex)
+   {
+     notification = $"Error: {ex.Message}";
+     technicianRecords = new List<Technician>();
+   }
+ }
+ 
+ async Task ToggleView(bool showArchivedView)
+ {
+   showArchived = showArchivedView;
+   await LoadDataAsync();
+ }
+ 
+ void GoToPage(int p) { if (p >= 1 && p <= TotalPages) { CurrentPage = p; StateHasChanged(); } }
+ void NextPage() { if (CurrentPage < TotalPages) { CurrentPage++; StateHasChanged(); } }
+ void PreviousPage() { if (CurrentPage > 1) { CurrentPage--; StateHasChanged(); } }
+ 
+ void OpenModal(Technician? t) 
+ { 
+   showModal = true; errorMessage = ""; attempted = false; 
+   if (t == null) 
+   { 
+     isEditing = false; 
+     editingId = newEmail = newFullName = newPassword = confirmPassword = newServiceArea = newPhone = newSpecialization = newNotes = ""; 
+     newDept = "Field Operations"; 
+     newActive = true; 
+   } 
+   else 
+   { 
+     isEditing = true; 
+     editingId = t.Id; 
+     newEmail = t.Email; 
+     newFullName = t.FullName; 
+     newDept = t.Department; 
+     newPhone = t.Phone ?? ""; 
+     newServiceArea = t.ServiceArea ?? ""; 
+     newSpecialization = t.Specialization ?? "";
+     newNotes = t.Notes ?? "";
+     newActive = t.IsActive; 
+     newPassword = confirmPassword = ""; 
+   } 
+ }
+ 
+ void CloseModal() { showModal = false; }
+ 
+ async Task SaveTechnician() 
+ { 
+   attempted = true;
+   if (!CanSubmit()) { errorMessage = "Please fill all required fields correctly."; return; }
+   
+   errorMessage = ""; notification = ""; 
+   var t = new Technician 
+   { 
+     Email = newEmail.Trim().ToLowerInvariant(), 
+     FullName = newFullName, 
+     Department = newDept, 
+     Phone = newPhone, 
+     ServiceArea = newServiceArea,
+     Specialization = newSpecialization,
+     Notes = newNotes,
+     IsActive = newActive 
+   }; 
+   
+   if (!isEditing) 
+   { 
+     var ok = await AdminService.CreateTechnicianAsync(t, newPassword); 
+     if (ok) { notification = "Technician created!"; await LoadDataAsync(); CloseModal(); } 
+     else errorMessage = AdminService.LastError ?? "Failed."; 
+   } 
+   else 
+   { 
+     t.Id = editingId; 
+     var ok = await AdminService.UpdateTechnicianAsync(t, string.IsNullOrWhiteSpace(newPassword) ? null : newPassword); 
+     if (ok) { notification = "Technician updated!"; await LoadDataAsync(); CloseModal(); } 
+     else errorMessage = AdminService.LastError ?? "Failed."; 
+   } 
+ }
+ 
+ void DeleteTechnician(Technician t) { confirmTargetId = t.Id; confirmTargetFullName = t.FullName; showConfirm = true; }
+ 
+ async Task ConfirmDelete() 
+ { 
+   showConfirm = false; 
+   if (string.IsNullOrWhiteSpace(confirmTargetId)) return; 
+   var ok = await AdminService.DeleteTechnicianAsync(confirmTargetId); 
+   notification = ok ? "Technician deleted!" : (AdminService.LastError ?? "Failed."); 
+   if (ok) await LoadDataAsync(); 
+   confirmTargetId = ""; 
+ }
+ 
+ void ShowArchiveConfirmation(Technician t) { archiveTargetId = t.Id; archiveTargetFullName = t.FullName; showArchiveConfirm = true; }
+ void ShowUnarchiveConfirmation(Technician t) { archiveTargetId = t.Id; archiveTargetFullName = t.FullName; showUnarchiveConfirm = true; }
+ 
+ async Task ConfirmArchive()
+ {
+   showArchiveConfirm = false;
+   if (string.IsNullOrWhiteSpace(archiveTargetId)) return;
+   var ok = await AdminService.ArchiveTechnicianAsync(archiveTargetId, AuthService.UserId);
+   notification = ok ? "📦 Technician archived!" : (AdminService.LastError ?? "Archive failed.");
+   if (ok) await LoadDataAsync();
+   archiveTargetId = "";
+   archiveTargetFullName = "";
+ }
+ 
+ async Task ConfirmUnarchive()
+ {
+   showUnarchiveConfirm = false;
+   if (string.IsNullOrWhiteSpace(archiveTargetId)) return;
+   var ok = await AdminService.UnarchiveTechnicianAsync(archiveTargetId);
+   notification = ok ? "✅ Technician restored!" : (AdminService.LastError ?? "Restore failed.");
+   if (ok) await LoadDataAsync();
+   archiveTargetId = "";
+   archiveTargetFullName = "";
+ }
+ 
+ string GetInitials(string name) 
+ { 
+   if (string.IsNullOrWhiteSpace(name)) return "?"; 
+   var p = name.Split(new[] { ' ', '@', '.' }, StringSplitOptions.RemoveEmptyEntries); 
+   return p.Length >= 2 ? $"{p[0][0]}{p[1][0]}".ToUpper() : (p[0].Length >= 2 ? p[0][..2].ToUpper() : p[0][0].ToString().ToUpper()); 
+ }
+}

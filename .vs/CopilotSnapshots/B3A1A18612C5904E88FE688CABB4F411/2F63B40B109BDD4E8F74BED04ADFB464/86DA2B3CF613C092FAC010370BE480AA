@@ -1,0 +1,325 @@
+﻿@page "/technician"
+@page "/technician/dashboard"
+@using FiberHelp.Models
+@using System.Linq
+@inject FiberHelp.Services.AdminService AdminService
+@inject FiberHelp.Services.AuthService AuthService
+@inject NavigationManager NavigationManager
+
+<style>
+    .tech-dashboard { padding: 20px; }
+    .tech-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+    .tech-header h1 { font-size: 28px; font-weight: 700; color: #0f172a; margin: 0; }
+    .tech-welcome { color: #64748b; font-size: 14px; }
+    
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+    .stat-card { background: #fff; border-radius: 12px; padding: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+    .stat-card.pending { border-left: 4px solid #f59e0b; }
+    .stat-card.inprogress { border-left: 4px solid #3b82f6; }
+    .stat-card.resolved { border-left: 4px solid #10b981; }
+    .stat-value { font-size: 32px; font-weight: 700; color: #0f172a; }
+    .stat-label { font-size: 13px; color: #64748b; margin-top: 4px; }
+    
+    .panel { background: #fff; border-radius: 14px; padding: 20px; box-shadow: 0 8px 24px rgba(2,6,23,0.08); margin-bottom: 20px; }
+    .panel-title { font-size: 18px; font-weight: 700; margin-bottom: 16px; color: #0f172a; }
+    
+    .ticket-list { display: flex; flex-direction: column; gap: 12px; }
+    .ticket-item { background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 10px; padding: 16px; transition: all 0.2s; }
+    .ticket-item:hover { border-color: #3b82f6; box-shadow: 0 4px 12px rgba(59,130,246,0.15); }
+    .ticket-item-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+    .ticket-id { font-weight: 700; color: #3b82f6; }
+    .ticket-title { font-weight: 600; color: #0f172a; margin-bottom: 4px; }
+    .ticket-meta { font-size: 12px; color: #64748b; }
+    
+    .badge { display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 11px; font-weight: 700; }
+    .badge.assigned { background: #fef3c7; color: #92400e; }
+    .badge.inprogress { background: #dbeafe; color: #1e40af; }
+    .badge.high { background: #fee2e2; color: #991b1b; }
+    .badge.medium { background: #fef3c7; color: #92400e; }
+    .badge.low { background: #d1fae5; color: #065f46; }
+    
+    .btn { padding: 8px 16px; border-radius: 8px; font-weight: 600; cursor: pointer; border: none; transition: all 0.2s; }
+    .btn.primary { background: linear-gradient(135deg, #2563eb, #1d4ed8); color: #fff; }
+    .btn.primary:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(37,99,235,0.3); }
+    .btn.success { background: linear-gradient(135deg, #10b981, #059669); color: #fff; }
+    .btn.outline { background: transparent; border: 1px solid #e5e7eb; color: #475569; }
+    
+    .ticket-actions { display: flex; gap: 8px; margin-top: 12px; }
+    
+    .empty-state { text-align: center; padding: 40px; color: #64748b; }
+    .empty-state svg { width: 64px; height: 64px; margin-bottom: 16px; opacity: 0.5; }
+    
+    /* Resolve Modal */
+    .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: grid; place-items: center; z-index: 20000; }
+    .modal-card { background: #fff; border-radius: 16px; padding: 24px; width: 500px; max-width: 90vw; box-shadow: 0 24px 48px rgba(0,0,0,0.2); }
+    .modal-header { margin-bottom: 16px; }
+    .modal-header h3 { margin: 0; font-size: 20px; }
+    .modal-body { margin-bottom: 20px; }
+    .form-group { margin-bottom: 16px; }
+    .form-group label { display: block; font-weight: 600; margin-bottom: 6px; color: #374151; }
+    .form-input { width: 100%; padding: 10px 12px; border: 1px solid #e5e7eb; border-radius: 8px; font-size: 14px; }
+    .form-input:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
+    textarea.form-input { min-height: 100px; resize: vertical; }
+    .modal-actions { display: flex; justify-content: flex-end; gap: 10px; }
+    
+    .access-denied { text-align: center; padding: 60px 20px; }
+    .access-denied h2 { color: #ef4444; margin-bottom: 12px; }
+</style>
+
+@if (!AuthService.IsAuthenticated || !AuthService.IsTechnician)
+{
+    <div class="access-denied">
+        <h2>🔒 Access Denied</h2>
+        <p>This page is only accessible to Technicians.</p>
+        <button class="btn primary" @onclick="() => NavigationManager.NavigateTo('/')">Go to Home</button>
+    </div>
+}
+else
+{
+    <div class="tech-dashboard">
+        <header class="tech-header">
+            <div>
+                <p class="tech-welcome">Welcome back,</p>
+                <h1>@AuthService.FullName</h1>
+            </div>
+            <div>
+                <span class="badge inprogress">Technician</span>
+            </div>
+        </header>
+
+        <!-- Stats Cards -->
+        <div class="stats-grid">
+            <div class="stat-card pending">
+                <div class="stat-value">@pendingCount</div>
+                <div class="stat-label">Pending Tickets</div>
+            </div>
+            <div class="stat-card inprogress">
+                <div class="stat-value">@inProgressCount</div>
+                <div class="stat-label">In Progress</div>
+            </div>
+            <div class="stat-card resolved">
+                <div class="stat-value">@resolvedTodayCount</div>
+                <div class="stat-label">Resolved Today</div>
+            </div>
+        </div>
+
+        <!-- Assigned Tickets -->
+        <section class="panel">
+            <h2 class="panel-title">📋 My Assigned Tickets</h2>
+            
+            @if (assignedTickets == null)
+            {
+                <p>Loading...</p>
+            }
+            else if (!assignedTickets.Any())
+            {
+                <div class="empty-state">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" stroke-width="1.5"/>
+                    </svg>
+                    <p>No tickets assigned to you yet.</p>
+                </div>
+            }
+            else
+            {
+                <div class="ticket-list">
+                    @foreach (var ticket in assignedTickets.Where(t => t.Status != "Resolved" && t.Status != "Closed"))
+                    {
+                        <div class="ticket-item">
+                            <div class="ticket-item-header">
+                                <div>
+                                    <span class="ticket-id">#@ticket.Id</span>
+                                    <span class="badge @GetPriorityClass(ticket.Priority)">@ticket.Priority</span>
+                                </div>
+                                <span class="badge @GetStatusClass(ticket.Status)">@ticket.Status</span>
+                            </div>
+                            <div class="ticket-title">@ticket.Title</div>
+                            <div class="ticket-meta">
+                                <span>👤 @(string.IsNullOrEmpty(ticket.ClientName) ? "No Client" : ticket.ClientName)</span>
+                                <span style="margin-left: 16px;">📅 Assigned: @(ticket.AssignedAt?.ToString("MMM dd, yyyy h:mm tt") ?? "N/A")</span>
+                            </div>
+                            <div class="ticket-actions">
+                                @if (ticket.Status == "Assigned")
+                                {
+                                    <button class="btn primary" @onclick="() => StartProgress(ticket)">Start Work</button>
+                                }
+                                @if (ticket.Status == "Assigned" || ticket.Status == "In Progress")
+                                {
+                                    <button class="btn success" @onclick="() => OpenResolveModal(ticket)">✓ Resolve</button>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        </section>
+
+        <!-- Recently Resolved -->
+        <section class="panel">
+            <h2 class="panel-title">✅ Recently Resolved</h2>
+            @if (resolvedTickets != null && resolvedTickets.Any())
+            {
+                <div class="ticket-list">
+                    @foreach (var ticket in resolvedTickets.Take(5))
+                    {
+                        <div class="ticket-item" style="opacity: 0.8;">
+                            <div class="ticket-item-header">
+                                <div>
+                                    <span class="ticket-id">#@ticket.Id</span>
+                                </div>
+                                <span class="badge" style="background:#d1fae5;color:#065f46;">Resolved</span>
+                            </div>
+                            <div class="ticket-title">@ticket.Title</div>
+                            <div class="ticket-meta">
+                                📅 Resolved: @(ticket.ResolvedAt?.ToString("MMM dd, yyyy h:mm tt") ?? "N/A")
+                            </div>
+                            @if (!string.IsNullOrWhiteSpace(ticket.ResolutionNotes))
+                            {
+                                <div style="margin-top:8px;padding:8px;background:#f0fdf4;border-radius:6px;font-size:13px;color:#166534;">
+                                    <strong>Notes:</strong> @ticket.ResolutionNotes
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="empty-state">
+                    <p>No resolved tickets yet.</p>
+                </div>
+            }
+        </section>
+    </div>
+
+    <!-- Resolve Modal -->
+    @if (showResolveModal && selectedTicket != null)
+    {
+        <div class="modal-bg" @onclick="CloseResolveModal">
+            <div class="modal-card" @onclick:stopPropagation>
+                <div class="modal-header">
+                    <h3>Resolve Ticket #@selectedTicket.Id</h3>
+                </div>
+                <div class="modal-body">
+                    <p><strong>@selectedTicket.Title</strong></p>
+                    <div class="form-group">
+                        <label>Resolution Notes</label>
+                        <textarea class="form-input" @bind="resolutionNotes" placeholder="Describe how the issue was resolved..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button class="btn outline" @onclick="CloseResolveModal">Cancel</button>
+                    <button class="btn success" @onclick="ConfirmResolve">✓ Mark as Resolved</button>
+                </div>
+            </div>
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(notification))
+    {
+        <div style="position:fixed;bottom:20px;right:20px;background:#10b981;color:#fff;padding:12px 20px;border-radius:10px;box-shadow:0 4px 12px rgba(0,0,0,0.15);z-index:30000;">
+            ✓ @notification
+        </div>
+    }
+}
+
+@code {
+    private List<Ticket>? assignedTickets;
+    private List<Ticket>? resolvedTickets;
+    private int pendingCount;
+    private int inProgressCount;
+    private int resolvedTodayCount;
+    
+    private bool showResolveModal;
+    private Ticket? selectedTicket;
+    private string resolutionNotes = "";
+    private string notification = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!AuthService.IsAuthenticated || !AuthService.IsTechnician)
+            return;
+
+        await LoadTickets();
+    }
+
+    private async Task LoadTickets()
+    {
+        var techId = AuthService.UserId;
+        if (string.IsNullOrEmpty(techId)) return;
+
+        assignedTickets = await AdminService.GetTicketsForTechnicianAsync(techId);
+        resolvedTickets = assignedTickets?.Where(t => t.Status == "Resolved" || t.Status == "Closed")
+            .OrderByDescending(t => t.ResolvedAt).ToList();
+
+        pendingCount = assignedTickets?.Count(t => t.Status == "Assigned") ?? 0;
+        inProgressCount = assignedTickets?.Count(t => t.Status == "In Progress") ?? 0;
+        resolvedTodayCount = assignedTickets?.Count(t => 
+            (t.Status == "Resolved" || t.Status == "Closed") && 
+            t.ResolvedAt?.Date == DateTime.UtcNow.Date) ?? 0;
+    }
+
+    private async Task StartProgress(Ticket ticket)
+    {
+        ticket.Status = "In Progress";
+        await AdminService.UpdateTicketAsync(ticket);
+        await LoadTickets();
+        ShowNotification("Ticket marked as In Progress");
+    }
+
+    private void OpenResolveModal(Ticket ticket)
+    {
+        selectedTicket = ticket;
+        resolutionNotes = "";
+        showResolveModal = true;
+    }
+
+    private void CloseResolveModal()
+    {
+        showResolveModal = false;
+        selectedTicket = null;
+        resolutionNotes = "";
+    }
+
+    private async Task ConfirmResolve()
+    {
+        if (selectedTicket == null || string.IsNullOrEmpty(AuthService.UserId)) return;
+
+        var success = await AdminService.ResolveTicketByTechnicianAsync(
+            selectedTicket.Id, 
+            AuthService.UserId, 
+            resolutionNotes);
+
+        if (success)
+        {
+            CloseResolveModal();
+            await LoadTickets();
+            ShowNotification("Ticket resolved successfully!");
+        }
+    }
+
+    private void ShowNotification(string message)
+    {
+        notification = message;
+        StateHasChanged();
+        _ = Task.Delay(3000).ContinueWith(_ => 
+        {
+            notification = "";
+            InvokeAsync(StateHasChanged);
+        });
+    }
+
+    private string GetPriorityClass(string priority) => priority?.ToLower() switch
+    {
+        "high" or "urgent" => "high",
+        "medium" => "medium",
+        _ => "low"
+    };
+
+    private string GetStatusClass(string status) => status?.ToLower() switch
+    {
+        "assigned" => "assigned",
+        "in progress" => "inprogress",
+        _ => "assigned"
+    };
+}

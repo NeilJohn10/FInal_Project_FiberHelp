@@ -1,0 +1,148 @@
+﻿using System;
+using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using FiberHelp.Data.context;
+using FiberHelp.Data;
+using FiberHelp.Models;
+using System.Linq;
+
+namespace FiberHelp.Services
+{
+    // Simple one-way sync: Cloud SQL -> Local SQLite cache
+    // Keeps offline cache up-to-date without changing app code.
+    public class DataSyncService
+    {
+        private readonly IServiceScopeFactory _scopeFactory;
+        public DataSyncService(IServiceScopeFactory scopeFactory)
+        {
+            _scopeFactory = scopeFactory;
+        }
+
+        public async Task SyncCloudToLocalAsync()
+        {
+            try
+            {
+                using var scope = _scopeFactory.CreateScope();
+                var online = scope.ServiceProvider.GetRequiredService<onlineContext>();
+                var local = scope.ServiceProvider.GetRequiredService<localContext>();
+
+                // If cloud not reachable, skip
+                try { if (!online.Database.CanConnect()) return; } catch { return; }
+
+                // Ensure local DB exists and migrate
+                await local.Database.MigrateAsync();
+
+                // Load all data from cloud (no tracking)
+                var accounts = await online.Accounts.AsNoTracking().ToListAsync();
+                var clients = await online.Clients.AsNoTracking().ToListAsync();
+                var tickets = await online.Tickets.AsNoTracking().ToListAsync();
+                var invoices = await online.Invoices.AsNoTracking().ToListAsync();
+                var users = await online.Users.AsNoTracking().ToListAsync();
+                var agents = await online.Agents.AsNoTracking().ToListAsync();
+
+                using var tx = await local.Database.BeginTransactionAsync();
+                // Clear local tables in FK-safe order
+                await local.Database.ExecuteSqlRawAsync("DELETE FROM Tickets");
+                await local.Database.ExecuteSqlRawAsync("DELETE FROM Invoices");
+                await local.Database.ExecuteSqlRawAsync("DELETE FROM Clients");
+                await local.Database.ExecuteSqlRawAsync("DELETE FROM Accounts");
+                await local.Database.ExecuteSqlRawAsync("DELETE FROM Agents");
+                await local.Database.ExecuteSqlRawAsync("DELETE FROM Users");
+
+                // Insert in FK-safe order
+                if (accounts.Count > 0) local.Accounts.AddRange(accounts.Select(a => new Account
+                {
+                    Id = a.Id,
+                    AccountNumber = a.AccountNumber,
+                    Name = a.Name,
+                    Type = a.Type,
+                    ServicePlan = a.ServicePlan,
+                    ServiceStatus = a.ServiceStatus,
+                    IsActive = a.IsActive,
+                    ContactName = a.ContactName,
+                    ContactEmail = a.ContactEmail,
+                    ContactPhone = a.ContactPhone,
+                    BillingAddress = a.BillingAddress,
+                    CreatedAt = a.CreatedAt
+                }));
+
+                if (clients.Count > 0) local.Clients.AddRange(clients.Select(c => new Client
+                {
+                    Id = c.Id,
+                    Name = c.Name,
+                    Email = c.Email,
+                    Plan = c.Plan,
+                    Status = c.Status,
+                    JoinDate = c.JoinDate,
+                    AccountId = c.AccountId
+                }));
+
+                if (users.Count > 0) local.Users.AddRange(users.Select(u => new User
+                {
+                    Id = u.Id,
+                    Email = u.Email,
+                    PasswordHash = u.PasswordHash,
+                    Role = u.Role,
+                    FullName = u.FullName
+                }));
+
+                if (agents.Count > 0) local.Agents.AddRange(agents.Select(g => new Agent
+                {
+                    Id = g.Id,
+                    Email = g.Email,
+                    PasswordHash = g.PasswordHash,
+                    FullName = g.FullName,
+                    Department = g.Department,
+                    Phone = g.Phone,
+                    IsActive = g.IsActive,
+                    CreatedAt = g.CreatedAt,
+                    UpdatedAt = g.UpdatedAt,
+                    PasswordChangedAt = g.PasswordChangedAt
+                }));
+
+                if (accounts.Count > 0 || clients.Count > 0 || users.Count > 0 || agents.Count > 0)
+                {
+                    await local.SaveChangesAsync();
+                }
+
+                if (tickets.Count > 0) local.Tickets.AddRange(tickets.Select(t => new Ticket
+                {
+                    Id = t.Id,
+                    AccountId = t.AccountId,
+                    Title = t.Title,
+                    ClientId = t.ClientId,
+                    ClientName = t.ClientName,
+                    Priority = t.Priority,
+                    Status = t.Status,
+                    Created = t.Created
+                }));
+
+                if (invoices.Count > 0) local.Invoices.AddRange(invoices.Select(i => new Invoice
+                {
+                    Id = i.Id,
+                    AccountId = i.AccountId,
+                    AccountName = i.AccountName,
+                    AmountDue = i.AmountDue,
+                    IssueDate = i.IssueDate,
+                    DueDate = i.DueDate,
+                    Status = i.Status,
+                    PaymentRef = i.PaymentRef,
+                    PaidDate = i.PaidDate,
+                    Notes = i.Notes
+                }));
+
+                if (tickets.Count > 0 || invoices.Count > 0)
+                {
+                    await local.SaveChangesAsync();
+                }
+
+                await tx.CommitAsync();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"DataSyncService.SyncCloudToLocalAsync error: {ex.Message}");
+            }
+        }
+    }
+}

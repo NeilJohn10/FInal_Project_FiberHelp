@@ -1,0 +1,110 @@
+﻿@using Microsoft.AspNetCore.Components
+@inherits LayoutComponentBase
+@inject NavigationManager NavigationManager
+@inject FiberHelp.Services.AuthService AuthService
+@implements IDisposable
+
+<link href="css/mainlayout.css" rel="stylesheet" />
+<link href="css/admin-theme.css" rel="stylesheet" />
+<script src="js/export.js"></script>
+
+<div class="app-shell">
+    <aside class="sidebar">
+        <div class="brand">
+            <img src="css/bootstrap/Logo.png" alt="FiberHelp" class="brand-logo" />
+            <span>FIBERHELP</span>
+        </div>
+
+        <div class="sidebar-group">
+            @* Common navigation for all roles *@
+            <button class="sidebar-btn" @onclick="NavigateToRoot">
+                <span class="icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 10.5l9-7 9 7v9.5a1 1 0 0 1-1 1h-5.5a1 1 0 0 1-1-1v-5.5h-2v5.5a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-9.5z" stroke="#fff" stroke-width="1.5"/></svg></span>
+                <span>Dashboard</span>
+            </button>
+
+            @* Technician-specific menu *@
+            @if (AuthService.IsTechnician)
+            {
+                <button class="sidebar-btn" @onclick="NavigateToTechnicianDashboard">
+                    <span class="icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" stroke="#fff" stroke-width="1.5"/></svg></span>
+                    <span>My Tasks</span>
+                </button>
+            }
+
+            @* Agent and Admin can see tickets *@
+            @if (AuthService.CanManageTickets || AuthService.IsTechnician)
+            {
+                <button class="sidebar-btn" @onclick="NavigateToTickets">
+                    <span class="icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="6" width="18" height="12" rx="2" stroke="#fff" stroke-width="1.5"/><circle cx="9" cy="12" r="1.5" fill="#fff"/></svg></span>
+                    <span>Tickets</span>
+                </button>
+            }
+
+            @* Agent and Admin can see clients *@
+            @if (AuthService.CanManageTickets)
+            {
+                <button class="sidebar-btn" @onclick="NavigateToCustomers">
+                    <span class="icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="8" cy="8" r="3" stroke="#fff"/><circle cx="16" cy="9" r="3" stroke="#fff"/><path d="M4 20c0-3 3-5 6-5s6 2 6 5" stroke="#fff"/></svg></span>
+                    <span>Clients</span>
+                </button>
+            }
+
+            @* Administrator-only menu items *@
+            @if (AuthService.IsAdministrator)
+            {
+                <button class="sidebar-btn" @onclick="NavigateToBilling">
+                    <span class="icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="5" width="18" height="14" rx="2" stroke="#fff"/><rect x="3" y="8" width="18" height="3" fill="#fff"/></svg></span>
+                    <span>Billing</span>
+                </button>
+                <button class="sidebar-btn" @onclick="NavigateToReports">
+                    <span class="icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 19V9" stroke="#fff" stroke-width="1.5"/><path d="M10 19V5" stroke="#fff" stroke-width="1.5"/><path d="M16 19V12" stroke="#fff" stroke-width="1.5"/></svg></span>
+                    <span>Reports</span>
+                </button>
+                <button class="sidebar-btn" @onclick="NavigateToAgents">
+                    <span class="icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="8" r="3" stroke="#fff"/><path d="M6 20c0-3.5 3-5 6-5s6 1.5 6 5" stroke="#fff"/></svg></span>
+                    <span>Agents & Techs</span>
+                </button>
+                <button class="sidebar-btn" @onclick="NavigateToAccounts">
+                    <span class="icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 7a2 2 0 0 1 2-2h5l9 9a2 2 0 0 1 0 3l-4 4a2 2 0 0 1-3 0l-9-9V7z" stroke="#fff"/></svg></span>
+                    <span>Accounts</span>
+                </button>
+            }
+        </div>
+
+        <div class="sidebar-group muted">
+            @* Show current role badge *@
+            <div style="padding: 8px 16px; color: rgba(255,255,255,0.6); font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;">
+                @AuthService.Role
+            </div>
+            <button class="sidebar-btn danger" @onclick="NavigateToLogout">
+                <span class="icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10 7l-5 5 5 5" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M20 12H6" stroke="#fff" stroke-width="1.5"/></svg></span>
+                <span>Logout</span>
+            </button>
+        </div>
+    </aside>
+
+    <main class="main">
+        <div class="main-inner">
+            @Body
+        </div>
+    </main>
+</div>
+
+@code {
+    private void NavigateToRoot() => NavigationManager.NavigateTo("/");
+    private void NavigateToTickets() => NavigationManager.NavigateTo("/tickets");
+    private void NavigateToCustomers() => NavigationManager.NavigateTo("/clients");
+    private void NavigateToBilling() => NavigationManager.NavigateTo("/billing");
+    private void NavigateToReports() => NavigationManager.NavigateTo("/reports");
+    private void NavigateToAgents() => NavigationManager.NavigateTo("/admin/agents");
+    private void NavigateToLogout() => NavigationManager.NavigateTo("/logout");
+    private void NavigateToAccounts() => NavigationManager.NavigateTo("/admin/accounts");
+    private void NavigateToTechnicianDashboard() => NavigationManager.NavigateTo("/technician");
+
+    protected override void OnInitialized()
+    {
+        AuthService.AuthenticationStateChanged += OnAuthChanged;
+    }
+    private void OnAuthChanged() => InvokeAsync(StateHasChanged);
+    public void Dispose() => AuthService.AuthenticationStateChanged -= OnAuthChanged;
+}

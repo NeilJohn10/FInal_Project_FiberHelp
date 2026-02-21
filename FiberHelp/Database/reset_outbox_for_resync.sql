@@ -1,0 +1,43 @@
+-- =====================================================
+-- RESET OUTBOX FOR RE-SYNC TO CLOUD
+-- Run this on your LOCAL database (FiberhelpDB on localdb\MSSQLLocalDB)
+-- =====================================================
+
+-- Step 1: Check current state
+PRINT '=== CURRENT STATE ===';
+SELECT 
+    EntityName,
+    Operation,
+    COUNT(*) as TotalCount,
+    SUM(CASE WHEN ProcessedAt IS NOT NULL THEN 1 ELSE 0 END) as ProcessedCount,
+    SUM(CASE WHEN ProcessedAt IS NULL THEN 1 ELSE 0 END) as PendingCount
+FROM [dbo].[OutboxMessages]
+GROUP BY EntityName, Operation
+ORDER BY EntityName, Operation;
+
+-- Step 2: Reset ALL messages for re-sync
+PRINT '';
+PRINT '=== RESETTING ALL OUTBOX MESSAGES ===';
+UPDATE [dbo].[OutboxMessages] SET ProcessedAt = NULL;
+
+PRINT 'Reset ' + CAST(@@ROWCOUNT AS VARCHAR) + ' messages for re-sync';
+
+-- Step 3: Verify the reset
+PRINT '';
+PRINT '=== AFTER RESET ===';
+SELECT 
+    EntityName,
+    Operation,
+    COUNT(*) as TotalCount,
+    SUM(CASE WHEN ProcessedAt IS NOT NULL THEN 1 ELSE 0 END) as ProcessedCount,
+    SUM(CASE WHEN ProcessedAt IS NULL THEN 1 ELSE 0 END) as PendingCount
+FROM [dbo].[OutboxMessages]
+GROUP BY EntityName, Operation
+ORDER BY EntityName, Operation;
+
+PRINT '';
+PRINT '=== NEXT STEPS ===';
+PRINT '1. Make sure cloud database has all required tables (run setup_cloud_database.sql on cloud)';
+PRINT '2. Restart the FiberHelp app';
+PRINT '3. Watch Debug Output window in Visual Studio for sync messages';
+PRINT '4. Check cloud database to verify data appeared';

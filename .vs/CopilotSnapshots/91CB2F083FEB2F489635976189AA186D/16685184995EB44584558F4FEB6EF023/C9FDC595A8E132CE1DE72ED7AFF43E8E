@@ -1,0 +1,23 @@
+﻿using System;
+using System.Collections.Generic;
+
+namespace FiberHelp.Models
+{
+    public class Account
+    {
+        public int Id { get; set; }
+        public string AccountNumber { get; set; } = string.Empty;
+        // New: map existing DB columns Name and Type
+        public string? Name { get; set; } // maps to [Name]
+        public string? Type { get; set; } // maps to [Type]
+        public ICollection<Customer>? Customers { get; set; }
+        public string ServicePlan { get; set; } = string.Empty;
+        public bool IsActive { get; set; } = true;
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public string? ContactName { get; set; }
+        public string? ContactEmail { get; set; }
+        public string? ContactPhone { get; set; }
+        public string? BillingAddress { get; set; }
+        public string? ServiceStatus { get; set; }
+    }
+}
