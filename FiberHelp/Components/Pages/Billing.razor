@@ -1,6 +1,7 @@
 @page "/billing"
 @inject FiberHelp.Services.AuthService AuthService
 @inject FiberHelp.Services.BillingService BillingService
+@inject FiberHelp.Services.ErrorHandlingService ErrorService
 @inject NavigationManager Nav
 @inject Microsoft.JSInterop.IJSRuntime JS
 @implements IDisposable
@@ -797,6 +798,12 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        if (!AuthService.IsAuthenticated)
+        {
+            Nav.NavigateTo("/login", true);
+            return;
+        }
+
         if (!(AuthService.Role ?? "").Equals("Administrator", StringComparison.OrdinalIgnoreCase))
         {
             Nav.NavigateTo("/tickets", true);
@@ -878,7 +885,7 @@ else
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"Error loading billing data: {ex.Message}");
-            _error = $"Failed to load billing data: {ex.Message}";
+            _error = ErrorService.GetContextualMessage(ex, "load", "billing data");
         }
         finally
         {
@@ -1007,7 +1014,7 @@ else
         }
         catch (Exception ex)
         {
-            _toast = $"Error: {ex.Message}";
+            _toast = ErrorService.GetContextualMessage(ex, "save", "invoice");
             StateHasChanged();
             await Task.Delay(3000);
             _toast = string.Empty;
@@ -1046,7 +1053,7 @@ else
         }
         catch (Exception ex)
         {
-            _toast = $"Error: {ex.Message}";
+            _toast = ErrorService.GetContextualMessage(ex, "save", "expense");
             StateHasChanged();
             await Task.Delay(3000);
             _toast = string.Empty;
@@ -1076,7 +1083,7 @@ else
         }
         catch (Exception ex)
         {
-            _toast = $"Error: {ex.Message}";
+            _toast = ErrorService.GetContextualMessage(ex, "update", "invoice");
             StateHasChanged();
             await Task.Delay(3000);
             _toast = string.Empty;
@@ -1111,7 +1118,7 @@ else
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"Error updating cash flow: {ex.Message}");
-            _error = $"Failed to update: {ex.Message}";
+            _error = ErrorService.GetContextualMessage(ex, "load", "cash flow data");
             StateHasChanged();
         }
     }
@@ -1170,7 +1177,7 @@ else
         }
         catch (Exception ex)
         {
-            _toast = $"Export failed: {ex.Message}";
+            _toast = ErrorService.GetContextualMessage(ex, "export", "accounting data");
             StateHasChanged();
             await Task.Delay(3000);
             _toast = string.Empty;

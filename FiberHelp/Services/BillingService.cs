@@ -13,12 +13,22 @@ namespace FiberHelp.Services
  {
  private readonly AppDbContext _db;
  private readonly IServiceScopeFactory _scopeFactory;
+ private readonly ErrorHandlingService _errorService;
  public string? LastError { get; private set; }
- 
- public BillingService(AppDbContext db, IServiceScopeFactory scopeFactory) 
+
+ public BillingService(AppDbContext db, IServiceScopeFactory scopeFactory, ErrorHandlingService errorService) 
  { 
      _db = db; 
      _scopeFactory = scopeFactory;
+     _errorService = errorService;
+ }
+
+ /// <summary>
+ /// Returns a user-friendly error message without leaking internal details.
+ /// </summary>
+ private string SanitizeError(Exception ex)
+ {
+     return _errorService.GetUserFriendlyMessage(ex);
  }
 
  public async Task<List<Invoice>> GetInvoicesAsync()
@@ -33,7 +43,7 @@ namespace FiberHelp.Services
  }
  catch (Exception ex)
  {
- LastError = ex.Message;
+ LastError = SanitizeError(ex);
  System.Diagnostics.Debug.WriteLine($"BillingService.GetInvoicesAsync error: {ex}");
  return new List<Invoice>();
  }
@@ -128,7 +138,7 @@ namespace FiberHelp.Services
  public async Task<Invoice?> GetInvoiceAsync(int id)
  {
  try { LastError = null; return await _db.Invoices.FindAsync(id); }
- catch (Exception ex) { LastError = ex.Message; System.Diagnostics.Debug.WriteLine($"BillingService.GetInvoiceAsync error: {ex}"); return null; }
+ catch (Exception ex) { LastError = SanitizeError(ex); System.Diagnostics.Debug.WriteLine($"BillingService.GetInvoiceAsync error: {ex}"); return null; }
  }
 
  public async Task<bool> CreateAsync(Invoice inv)
@@ -158,7 +168,7 @@ namespace FiberHelp.Services
  }
  catch (Exception ex)
  {
- LastError = ex.Message;
+ LastError = SanitizeError(ex);
  System.Diagnostics.Debug.WriteLine($"BillingService.CreateAsync error: {ex}");
  return false;
  }
@@ -192,7 +202,7 @@ namespace FiberHelp.Services
  }
  catch (Exception ex)
  {
- LastError = ex.Message;
+ LastError = SanitizeError(ex);
  System.Diagnostics.Debug.WriteLine($"BillingService.MarkPaidAsync error: {ex}");
  return false;
  }
@@ -264,7 +274,7 @@ namespace FiberHelp.Services
  }
  catch (Exception ex)
  {
- LastError = ex.Message;
+ LastError = SanitizeError(ex);
  System.Diagnostics.Debug.WriteLine($"BillingService.ApplyPaymentAsync error: {ex}");
  return false;
  }
@@ -274,7 +284,7 @@ namespace FiberHelp.Services
  public async Task<List<Expense>> GetExpensesAsync()
  {
  try { return await _db.Expenses.OrderByDescending(e => e.Date).ToListAsync(); }
- catch (Exception ex) { LastError = ex.Message; return new List<Expense>(); }
+ catch (Exception ex) { LastError = SanitizeError(ex); return new List<Expense>(); }
  }
 
  public async Task<bool> AddExpenseAsync(Expense e)
@@ -302,7 +312,7 @@ namespace FiberHelp.Services
      
      return ok;
  }
- catch (Exception ex) { LastError = ex.Message; return false; }
+ catch (Exception ex) { LastError = SanitizeError(ex); return false; }
  }
 
  public async Task<bool> DeleteExpenseAsync(int id)
@@ -332,7 +342,7 @@ namespace FiberHelp.Services
      
      return ok;
  }
- catch (Exception ex) { LastError = ex.Message; return false; }
+ catch (Exception ex) { LastError = SanitizeError(ex); return false; }
  }
 
  // Cash Flow (simple) ----------------------------------------
@@ -352,7 +362,7 @@ namespace FiberHelp.Services
  }
  catch (Exception ex)
  {
- LastError = ex.Message;
+ LastError = SanitizeError(ex);
  System.Diagnostics.Debug.WriteLine($"BillingService.GetAccountsAsync error: {ex}");
  return new List<Account>();
  }
@@ -399,7 +409,7 @@ namespace FiberHelp.Services
      }
      catch (Exception ex)
      {
-         LastError = ex.Message;
+         LastError = SanitizeError(ex);
          System.Diagnostics.Debug.WriteLine($"BillingService.GetClientsAsync error: {ex}");
          return new List<Client>();
      }
@@ -472,7 +482,7 @@ namespace FiberHelp.Services
      }
      catch (Exception ex)
      {
-         LastError = ex.Message;
+         LastError = SanitizeError(ex);
          System.Diagnostics.Debug.WriteLine($"BillingService.GenerateMonthlyInvoicesAsync error: {ex}");
          return 0;
      }
@@ -534,7 +544,7 @@ namespace FiberHelp.Services
      }
      catch (Exception ex)
      {
-         LastError = ex.Message;
+         LastError = SanitizeError(ex);
          System.Diagnostics.Debug.WriteLine($"BillingService.CreateServiceInvoiceAsync error: {ex}");
          return false;
      }
@@ -555,7 +565,7 @@ namespace FiberHelp.Services
      }
      catch (Exception ex)
      {
-         LastError = ex.Message;
+         LastError = SanitizeError(ex);
          return new List<Invoice>();
      }
  }
@@ -577,7 +587,7 @@ namespace FiberHelp.Services
      }
      catch (Exception ex)
      {
-         LastError = ex.Message;
+         LastError = SanitizeError(ex);
          return new List<Invoice>();
      }
  }

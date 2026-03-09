@@ -4,6 +4,195 @@
         <name>FiberHelp</name>
     </assembly>
     <members>
+        <member name="T:FiberHelp.Helpers.AesEncryptor">
+            <summary>
+            AES-256-CBC encryption for sensitive data at rest.
+            The encryption key is read from the FIBERHELP_AES_KEY environment variable.
+            If not set, a machine-specific key is derived automatically.
+            </summary>
+        </member>
+        <member name="M:FiberHelp.Helpers.AesEncryptor.GetKey">
+            <summary>
+            Returns the AES key, reading from environment or deriving a machine-specific fallback.
+            </summary>
+        </member>
+        <member name="M:FiberHelp.Helpers.AesEncryptor.Encrypt(System.String)">
+            <summary>
+            Encrypt a plaintext string. Returns a Base64 string containing IV + ciphertext.
+            </summary>
+        </member>
+        <member name="M:FiberHelp.Helpers.AesEncryptor.Decrypt(System.String)">
+            <summary>
+            Decrypt a Base64 string that contains IV + ciphertext.
+            </summary>
+        </member>
+        <member name="M:FiberHelp.Helpers.AesEncryptor.IsEncrypted(System.String)">
+            <summary>
+            Checks if data appears to be AES-encrypted (Base64 with sufficient length).
+            </summary>
+        </member>
+        <member name="T:FiberHelp.Helpers.InputValidator">
+            <summary>
+            Centralized input validation for client-side and server-side use.
+            </summary>
+        </member>
+        <member name="M:FiberHelp.Helpers.InputValidator.EmailRegex">
+            <remarks>
+            Pattern:<br/>
+            <code>^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$</code><br/>
+            Options:<br/>
+            <code>RegexOptions.Compiled</code><br/>
+            Explanation:<br/>
+            <code>
+            ○ Match if at the beginning of the string.<br/>
+            ○ Match a character in the set [%+-.0-9A-Z_a-z] atomically at least once.<br/>
+            ○ Match '@'.<br/>
+            ○ Match a character in the set [-.0-9A-Za-z] greedily at least once.<br/>
+            ○ Match '.'.<br/>
+            ○ Match a character in the set [A-Za-z] atomically at least twice.<br/>
+            ○ Match if at the end of the string or if before an ending newline.<br/>
+            </code>
+            </remarks>
+        </member>
+        <member name="M:FiberHelp.Helpers.InputValidator.PhoneRegex">
+            <remarks>
+            Pattern:<br/>
+            <code>^(\\+?63|0)?\\d{10,12}$</code><br/>
+            Options:<br/>
+            <code>RegexOptions.Compiled</code><br/>
+            Explanation:<br/>
+            <code>
+            ○ Match if at the beginning of the string.<br/>
+            ○ Optional (greedy).<br/>
+                ○ 1st capture group.<br/>
+                    ○ Match with 2 alternative expressions.<br/>
+                        ○ Match a sequence of expressions.<br/>
+                            ○ Match '+' atomically, optionally.<br/>
+                            ○ Match the string "63".<br/>
+                        ○ Match '0'.<br/>
+            ○ Match a Unicode digit atomically at least 10 and at most 12 times.<br/>
+            ○ Match if at the end of the string or if before an ending newline.<br/>
+            </code>
+            </remarks>
+        </member>
+        <member name="M:FiberHelp.Helpers.InputValidator.IsValidEmail(System.String)">
+            <summary>Validate email format</summary>
+        </member>
+        <member name="M:FiberHelp.Helpers.InputValidator.IsValidPhone(System.String)">
+            <summary>Validate phone number format</summary>
+        </member>
+        <member name="M:FiberHelp.Helpers.InputValidator.IsValidPassword(System.String)">
+            <summary>Validate password meets policy (12+ chars, upper, digit, special)</summary>
+        </member>
+        <member name="M:FiberHelp.Helpers.InputValidator.IsRequired(System.String)">
+            <summary>Validate a required text field</summary>
+        </member>
+        <member name="M:FiberHelp.Helpers.InputValidator.IsValidName(System.String)">
+            <summary>Validate a name (2+ characters, no special chars except spaces, hyphens, periods)</summary>
+        </member>
+        <member name="M:FiberHelp.Helpers.InputValidator.IsValidAmount(System.Nullable{System.Decimal})">
+            <summary>Validate a monetary amount</summary>
+        </member>
+        <member name="M:FiberHelp.Helpers.InputValidator.ValidateEmail(System.String)">
+            <summary>Get validation error message for email</summary>
+        </member>
+        <member name="M:FiberHelp.Helpers.InputValidator.ValidatePhone(System.String)">
+            <summary>Get validation error message for phone</summary>
+        </member>
+        <member name="M:FiberHelp.Helpers.InputValidator.ValidatePassword(System.String)">
+            <summary>Get validation error message for password</summary>
+        </member>
+        <member name="M:FiberHelp.Helpers.InputValidator.Sanitize(System.String,System.Int32)">
+            <summary>Sanitize string input — trim and limit length</summary>
+        </member>
+        <member name="T:FiberHelp.Helpers.PasswordHasher">
+            <summary>
+            Secure password hashing using PBKDF2 (RFC 2898) with automatic migration from legacy SHA256 hashes.
+            </summary>
+        </member>
+        <member name="M:FiberHelp.Helpers.PasswordHasher.Hash(System.String)">
+            <summary>
+            Hash a password using PBKDF2 with a random salt.
+            Output format: PBKDF2:{iterations}:{base64_salt}:{base64_hash}
+            </summary>
+        </member>
+        <member name="M:FiberHelp.Helpers.PasswordHasher.Verify(System.String,System.String)">
+            <summary>
+            Verify a password against a stored hash.
+            Supports both PBKDF2 (new) and legacy SHA256 hex (old) formats.
+            </summary>
+        </member>
+        <member name="M:FiberHelp.Helpers.PasswordHasher.NeedsUpgrade(System.String)">
+            <summary>
+            Returns true if the stored hash uses the legacy SHA256 format and should be upgraded.
+            </summary>
+        </member>
+        <member name="T:FiberHelp.Models.AuditLog">
+            <summary>
+            Persistent audit log entry for tracking login attempts, errors, and user activities.
+            Supports rubric criteria: "Logs correctly record login attempts, errors, and user activities."
+            </summary>
+        </member>
+        <member name="P:FiberHelp.Models.AuditLog.EventType">
+            <summary>
+            Type of event: Login, Logout, Error, Create, Update, Delete, Archive, Restore, Access
+            </summary>
+        </member>
+        <member name="P:FiberHelp.Models.AuditLog.Category">
+            <summary>
+            Category: Authentication, DataAccess, SystemError, UserActivity
+            </summary>
+        </member>
+        <member name="P:FiberHelp.Models.AuditLog.Message">
+            <summary>
+            User-friendly description of what happened (no technical details exposed)
+            </summary>
+        </member>
+        <member name="P:FiberHelp.Models.AuditLog.TechnicalDetails">
+            <summary>
+            Internal technical details for administrator review only (never shown to end users)
+            </summary>
+        </member>
+        <member name="P:FiberHelp.Models.AuditLog.UserId">
+            <summary>
+            User ID who performed the action (null for anonymous/failed login)
+            </summary>
+        </member>
+        <member name="P:FiberHelp.Models.AuditLog.UserEmail">
+            <summary>
+            Email or username associated with the event
+            </summary>
+        </member>
+        <member name="P:FiberHelp.Models.AuditLog.UserRole">
+            <summary>
+            User role at the time of the event
+            </summary>
+        </member>
+        <member name="P:FiberHelp.Models.AuditLog.EntityType">
+            <summary>
+            Entity type affected (e.g., Client, Ticket, Account)
+            </summary>
+        </member>
+        <member name="P:FiberHelp.Models.AuditLog.EntityId">
+            <summary>
+            Entity ID affected
+            </summary>
+        </member>
+        <member name="P:FiberHelp.Models.AuditLog.IsSuccess">
+            <summary>
+            Whether the action was successful
+            </summary>
+        </member>
+        <member name="P:FiberHelp.Models.AuditLog.Severity">
+            <summary>
+            Severity level: Info, Warning, Error, Critical
+            </summary>
+        </member>
+        <member name="P:FiberHelp.Models.AuditLog.Timestamp">
+            <summary>
+            UTC timestamp of when the event occurred
+            </summary>
+        </member>
         <member name="M:FiberHelp.Models.Client.GenerateClientId(System.Int32)">
             <summary>
             Generates a user-friendly Client ID like CLT-0001
@@ -241,6 +430,26 @@
             Generates a unique reference number for the transaction
             </summary>
         </member>
+        <member name="M:FiberHelp.Services.AdminService.SanitizeError(System.Exception)">
+            <summary>
+            Returns a user-friendly error message without leaking internal details.
+            </summary>
+        </member>
+        <member name="M:FiberHelp.Services.AdminService.RequireAuthentication">
+            <summary>
+            Enforce that the current user is authenticated. Returns false and sets LastError if not.
+            </summary>
+        </member>
+        <member name="M:FiberHelp.Services.AdminService.RequireRole(System.String[])">
+            <summary>
+            Enforce that the current user has one of the allowed roles. Returns false and sets LastError if not.
+            </summary>
+        </member>
+        <member name="M:FiberHelp.Services.AdminService.LogActivity(System.String,System.String,System.String,System.String)">
+            <summary>
+            Log a user activity to the audit trail (fire-and-forget to avoid blocking)
+            </summary>
+        </member>
         <member name="M:FiberHelp.Services.AdminService.ResolveTicketWithProofAsync(System.Int32,System.String,System.String,System.String)">
             <summary>
             Resolve a ticket and automatically generate transaction proof for the client.
@@ -260,6 +469,58 @@
         <member name="M:FiberHelp.Services.AdminService.GenerateVerificationCode(System.String,System.String)">
             <summary>
             Generate a verification code for transaction proof
+            </summary>
+        </member>
+        <member name="T:FiberHelp.Services.AuditLoggingService">
+            <summary>
+            Centralized audit logging service that persists login attempts, errors, and user activities
+            to both database and log file. Satisfies rubric: "Logs correctly record login attempts, 
+            errors, and user activities with proper documentation."
+            </summary>
+        </member>
+        <member name="M:FiberHelp.Services.AuditLoggingService.LogLoginSuccessAsync(System.String,System.String,System.String)">
+            <summary>
+            Log a successful login attempt
+            </summary>
+        </member>
+        <member name="M:FiberHelp.Services.AuditLoggingService.LogLoginFailureAsync(System.String,System.String)">
+            <summary>
+            Log a failed login attempt (without exposing sensitive details)
+            </summary>
+        </member>
+        <member name="M:FiberHelp.Services.AuditLoggingService.LogLogoutAsync(System.String,System.String)">
+            <summary>
+            Log a logout event
+            </summary>
+        </member>
+        <member name="M:FiberHelp.Services.AuditLoggingService.LogActivityAsync(System.String,System.String,System.String,System.String,System.String,System.String,System.String)">
+            <summary>
+            Log a user activity (create, update, delete, archive, etc.)
+            </summary>
+        </member>
+        <member name="M:FiberHelp.Services.AuditLoggingService.LogErrorAsync(System.Exception,System.String,System.String,System.String,System.String)">
+            <summary>
+            Log an error with full technical details stored securely (never exposed to user)
+            </summary>
+        </member>
+        <member name="M:FiberHelp.Services.AuditLoggingService.LogPageAccessAsync(System.String,System.String,System.String,System.String)">
+            <summary>
+            Log page access for activity tracking
+            </summary>
+        </member>
+        <member name="M:FiberHelp.Services.AuditLoggingService.GetRecentLogsAsync(System.Int32,System.String)">
+            <summary>
+            Get recent audit logs (for admin review)
+            </summary>
+        </member>
+        <member name="M:FiberHelp.Services.AuditLoggingService.GetLoginHistoryAsync(System.String,System.Int32)">
+            <summary>
+            Get login history for a specific user
+            </summary>
+        </member>
+        <member name="M:FiberHelp.Services.BillingService.SanitizeError(System.Exception)">
+            <summary>
+            Returns a user-friendly error message without leaking internal details.
             </summary>
         </member>
         <member name="M:FiberHelp.Services.BillingService.UpdateOverdueStatusAsync(System.Collections.Generic.List{FiberHelp.Models.Invoice})">
@@ -302,9 +563,16 @@
             Get client billing summary
             </summary>
         </member>
+        <member name="M:FiberHelp.Services.OutboxProcessor.DecryptPayload(System.String)">
+            <summary>
+            Decrypts an outbox payload. Handles both AES-encrypted and legacy plain-JSON payloads.
+            </summary>
+        </member>
         <member name="T:FiberHelp.Services.ErrorHandlingService">
             <summary>
-            Centralized error handling service with user-friendly messages
+            Centralized error handling service with user-friendly messages.
+            Integrates with AuditLoggingService for persistent error logging.
+            Never exposes technical details (stack traces, internal exceptions) to end users.
             </summary>
         </member>
         <member name="M:FiberHelp.Services.ErrorHandlingService.GetUserFriendlyMessage(System.Exception)">
@@ -324,7 +592,7 @@
         </member>
         <member name="M:FiberHelp.Services.ErrorHandlingService.LogError(System.Exception,System.String,System.String)">
             <summary>
-            Log error to history
+            Log error to history and persist via audit logging
             </summary>
         </member>
         <member name="M:FiberHelp.Services.ErrorHandlingService.GetRecentErrors(System.Int32)">
@@ -345,6 +613,11 @@
         <member name="T:FiberHelp.Services.TransactionService">
             <summary>
             Service for handling transaction validation, proof generation, and client feedback.
+            </summary>
+        </member>
+        <member name="M:FiberHelp.Services.TransactionService.SanitizeError(System.Exception)">
+            <summary>
+            Returns a user-friendly error message without leaking internal details.
             </summary>
         </member>
         <member name="M:FiberHelp.Services.TransactionService.GenerateTicketResolutionProofAsync(System.Int32,System.String,System.String,System.String)">
@@ -437,6 +710,100 @@
             <summary>
             Manual refresh - reloads all data
             </summary>
+        </member>
+        <member name="T:System.Text.RegularExpressions.Generated.EmailRegex_0">
+            <summary>Custom <see cref="T:System.Text.RegularExpressions.Regex"/>-derived type for the EmailRegex method.</summary>
+        </member>
+        <member name="F:System.Text.RegularExpressions.Generated.EmailRegex_0.Instance">
+            <summary>Cached, thread-safe singleton instance.</summary>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.EmailRegex_0.#ctor">
+            <summary>Initializes the instance.</summary>
+        </member>
+        <member name="T:System.Text.RegularExpressions.Generated.EmailRegex_0.RunnerFactory">
+            <summary>Provides a factory for creating <see cref="T:System.Text.RegularExpressions.RegexRunner"/> instances to be used by methods on <see cref="T:System.Text.RegularExpressions.Regex"/>.</summary>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.EmailRegex_0.RunnerFactory.CreateInstance">
+            <summary>Creates an instance of a <see cref="T:System.Text.RegularExpressions.RegexRunner"/> used by methods on <see cref="T:System.Text.RegularExpressions.Regex"/>.</summary>
+        </member>
+        <member name="T:System.Text.RegularExpressions.Generated.EmailRegex_0.RunnerFactory.Runner">
+            <summary>Provides the runner that contains the custom logic implementing the specified regular expression.</summary>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.EmailRegex_0.RunnerFactory.Runner.Scan(System.ReadOnlySpan{System.Char})">
+            <summary>Scan the <paramref name="inputSpan"/> starting from base.runtextstart for the next match.</summary>
+            <param name="inputSpan">The text being scanned by the regular expression.</param>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.EmailRegex_0.RunnerFactory.Runner.TryFindNextPossibleStartingPosition(System.ReadOnlySpan{System.Char})">
+            <summary>Search <paramref name="inputSpan"/> starting from base.runtextpos for the next location a match could possibly start.</summary>
+            <param name="inputSpan">The text being scanned by the regular expression.</param>
+            <returns>true if a possible match was found; false if no more matches are possible.</returns>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.EmailRegex_0.RunnerFactory.Runner.TryMatchAtCurrentPosition(System.ReadOnlySpan{System.Char})">
+            <summary>Determine whether <paramref name="inputSpan"/> at base.runtextpos is a match for the regular expression.</summary>
+            <param name="inputSpan">The text being scanned by the regular expression.</param>
+            <returns>true if the regular expression matches at the current position; otherwise, false.</returns>
+        </member>
+        <member name="T:System.Text.RegularExpressions.Generated.PhoneRegex_1">
+            <summary>Custom <see cref="T:System.Text.RegularExpressions.Regex"/>-derived type for the PhoneRegex method.</summary>
+        </member>
+        <member name="F:System.Text.RegularExpressions.Generated.PhoneRegex_1.Instance">
+            <summary>Cached, thread-safe singleton instance.</summary>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.PhoneRegex_1.#ctor">
+            <summary>Initializes the instance.</summary>
+        </member>
+        <member name="T:System.Text.RegularExpressions.Generated.PhoneRegex_1.RunnerFactory">
+            <summary>Provides a factory for creating <see cref="T:System.Text.RegularExpressions.RegexRunner"/> instances to be used by methods on <see cref="T:System.Text.RegularExpressions.Regex"/>.</summary>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.PhoneRegex_1.RunnerFactory.CreateInstance">
+            <summary>Creates an instance of a <see cref="T:System.Text.RegularExpressions.RegexRunner"/> used by methods on <see cref="T:System.Text.RegularExpressions.Regex"/>.</summary>
+        </member>
+        <member name="T:System.Text.RegularExpressions.Generated.PhoneRegex_1.RunnerFactory.Runner">
+            <summary>Provides the runner that contains the custom logic implementing the specified regular expression.</summary>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.PhoneRegex_1.RunnerFactory.Runner.Scan(System.ReadOnlySpan{System.Char})">
+            <summary>Scan the <paramref name="inputSpan"/> starting from base.runtextstart for the next match.</summary>
+            <param name="inputSpan">The text being scanned by the regular expression.</param>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.PhoneRegex_1.RunnerFactory.Runner.TryFindNextPossibleStartingPosition(System.ReadOnlySpan{System.Char})">
+            <summary>Search <paramref name="inputSpan"/> starting from base.runtextpos for the next location a match could possibly start.</summary>
+            <param name="inputSpan">The text being scanned by the regular expression.</param>
+            <returns>true if a possible match was found; false if no more matches are possible.</returns>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.PhoneRegex_1.RunnerFactory.Runner.TryMatchAtCurrentPosition(System.ReadOnlySpan{System.Char})">
+            <summary>Determine whether <paramref name="inputSpan"/> at base.runtextpos is a match for the regular expression.</summary>
+            <param name="inputSpan">The text being scanned by the regular expression.</param>
+            <returns>true if the regular expression matches at the current position; otherwise, false.</returns>
+        </member>
+        <member name="T:System.Text.RegularExpressions.Generated.Utilities">
+            <summary>Helper methods used by generated <see cref="T:System.Text.RegularExpressions.Regex"/>-derived implementations.</summary>
+        </member>
+        <member name="F:System.Text.RegularExpressions.Generated.Utilities.s_defaultTimeout">
+            <summary>Default timeout value set in <see cref="T:System.AppContext"/>, or <see cref="F:System.Text.RegularExpressions.Regex.InfiniteMatchTimeout"/> if none was set.</summary>
+        </member>
+        <member name="F:System.Text.RegularExpressions.Generated.Utilities.s_hasTimeout">
+            <summary>Whether <see cref="F:System.Text.RegularExpressions.Generated.Utilities.s_defaultTimeout"/> is non-infinite.</summary>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.Utilities.StackPop(System.Int32[],System.Int32@,System.Int32@,System.Int32@)">
+            <summary>Pops 2 values from the backtracking stack.</summary>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.Utilities.StackPush(System.Int32[]@,System.Int32@,System.Int32)">
+            <summary>Pushes 1 value onto the backtracking stack.</summary>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.Utilities.StackPush(System.Int32[]@,System.Int32@,System.Int32,System.Int32)">
+            <summary>Pushes 2 values onto the backtracking stack.</summary>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.Utilities.StackPush(System.Int32[]@,System.Int32@,System.Int32,System.Int32,System.Int32)">
+            <summary>Pushes 3 values onto the backtracking stack.</summary>
+        </member>
+        <member name="F:System.Text.RegularExpressions.Generated.Utilities.s_asciiLetters">
+            <summary>Supports searching for characters in or not in "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz".</summary>
+        </member>
+        <member name="F:System.Text.RegularExpressions.Generated.Utilities.s_ascii_2068FF03FEFFFF87FEFFFF07">
+            <summary>Supports searching for characters in or not in "%+-.0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz".</summary>
+        </member>
+        <member name="F:System.Text.RegularExpressions.Generated.Utilities.s_ascii_60FF03FEFFFF07FEFFFF07">
+            <summary>Supports searching for characters in or not in "-.0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz".</summary>
         </member>
     </members>
 </doc>

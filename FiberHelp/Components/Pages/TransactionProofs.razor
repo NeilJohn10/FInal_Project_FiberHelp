@@ -3,6 +3,7 @@
 @using FiberHelp.Services
 @inject TransactionService TransactionService
 @inject AuthService AuthService
+@inject ErrorHandlingService ErrorService
 @inject NavigationManager Navigation
 @inject Microsoft.JSInterop.IJSRuntime JS
 
@@ -273,6 +274,12 @@
             return;
         }
 
+        if (!AuthService.CanManageTickets)
+        {
+            Navigation.NavigateTo("/", true);
+            return;
+        }
+
         await LoadProofsAsync();
     }
 
@@ -286,7 +293,7 @@
         }
         catch (Exception ex)
         {
-            toastMessage = $"Error loading proofs: {ex.Message}";
+            toastMessage = ErrorService.GetContextualMessage(ex, "load", "transaction proofs");
             proofsList = new List<TransactionProof>();
         }
     }
@@ -323,7 +330,7 @@
             }
 
             await JS.InvokeAsync<bool>("FiberExport.saveFile", "transaction_proofs.csv", sb.ToString());
-            toastMessage = $"? Exported {proofsList.Count} proofs";
+            toastMessage = $"Exported {proofsList.Count} proofs";
             StateHasChanged();
             await Task.Delay(2000);
             toastMessage = "";
@@ -331,7 +338,7 @@
         }
         catch (Exception ex)
         {
-            toastMessage = $"Export failed: {ex.Message}";
+            toastMessage = ErrorService.GetContextualMessage(ex, "export", "transaction proofs");
             StateHasChanged();
         }
     }

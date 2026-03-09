@@ -1,6 +1,7 @@
 @page "/reports"
 @using FiberHelp.Services
 @inject FiberHelp.Services.AuthService AuthService
+@inject FiberHelp.Services.ErrorHandlingService ErrorService
 @inject NavigationManager Navigation
 @inject FiberHelp.Services.AdminService AdminService
 @inject FiberHelp.Services.TransactionService TransactionService
@@ -488,7 +489,7 @@
    }
    catch (Exception ex)
    {
-     toast = $"Export failed: {ex.Message}"; StateHasChanged(); await Task.Delay(3000); toast = string.Empty; StateHasChanged();
+     toast = ErrorService.GetContextualMessage(ex, "export", "feedback report"); StateHasChanged(); await Task.Delay(3000); toast = string.Empty; StateHasChanged();
    }
  }
 

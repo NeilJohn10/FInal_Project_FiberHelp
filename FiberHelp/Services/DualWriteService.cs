@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using FiberHelp.Data;
 using FiberHelp.Data.context;
+using FiberHelp.Helpers;
 using FiberHelp.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -45,7 +46,7 @@ namespace FiberHelp.Services
             {
                 EntityName = typeof(T).Name,
                 Operation = operation,
-                Payload = json,
+                Payload = AesEncryptor.Encrypt(json),
                 Key = key,
                 CreatedAt = DateTime.UtcNow
             });
@@ -67,7 +68,7 @@ namespace FiberHelp.Services
             {
                 EntityName = typeof(T).Name,
                 Operation = operation,
-                Payload = json,
+                Payload = AesEncryptor.Encrypt(json),
                 Key = key,
                 CreatedAt = DateTime.UtcNow
             });
@@ -338,7 +339,8 @@ END");
         {
             try
             {
-                var entity = System.Text.Json.JsonSerializer.Deserialize<T>(msg.Payload);
+                var json = DecryptPayload(msg.Payload);
+                var entity = System.Text.Json.JsonSerializer.Deserialize<T>(json);
                 if (entity == null) { msg.ProcessedAt = DateTime.UtcNow; return; }
                 switch (msg.Operation)
                 {
@@ -373,7 +375,7 @@ END");
         {
             try
             {
-                var entity = System.Text.Json.JsonSerializer.Deserialize<Client>(msg.Payload);
+                var entity = System.Text.Json.JsonSerializer.Deserialize<Client>(DecryptPayload(msg.Payload));
                 if (entity == null) { msg.ProcessedAt = DateTime.UtcNow; return; }
 
                 // Normalize fields to avoid null/whitespace issues
@@ -443,7 +445,7 @@ END");
         {
             try
             {
-                var entity = System.Text.Json.JsonSerializer.Deserialize<Account>(msg.Payload);
+                var entity = System.Text.Json.JsonSerializer.Deserialize<Account>(DecryptPayload(msg.Payload));
                 if (entity == null) { msg.ProcessedAt = DateTime.UtcNow; return; }
                 if (string.Equals(msg.Operation, "Delete", StringComparison.OrdinalIgnoreCase))
                 {
@@ -469,7 +471,7 @@ END");
         {
             try
             {
-                var entity = System.Text.Json.JsonSerializer.Deserialize<Technician>(msg.Payload);
+                var entity = System.Text.Json.JsonSerializer.Deserialize<Technician>(DecryptPayload(msg.Payload));
                 if (entity == null) { msg.ProcessedAt = DateTime.UtcNow; return; }
 
                 // Normalize fields
@@ -563,7 +565,7 @@ END");
         {
             try
             {
-                var entity = System.Text.Json.JsonSerializer.Deserialize<Agent>(msg.Payload);
+                var entity = System.Text.Json.JsonSerializer.Deserialize<Agent>(DecryptPayload(msg.Payload));
                 if (entity == null) { msg.ProcessedAt = DateTime.UtcNow; return; }
 
                 // Normalize fields
@@ -646,7 +648,7 @@ END");
         {
             try
             {
-                var entity = System.Text.Json.JsonSerializer.Deserialize<Ticket>(msg.Payload);
+                var entity = System.Text.Json.JsonSerializer.Deserialize<Ticket>(DecryptPayload(msg.Payload));
                 if (entity == null) { msg.ProcessedAt = DateTime.UtcNow; return; }
 
                 // Normalize fields
@@ -739,7 +741,7 @@ END");
         {
             try
             {
-                var entity = System.Text.Json.JsonSerializer.Deserialize<Expense>(msg.Payload);
+                var entity = System.Text.Json.JsonSerializer.Deserialize<Expense>(DecryptPayload(msg.Payload));
                 if (entity == null) { msg.ProcessedAt = DateTime.UtcNow; return; }
 
                 // Normalize fields
@@ -810,7 +812,7 @@ END");
         {
             try
             {
-                var entity = System.Text.Json.JsonSerializer.Deserialize<Invoice>(msg.Payload);
+                var entity = System.Text.Json.JsonSerializer.Deserialize<Invoice>(DecryptPayload(msg.Payload));
                 if (entity == null) { msg.ProcessedAt = DateTime.UtcNow; return; }
 
                 // Normalize fields
@@ -925,7 +927,7 @@ END");
         {
             try
             {
-                var entity = System.Text.Json.JsonSerializer.Deserialize<TransactionProof>(msg.Payload);
+                var entity = System.Text.Json.JsonSerializer.Deserialize<TransactionProof>(DecryptPayload(msg.Payload));
                 if (entity == null) { msg.ProcessedAt = DateTime.UtcNow; return; }
 
                 if (string.Equals(msg.Operation, "Delete", StringComparison.OrdinalIgnoreCase))
@@ -993,7 +995,7 @@ END");
         {
             try
             {
-                var entity = System.Text.Json.JsonSerializer.Deserialize<ClientFeedback>(msg.Payload);
+                var entity = System.Text.Json.JsonSerializer.Deserialize<ClientFeedback>(DecryptPayload(msg.Payload));
                 if (entity == null) { msg.ProcessedAt = DateTime.UtcNow; return; }
 
                 if (string.Equals(msg.Operation, "Delete", StringComparison.OrdinalIgnoreCase))
@@ -1084,6 +1086,17 @@ END");
             {
                 System.Diagnostics.Debug.WriteLine($"ApplyClientFeedbackAsync error: {ex.Message}");
             }
+        }
+
+        /// <summary>
+        /// Decrypts an outbox payload. Handles both AES-encrypted and legacy plain-JSON payloads.
+        /// </summary>
+        private static string DecryptPayload(string payload)
+        {
+            if (string.IsNullOrWhiteSpace(payload)) return payload;
+            if (AesEncryptor.IsEncrypted(payload))
+                return AesEncryptor.Decrypt(payload);
+            return payload; // legacy plain JSON
         }
     }
 }

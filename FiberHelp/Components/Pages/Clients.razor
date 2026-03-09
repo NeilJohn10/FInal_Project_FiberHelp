@@ -1,7 +1,8 @@
-﻿@page "/clients"
+@page "/clients"
 @using FiberHelp.Models
 @inject FiberHelp.Services.AuthService AuthService
 @inject FiberHelp.Services.AdminService AdminService
+@inject FiberHelp.Services.ErrorHandlingService ErrorService
 @inject NavigationManager Navigation
 @inject Microsoft.JSInterop.IJSRuntime JS
 
@@ -56,7 +57,7 @@
 <div>
  <header class="customers-header">
    <div>
-     <p class="eyebrow">FIBERHELP · @GetRoleLabel()</p>
+     <p class="eyebrow">FIBERHELP � @GetRoleLabel()</p>
      <h1 class="page-title">Clients</h1>
    </div>
    <div class="customers-controls">
@@ -219,16 +220,17 @@
    </datalist>
    @if(selectedAccount != null)
    {
-     <div class="account-preview">Plan: @selectedAccount.ServicePlan · Status: @(selectedAccount.ServiceStatus ?? "Active")</div>
+     <div class="account-preview">Plan: @selectedAccount.ServicePlan � Status: @(selectedAccount.ServiceStatus ?? "Active")</div>
    }
    </div>
    <div class="form-group">
-   <label>Name</label>
-   <input class="form-input" @bind="newCustomerName" placeholder="Client name" />
+   <label>Name <span style="color:#ef4444">*</span></label>
+   <input class="form-input" @bind="newCustomerName" @bind:event="oninput" placeholder="Client name" />
    </div>
    <div class="form-group">
-   <label>Email</label>
-   <input class="form-input" @bind="newCustomerEmail" placeholder="Email address" />
+   <label>Email <span style="color:#ef4444">*</span></label>
+   <input class="form-input" @bind="newCustomerEmail" @bind:event="oninput" placeholder="Email address" />
+   @if(!string.IsNullOrWhiteSpace(newCustomerEmail) && !FiberHelp.Helpers.InputValidator.IsValidEmail(newCustomerEmail)){<div style="color:#ef4444;font-size:12px;margin-top:4px">Invalid email format (e.g. user@domain.com)</div>}
    </div>
    <div class="form-group">
    <label>Plan</label>
@@ -236,7 +238,7 @@
    </div>
    <div class="modal-actions">
    <button class="btn" @onclick="() => ShowNewCustomer(false)">Cancel</button>
-   <button class="btn primary @(CanSubmit?"":"disabled")" @onclick="ShowSaveConfirmation" disabled="@(!CanSubmit)">@(isEditing ? "Save" : "Add")</button>
+   <button class="btn primary" @onclick="ShowSaveConfirmation">@(isEditing ? "Save" : "Add")</button>
    </div>
  </div>
  </div>
@@ -384,17 +386,22 @@
  {
  try
  {
-   // Check if user is authenticated
    if (!AuthService.IsAuthenticated)
    {
      Navigation.NavigateTo("/login", true);
      return;
    }
-   
+
+   if (AuthService.IsTechnician)
+   {
+     Navigation.NavigateTo("/technician/dashboard", true);
+     return;
+   }
+
    accounts = await AdminService.GetAccountsAsync();
    if (!string.IsNullOrEmpty(AdminService.LastError))
    {
-     toastMessage = $"?? Error loading accounts: {AdminService.LastError}";
+     toastMessage = $"Error loading accounts: {AdminService.LastError}";
      accounts = new List<Account>();
    }
    
@@ -403,7 +410,7 @@
  }
  catch (Exception ex)
  {
-   toastMessage = $"?? Failed to initialize: {ex.Message}";
+   toastMessage = ErrorService.GetContextualMessage(ex, "load", "clients");
    System.Diagnostics.Debug.WriteLine($"[Clients] OnInitializedAsync error: {ex}");
    accounts = new List<Account>();
    customers = new List<Client>();
@@ -433,7 +440,7 @@
 
    if (!string.IsNullOrEmpty(AdminService.LastError))
    {
-     toastMessage = $"⚠️ Error loading clients: {AdminService.LastError}";
+     toastMessage = $"Error loading clients: {AdminService.LastError}";
      customers = new List<Client>();
      StateHasChanged();
      return;
@@ -450,7 +457,7 @@
  }
  catch (Exception ex)
  {
-   toastMessage = $"⚠️ Error loading clients: {ex.Message}";
+   toastMessage = ErrorService.GetContextualMessage(ex, "load", "clients");
    System.Diagnostics.Debug.WriteLine($"[Clients] LoadCustomersAsync error: {ex}");
    customers = new List<Client>();
    StateHasChanged();
@@ -506,7 +513,7 @@
    }
    catch (Exception ex)
    {
-     toastMessage = $"Error archiving: {ex.Message}";
+     toastMessage = ErrorService.GetContextualMessage(ex, "archive", "client");
      System.Diagnostics.Debug.WriteLine($"ArchiveCustomer error: {ex}");
      StateHasChanged();
    }
@@ -527,7 +534,7 @@
    }
    catch (Exception ex)
    {
-     toastMessage = $"Error unarchiving: {ex.Message}";
+     toastMessage = ErrorService.GetContextualMessage(ex, "restore", "client");
      System.Diagnostics.Debug.WriteLine($"UnarchiveCustomer error: {ex}");
      StateHasChanged();
    }
@@ -571,7 +578,7 @@
  }
  catch (Exception ex)
  {
-   toastMessage = $"?? Error: {ex.Message}";
+   toastMessage = ErrorService.GetUserFriendlyMessage(ex);
    System.Diagnostics.Debug.WriteLine($"[Clients] ShowNewCustomer error: {ex}");
    StateHasChanged();
  }
@@ -641,13 +648,19 @@
 
  private bool CanSubmit => !string.IsNullOrWhiteSpace(newCustomerAccountId)
    && !string.IsNullOrWhiteSpace(newCustomerName)
-   && !string.IsNullOrWhiteSpace(newCustomerEmail);
+   && !string.IsNullOrWhiteSpace(newCustomerEmail)
+   && FiberHelp.Helpers.InputValidator.IsValidEmail(newCustomerEmail);
 
  private void ShowSaveConfirmation()
  {
    if (!CanSubmit)
    {
-     toastMessage = "Account, Name and Email are required";
+     var errors = new List<string>();
+     if (string.IsNullOrWhiteSpace(newCustomerAccountId)) errors.Add("Account is required.");
+     if (string.IsNullOrWhiteSpace(newCustomerName)) errors.Add("Name is required.");
+     if (string.IsNullOrWhiteSpace(newCustomerEmail)) errors.Add("Email is required.");
+     else if (!FiberHelp.Helpers.InputValidator.IsValidEmail(newCustomerEmail)) errors.Add("Invalid email format.");
+     toastMessage = errors.Any() ? string.Join(" ", errors) : "Account, Name and Email are required";
      StateHasChanged();
      return;
    }
@@ -705,11 +718,11 @@
        
        if (!string.IsNullOrEmpty(AdminService.LastError))
        {
-         toastMessage = $"❌ Update failed: {AdminService.LastError}";
+         toastMessage = $"Update failed: {AdminService.LastError}";
        }
        else
        {
-         toastMessage = "✅ Client updated successfully";
+         toastMessage = "Client updated successfully";
        }
      }
      else
@@ -727,11 +740,11 @@
        
        if (!ok || !string.IsNullOrEmpty(AdminService.LastError))
        {
-         toastMessage = $"❌ Failed to add client: {AdminService.LastError ?? "Unknown error"}";
+         toastMessage = $"Failed to add client: {AdminService.LastError ?? "Unknown error"}";
        }
        else
        {
-         toastMessage = "✅ Client added successfully";
+         toastMessage = "Client added successfully";
        }
      }
      
@@ -744,7 +757,7 @@
    }
    catch (Exception ex)
    {
-     toastMessage = $"❌ Error: {ex.Message}";
+     toastMessage = ErrorService.GetContextualMessage(ex, "save", "client");
      System.Diagnostics.Debug.WriteLine($"[Clients] OnCreateCustomerClicked error: {ex}");
      StateHasChanged();
      await Task.Delay(3000);
@@ -759,14 +772,14 @@
    {
      if (AuthService.IsAgent)
      {
-       toastMessage = "⚠️ Agents cannot delete clients";
+       toastMessage = "Agents cannot delete clients";
        StateHasChanged();
        return;
      }
      
      if (string.IsNullOrEmpty(id))
      {
-       toastMessage = "⚠️ Invalid client ID";
+       toastMessage = "Invalid client ID";
        StateHasChanged();
        return;
      }
@@ -774,7 +787,7 @@
      var customer = customers?.FirstOrDefault(c => c.Id == id);
      if (customer == null)
      {
-       toastMessage = "⚠️ Client not found";
+       toastMessage = "Client not found";
        StateHasChanged();
        return;
      }
@@ -786,7 +799,7 @@
    }
    catch (Exception ex)
    {
-     toastMessage = $"⚠️ Error: {ex.Message}";
+     toastMessage = ErrorService.GetUserFriendlyMessage(ex);
      System.Diagnostics.Debug.WriteLine($"[Clients] DeleteCustomer error: {ex}");
      StateHasChanged();
    }
@@ -804,11 +817,11 @@
      
      if (!string.IsNullOrEmpty(AdminService.LastError))
      {
-       toastMessage = $"? Delete failed: {AdminService.LastError}";
+       toastMessage = $"Delete failed: {AdminService.LastError}";
      }
      else
      {
-       toastMessage = "? Client deleted successfully";
+       toastMessage = "Client deleted successfully";
      }
      
      await LoadCustomersAsync();
@@ -823,7 +836,7 @@
    }
    catch (Exception ex)
    {
-     toastMessage = $"? Delete error: {ex.Message}";
+     toastMessage = ErrorService.GetContextualMessage(ex, "delete", "client");
      System.Diagnostics.Debug.WriteLine($"[Clients] ConfirmDelete error: {ex}");
      StateHasChanged();
      await Task.Delay(3000);
@@ -849,12 +862,12 @@
    try
    {
      await AdminService.ArchiveClientAsync(archiveTargetId, AuthService?.UserId);
-     toastMessage = "? Client archived";
+     toastMessage = "Client archived";
      await LoadCustomersAsync();
    }
    catch (Exception ex)
    {
-     toastMessage = $"? Archive error: {ex.Message}";
+     toastMessage = ErrorService.GetContextualMessage(ex, "archive", "client");
      System.Diagnostics.Debug.WriteLine($"ConfirmArchive error: {ex}");
    }
    finally
@@ -882,12 +895,12 @@
    try
    {
      await AdminService.UnarchiveClientAsync(archiveTargetId);
-     toastMessage = "? Client unarchived";
+     toastMessage = "Client unarchived";
      await LoadCustomersAsync();
    }
    catch (Exception ex)
    {
-     toastMessage = $"? Unarchive error: {ex.Message}";
+     toastMessage = ErrorService.GetContextualMessage(ex, "restore", "client");
      System.Diagnostics.Debug.WriteLine($"ConfirmUnarchive error: {ex}");
    }
    finally
@@ -928,7 +941,7 @@
      
      if (rows.Count == 0)
      {
-       toastMessage = "?? No clients to export";
+       toastMessage = "No clients to export";
        StateHasChanged();
        await Task.Delay(2000);
        toastMessage = string.Empty;
@@ -944,7 +957,7 @@
      
      await JS.InvokeAsync<bool>("FiberExport.saveFile", "clients.csv", csv.ToString());
      
-     toastMessage = $"? Exported {rows.Count} client(s)";
+     toastMessage = $"Exported {rows.Count} client(s)";
      StateHasChanged();
      await Task.Delay(2000);
      toastMessage = string.Empty;
@@ -952,7 +965,7 @@
    }
    catch (Exception ex)
    {
-     toastMessage = $"? Export failed: {ex.Message}";
+     toastMessage = ErrorService.GetContextualMessage(ex, "export", "clients");
      System.Diagnostics.Debug.WriteLine($"[Clients] ExportCustomers error: {ex}");
      StateHasChanged();
      await Task.Delay(3000);
@@ -972,7 +985,7 @@
    }
    catch (Exception ex)
    {
-     toastMessage = $"?? Search error: {ex.Message}";
+     toastMessage = ErrorService.GetContextualMessage(ex, "search", "clients");
      System.Diagnostics.Debug.WriteLine($"[Clients] OnCustomersSearchChanged error: {ex}");
      StateHasChanged();
    }

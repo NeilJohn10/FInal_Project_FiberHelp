@@ -4,6 +4,8 @@
 @using FiberHelp.Services
 @inject TransactionService TransactionService
 @inject AuthService AuthService
+@inject ErrorHandlingService ErrorService
+@inject NavigationManager Navigation
 @inject NavigationManager Navigation
 
 <style>
@@ -245,7 +247,7 @@
 
             <div class="submit-section">
                 <button class="btn btn-secondary" @onclick="GoToDashboard">Cancel</button>
-                <button class="btn btn-primary" @onclick="SubmitFeedback" disabled="@(isSubmitting || feedback.Rating < 1)">
+                <button class="btn btn-primary" @onclick="SubmitFeedback" disabled="@isSubmitting">
                     @(isSubmitting ? "Submitting..." : "Submit Feedback")
                 </button>
             </div>
@@ -282,6 +284,12 @@
     {
         try
         {
+            if (!AuthService.IsAuthenticated)
+            {
+                Navigation.NavigateTo("/login", true);
+                return;
+            }
+
             if (TicketId > 0)
             {
                 // Find transaction proof for this ticket
@@ -311,7 +319,7 @@
         }
         catch (Exception ex)
         {
-            errorMessage = $"Error loading transaction: {ex.Message}";
+            errorMessage = ErrorService.GetContextualMessage(ex, "load", "transaction");
             System.Diagnostics.Debug.WriteLine($"[Feedback] OnInitializedAsync error: {ex}");
         }
         finally
@@ -363,7 +371,7 @@
         }
         catch (Exception ex)
         {
-            errorMessage = $"Error submitting feedback: {ex.Message}";
+            errorMessage = ErrorService.GetContextualMessage(ex, "save", "feedback");
             System.Diagnostics.Debug.WriteLine($"[Feedback] SubmitFeedback error: {ex}");
         }
         finally
@@ -374,7 +382,7 @@
 
     private void GoToDashboard()
     {
-        Navigation.NavigateTo("/dashboard");
+        Navigation.NavigateTo("/");
     }
 
     private string GetTransactionTypeLabel(string type)

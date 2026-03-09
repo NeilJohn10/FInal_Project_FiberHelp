@@ -3,6 +3,7 @@
 @using FiberHelp.Services
 @inject TransactionService TransactionService
 @inject AuthService AuthService
+@inject ErrorHandlingService ErrorService
 @inject NavigationManager Navigation
 @inject Microsoft.JSInterop.IJSRuntime JS
 
@@ -417,6 +418,12 @@
             return;
         }
 
+        if (!AuthService.CanManageTickets)
+        {
+            Navigation.NavigateTo("/", true);
+            return;
+        }
+
         await LoadFeedbackAsync();
         await LoadStatsAsync();
         await LoadStaffPerformanceAsync();
@@ -442,7 +449,7 @@
         }
         catch (Exception ex)
         {
-            toastMessage = $"Error loading feedback: {ex.Message}";
+            toastMessage = ErrorService.GetContextualMessage(ex, "load", "feedback");
             feedbackList = new List<ClientFeedback>();
         }
     }
@@ -492,13 +499,13 @@
             var success = await TransactionService.ReviewFeedbackAsync(feedbackId, AuthService.UserId ?? "system");
             if (success)
             {
-                toastMessage = "? Feedback marked as reviewed";
+                toastMessage = "Feedback marked as reviewed";
                 await LoadFeedbackAsync();
                 await LoadStatsAsync();
             }
             else
             {
-                toastMessage = "? Failed to review feedback";
+                toastMessage = "Failed to review feedback";
             }
             StateHasChanged();
             await Task.Delay(2000);
@@ -506,7 +513,7 @@
         }
         catch (Exception ex)
         {
-            toastMessage = $"Error: {ex.Message}";
+            toastMessage = ErrorService.GetContextualMessage(ex, "update", "feedback");
         }
     }
 
@@ -525,14 +532,14 @@
 
             if (success)
             {
-                toastMessage = "? Feedback reviewed successfully";
+                toastMessage = "Feedback reviewed successfully";
                 CloseDetailsModal();
                 await LoadFeedbackAsync();
                 await LoadStatsAsync();
             }
             else
             {
-                toastMessage = "? Failed to submit review";
+                toastMessage = "Failed to submit review";
             }
             StateHasChanged();
             await Task.Delay(2000);
@@ -540,7 +547,7 @@
         }
         catch (Exception ex)
         {
-            toastMessage = $"Error: {ex.Message}";
+            toastMessage = ErrorService.GetContextualMessage(ex, "update", "feedback");
         }
     }
 
@@ -557,14 +564,14 @@
 
             if (success)
             {
-                toastMessage = "? Follow-up completed";
+                toastMessage = "Follow-up completed";
                 CloseDetailsModal();
                 await LoadFeedbackAsync();
                 await LoadStatsAsync();
             }
             else
             {
-                toastMessage = "? Failed to complete follow-up";
+                toastMessage = "Failed to complete follow-up";
             }
             StateHasChanged();
             await Task.Delay(2000);
@@ -572,7 +579,7 @@
         }
         catch (Exception ex)
         {
-            toastMessage = $"Error: {ex.Message}";
+            toastMessage = ErrorService.GetContextualMessage(ex, "update", "follow-up");
         }
     }
 
@@ -596,14 +603,14 @@
             }
 
             await JS.InvokeAsync<bool>("FiberExport.saveFile", "feedback_export.csv", sb.ToString());
-            toastMessage = $"? Exported {feedbackList.Count} feedback entries";
+            toastMessage = $"Exported {feedbackList.Count} feedback entries";
             StateHasChanged();
             await Task.Delay(2000);
             toastMessage = "";
         }
         catch (Exception ex)
         {
-            toastMessage = $"Export failed: {ex.Message}";
+            toastMessage = ErrorService.GetContextualMessage(ex, "export", "feedback");
             StateHasChanged();
         }
     }

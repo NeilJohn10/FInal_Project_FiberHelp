@@ -26,6 +26,7 @@ namespace FiberHelp
             builder.Configuration.AddJsonFile("appsettings.json", optional: true, reloadOnChange: true);
 
             builder.Services.AddMauiBlazorWebView();
+            builder.Services.AddSingleton<AuditLoggingService>();
             builder.Services.AddSingleton<AuthService>();
             builder.Services.AddSingleton<ErrorHandlingService>();
             builder.Services.AddScoped<AdminService>();
@@ -39,9 +40,13 @@ namespace FiberHelp
             var localDbPath = Path.Combine(FileSystem.AppDataDirectory, "fiberhelp_local.db");
             var sqliteConn = $"Data Source={localDbPath}";
 
-            var sqlLocal = builder.Configuration.GetConnectionString("DefaultConnection")
-                ?? "Server=(localdb)\\mssqllocaldb;Database=FiberhelpDB;Trusted_Connection=True;MultipleActiveResultSets=true";
-            var sqlOnline = builder.Configuration.GetConnectionString("OnlineConnection") ?? string.Empty;
+            // Prefer environment variables for sensitive connection strings (secure coding practice)
+            var sqlLocal = Environment.GetEnvironmentVariable("FIBERHELP_LOCAL_CONNECTION")
+                ?? builder.Configuration.GetConnectionString("DefaultConnection")
+                ?? string.Empty;
+            var sqlOnline = Environment.GetEnvironmentVariable("FIBERHELP_ONLINE_CONNECTION")
+                ?? builder.Configuration.GetConnectionString("OnlineConnection")
+                ?? string.Empty;
 
             // Register contexts: SQLite (offline), SqlServer (online), SqlServer local dev (MSSQLLocalDB)
             builder.Services.AddDbContext<localContext>(o => o.UseSqlite(sqliteConn));

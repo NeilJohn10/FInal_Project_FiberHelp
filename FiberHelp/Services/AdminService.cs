@@ -3,10 +3,9 @@ using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using FiberHelp.Data;
 using FiberHelp.Models;
+using FiberHelp.Helpers;
 using System;
 using System.Linq;
-using System.Security.Cryptography;
-using System.Text;
 
 namespace FiberHelp.Services
 {
@@ -16,6 +15,8 @@ private readonly AppDbContext _db;
 private readonly DualWriteService _dual;
 private readonly DataSyncService _sync;
 private readonly ErrorHandlingService _errorService;
+private readonly AuditLoggingService _auditLog;
+private readonly AuthService _auth;
 
 public string? LastError { get; private set; }
 
@@ -23,16 +24,79 @@ public AdminService(
     AppDbContext db, 
     DualWriteService dual, 
     DataSyncService sync,
-    ErrorHandlingService errorService)
+    ErrorHandlingService errorService,
+    AuditLoggingService auditLog,
+    AuthService auth)
 { 
     _db = db; 
     _dual = dual; 
     _sync = sync;
     _errorService = errorService;
+    _auditLog = auditLog;
+    _auth = auth;
 }
 
 private bool IsOnlineSqlServer() => _db.Database.ProviderName?.Contains("SqlServer", StringComparison.OrdinalIgnoreCase) == true;
 
+/// <summary>
+/// Returns a user-friendly error message without leaking internal details.
+/// </summary>
+private string SanitizeError(Exception ex)
+{
+    return _errorService.GetUserFriendlyMessage(ex);
+}
+
+/// <summary>
+/// Enforce that the current user is authenticated. Returns false and sets LastError if not.
+/// </summary>
+private bool RequireAuthentication()
+{
+    if (!_auth.IsAuthenticated)
+    {
+        LastError = "Authentication required. Please log in.";
+        return false;
+    }
+    return true;
+}
+
+/// <summary>
+/// Enforce that the current user has one of the allowed roles. Returns false and sets LastError if not.
+/// </summary>
+private bool RequireRole(params string[] allowedRoles)
+{
+    if (!RequireAuthentication()) return false;
+
+    foreach (var role in allowedRoles)
+    {
+        if (string.Equals(_auth.Role, role, StringComparison.OrdinalIgnoreCase))
+            return true;
+        // Handle "Support Agent" matching "Agent"
+        if (role.Equals("Agent", StringComparison.OrdinalIgnoreCase) && _auth.IsAgent)
+            return true;
+    }
+
+    LastError = "Access denied. You don't have permission to perform this action.";
+    _ = _auditLog.LogActivityAsync(
+        _auth.UserId ?? "unknown", _auth.Email ?? "unknown", _auth.Role ?? "unknown",
+        "AccessDenied", "Authorization",
+        details: $"User attempted unauthorized action. Required roles: {string.Join(", ", allowedRoles)}");
+    return false;
+}
+
+/// <summary>
+/// Log a user activity to the audit trail (fire-and-forget to avoid blocking)
+/// </summary>
+private void LogActivity(string action, string entityType, string? entityId = null, string? details = null)
+{
+    // Best-effort audit logging — never let audit failures break business logic
+    try
+    {
+        _ = _auditLog.LogActivityAsync(
+            _auth.UserId ?? "system", _auth.Email ?? "system", _auth.Role ?? "System",
+            action, entityType, entityId, details);
+    }
+    catch { }
+}
 private async Task MaybeSyncOrEnqueueAsync<T>(string op, T entity, string key) where T : class
 {
     try
@@ -90,6 +154,7 @@ public async Task<List<Ticket>> GetTicketsAsync()
     try
     {
         LastError = null;
+        if (!RequireAuthentication()) return new List<Ticket>();
         var dbName = GetDatabaseName();
         System.Diagnostics.Debug.WriteLine($"[GetTicketsAsync] Querying tickets from DB: {dbName}");
         
@@ -137,8 +202,13 @@ public async Task<bool> CreateTicketAsync(Ticket t)
     try
     {
         LastError = null;
+        if (!RequireRole("Administrator", "Agent", "Supervisor")) return false;
         if (t == null) { LastError = "Ticket data is required"; return false; }
         if (string.IsNullOrWhiteSpace(t.Title)) { LastError = "Title is required"; return false; }
+
+        // Sanitize text inputs to prevent XSS and enforce length limits
+        t.Title = InputValidator.Sanitize(t.Title, 200);
+        t.ResolutionNotes = InputValidator.Sanitize(t.ResolutionNotes, 2000);
 
         if (t.Id != 0) t.Id = 0;
         if (t.Created == default) t.Created = DateTime.UtcNow;
@@ -186,6 +256,7 @@ public async Task<bool> CreateTicketAsync(Ticket t)
         if (rows > 0)
         {
             await MaybeSyncOrEnqueueAsync("Create", t, t.Id.ToString());
+            LogActivity("Create", "Ticket", t.Id.ToString(), $"Title: {t.Title}");
             System.Diagnostics.Debug.WriteLine($"[CreateTicketAsync] Ticket created successfully with ID = {t.Id}");
             return true;
         }
@@ -251,6 +322,7 @@ public async Task UpdateTicketAsync(Ticket t)
         if (rows > 0)
         {
             await MaybeSyncOrEnqueueAsync("Update", existing, existing.Id.ToString());
+            LogActivity("Update", "Ticket", existing.Id.ToString());
         }
         else
         {
@@ -269,17 +341,19 @@ public async Task DeleteTicketAsync(int id)
     try
     {
         LastError = null;
+        if (!RequireRole("Administrator")) return;
         if (id <= 0) { LastError = "Invalid ticket ID"; return; }
-        
+
         var t = await _db.Tickets.FindAsync(id);
         if (t == null) { LastError = $"Ticket #{id} not found"; return; }
-        
+
         _db.Tickets.Remove(t);
         var rows = await _db.SaveChangesAsync();
-        
+
         if (rows > 0)
         {
             await MaybeSyncOrEnqueueAsync("Delete", t, t.Id.ToString());
+            LogActivity("Delete", "Ticket", t.Id.ToString());
         }
         else
         {
@@ -298,6 +372,7 @@ public async Task<List<Client>> GetCustomersAsync()
     try 
     { 
         LastError = null;
+        if (!RequireAuthentication()) return new List<Client>();
         return await _db.Clients
             .AsNoTracking()
             .OrderByDescending(c => c.JoinDate)
@@ -358,9 +433,16 @@ public async Task<bool> CreateCustomerAsync(Client c)
 { 
     try 
     { 
-        LastError = null; 
-        if (c == null) { LastError = "Client is null"; return false; } 
-        
+        LastError = null;
+        if (!RequireRole("Administrator", "Agent")) return false;
+        if (c == null) { LastError = "Client is null"; return false; }
+        if (string.IsNullOrWhiteSpace(c.Name)) { LastError = "Client name is required"; return false; }
+        if (!string.IsNullOrWhiteSpace(c.Email) && !InputValidator.IsValidEmail(c.Email)) { LastError = "Invalid email format"; return false; }
+
+        // Sanitize text inputs
+        c.Name = InputValidator.Sanitize(c.Name, 200);
+        c.Email = InputValidator.Sanitize(c.Email, 256);
+
         // Generate user-friendly Client ID (CLT-0001 format)
         if (string.IsNullOrWhiteSpace(c.Id)) 
         {
@@ -397,8 +479,9 @@ public async Task<bool> CreateCustomerAsync(Client c)
         _db.Clients.Add(c); 
         var rows = await _db.SaveChangesAsync(); 
         if (rows <= 0) LastError = "Client insert returned 0 rows"; 
-        await MaybeSyncOrEnqueueAsync("Create", c, c.Id); 
-        return rows > 0; 
+        await MaybeSyncOrEnqueueAsync("Create", c, c.Id);
+        if (rows > 0) LogActivity("Create", "Client", c.Id, $"Name: {c.Name}");
+        return rows > 0;
     } 
     catch (Exception ex) 
     { 
@@ -424,7 +507,8 @@ public async Task UpdateCustomerAsync(Client c)
         _db.Clients.Update(existing); 
         var rows = await _db.SaveChangesAsync(); 
         if (rows <= 0) LastError = "Client update affected 0 rows"; 
-        await MaybeSyncOrEnqueueAsync("Update", existing, existing.Id); 
+        await MaybeSyncOrEnqueueAsync("Update", existing, existing.Id);
+        if (rows > 0) LogActivity("Update", "Client", existing.Id);
     } 
     catch (Exception ex) 
     { 
@@ -437,14 +521,16 @@ public async Task DeleteCustomerAsync(string id)
 { 
     try 
     { 
-        LastError = null; 
+        LastError = null;
+        if (!RequireRole("Administrator")) return;
         var c = await _db.Clients.FindAsync(id); 
         if (c != null) 
         { 
             _db.Clients.Remove(c); 
             var rows = await _db.SaveChangesAsync(); 
             if (rows <= 0) LastError = "Client delete affected 0 rows"; 
-            await MaybeSyncOrEnqueueAsync("Delete", c, c.Id); 
+            await MaybeSyncOrEnqueueAsync("Delete", c, c.Id);
+            if (rows > 0) LogActivity("Delete", "Client", c.Id);
         } 
     } 
     catch (Exception ex) 
@@ -534,7 +620,11 @@ public async Task<bool> ArchiveClientAsync(string clientId, string? archivedByUs
 
         _db.Clients.Update(client);
         var rows = await _db.SaveChangesAsync();
-        if (rows > 0) await MaybeSyncOrEnqueueAsync("Update", client, client.Id);
+        if (rows > 0)
+        {
+            await MaybeSyncOrEnqueueAsync("Update", client, client.Id);
+            LogActivity("Archive", "Client", client.Id);
+        }
         return rows > 0;
     }
     catch (Exception ex)
@@ -561,7 +651,11 @@ public async Task<bool> UnarchiveClientAsync(string clientId)
 
         _db.Clients.Update(client);
         var rows = await _db.SaveChangesAsync();
-        if (rows > 0) await MaybeSyncOrEnqueueAsync("Update", client, client.Id);
+        if (rows > 0)
+        {
+            await MaybeSyncOrEnqueueAsync("Update", client, client.Id);
+            LogActivity("Restore", "Client", client.Id);
+        }
         return rows > 0;
     }
     catch (Exception ex)
@@ -574,10 +668,7 @@ public async Task<bool> UnarchiveClientAsync(string clientId)
 
 private static string HashPassword(string password)
 {
- using var sha = SHA256.Create();
- var bytes = Encoding.UTF8.GetBytes(password ?? string.Empty);
- var hash = sha.ComputeHash(bytes);
- return Convert.ToHexString(hash);
+ return PasswordHasher.Hash(password);
 }
 
 public async Task<List<User>> GetAgentsAsync()
@@ -588,7 +679,7 @@ public async Task<List<User>> GetAgentsAsync()
  }
  catch (Exception ex)
  {
- LastError = ex.Message;
+ LastError = SanitizeError(ex);
  System.Diagnostics.Debug.WriteLine($"AdminService.GetAgentsAsync error: {ex}");
  return new List<User>();
  }
@@ -614,7 +705,7 @@ public async Task<bool> CreateAgentAsync(User user, string plainPassword)
  }
  catch (Exception ex)
  {
- LastError = ex.Message;
+ LastError = SanitizeError(ex);
  System.Diagnostics.Debug.WriteLine($"AdminService.CreateAgentAsync error: {ex}");
  return false;
  }
@@ -635,7 +726,7 @@ public async Task<bool> DeleteUserAsync(string id)
  }
  catch (Exception ex)
  {
- LastError = ex.Message;
+ LastError = SanitizeError(ex);
  System.Diagnostics.Debug.WriteLine($"AdminService.DeleteUserAsync error: {ex}");
  return false;
  }
@@ -646,9 +737,20 @@ public async Task<bool> CreateAgentRecordAsync(Agent agent, string plainPassword
     try
     {
         LastError = null;
+        if (!RequireRole("Administrator")) return false;
         if (agent == null) { LastError = "Agent is null"; return false; }
-        if (string.IsNullOrWhiteSpace(agent.Email)) { LastError = "Email required"; return false; }
-        if (string.IsNullOrWhiteSpace(plainPassword)) { LastError = "Password required"; return false; }
+        if (string.IsNullOrWhiteSpace(agent.Email)) { LastError = "Email is required"; return false; }
+        if (!InputValidator.IsValidEmail(agent.Email)) { LastError = "Invalid email format"; return false; }
+        if (string.IsNullOrWhiteSpace(agent.FullName)) { LastError = "Full name is required"; return false; }
+        if (string.IsNullOrWhiteSpace(plainPassword)) { LastError = "Password is required"; return false; }
+        var pwError = InputValidator.ValidatePassword(plainPassword);
+        if (pwError != null) { LastError = pwError; return false; }
+        var phoneError = InputValidator.ValidatePhone(agent.Phone);
+        if (phoneError != null) { LastError = phoneError; return false; }
+        // Sanitize text inputs
+        agent.FullName = InputValidator.Sanitize(agent.FullName, 200);
+        agent.Department = InputValidator.Sanitize(agent.Department, 100);
+        agent.ServiceArea = InputValidator.Sanitize(agent.ServiceArea, 200);
         var lower = agent.Email.Trim().ToLowerInvariant();
         if (await _db.Agents.AnyAsync(a => a.Email.ToLower() == lower)) { LastError = "Email already exists"; return false; }
         agent.PasswordHash = HashPassword(plainPassword);
@@ -662,7 +764,7 @@ public async Task<bool> CreateAgentRecordAsync(Agent agent, string plainPassword
     }
     catch (Exception ex)
     {
-        LastError = ex.Message;
+        LastError = SanitizeError(ex);
         System.Diagnostics.Debug.WriteLine($"AdminService.CreateAgentRecordAsync error: {ex}");
         return false;
     }
@@ -673,8 +775,9 @@ public async Task<List<Agent>> GetAgentRecordsAsync()
  try
  {
  LastError = null;
+ if (!RequireRole("Administrator")) return new List<Agent>();
  System.Diagnostics.Debug.WriteLine($"GetAgentRecordsAsync: Fetching agents from DB '{_db.Database.GetDbConnection().Database}'...");
- 
+
  var agents = await _db.Agents.OrderBy(a => a.Email).AsNoTracking().ToListAsync();
  
  System.Diagnostics.Debug.WriteLine($"GetAgentRecordsAsync: Found {agents.Count} agent(s).");
@@ -731,7 +834,7 @@ public async Task<bool> UpdateAgentRecordAsync(Agent agent, string? plainPasswor
     }
     catch (Exception ex)
     {
-        LastError = ex.Message;
+        LastError = SanitizeError(ex);
         System.Diagnostics.Debug.WriteLine($"AdminService.UpdateAgentRecordAsync error: {ex}");
         return false;
     }
@@ -742,6 +845,7 @@ public async Task<bool> DeleteAgentRecordAsync(string id)
  try
  {
  LastError = null;
+ if (!RequireRole("Administrator")) return false;
  if (string.IsNullOrWhiteSpace(id)) { LastError = "Invalid id"; return false; }
  var a = await _db.Agents.FindAsync(id);
  if (a == null) { LastError = "Agent not found"; return false; }
@@ -752,7 +856,7 @@ public async Task<bool> DeleteAgentRecordAsync(string id)
  }
  catch (Exception ex)
  {
- LastError = ex.Message;
+ LastError = SanitizeError(ex);
  System.Diagnostics.Debug.WriteLine($"AdminService.DeleteAgentRecordAsync error: {ex}");
  return false;
  }
@@ -762,6 +866,7 @@ public async Task<List<Account>> GetAccountsAsync()
 {
     try {
         LastError = null;
+        if (!RequireAuthentication()) return new List<Account>();
         var rows = await _db.Accounts
             .AsNoTracking()
             .OrderBy(a => a.Id)
@@ -786,17 +891,25 @@ public async Task<List<Account>> GetAccountsAsync()
         System.Diagnostics.Debug.WriteLine($"GetAccountsAsync: fetched {rows.Count} account(s) from DB '{_db.Database.GetDbConnection().Database}'.");
         return rows;
     }
-    catch (Exception ex) { LastError = ex.Message; System.Diagnostics.Debug.WriteLine($"AdminService.GetAccountsAsync error: {ex}"); return new List<Account>(); }
+    catch (Exception ex) { LastError = SanitizeError(ex); System.Diagnostics.Debug.WriteLine($"AdminService.GetAccountsAsync error: {ex}"); return new List<Account>(); }
 }
 public async Task<Account?> GetAccountAsync(int id)
 {
     try { return await _db.Accounts.AsNoTracking().FirstOrDefaultAsync(a=>a.Id==id); }
-    catch (Exception ex) { LastError = ex.Message; System.Diagnostics.Debug.WriteLine($"AdminService.GetAccountAsync error: {ex}"); return null; }
+    catch (Exception ex) { LastError = SanitizeError(ex); System.Diagnostics.Debug.WriteLine($"AdminService.GetAccountAsync error: {ex}"); return null; }
 }
 public async Task<bool> CreateAccountAsync(Account a)
 {
     try {
-        LastError=null; if(a==null){ LastError="Account null"; return false; }
+        LastError=null;
+        if (!RequireRole("Administrator")) return false;
+        if(a==null){ LastError="Account null"; return false; }
+        // Sanitize text inputs
+        a.Name = InputValidator.Sanitize(a.Name, 200);
+        a.ContactName = InputValidator.Sanitize(a.ContactName, 200);
+        a.ContactEmail = InputValidator.Sanitize(a.ContactEmail, 256);
+        a.ContactPhone = InputValidator.Sanitize(a.ContactPhone, 50);
+        a.BillingAddress = InputValidator.Sanitize(a.BillingAddress, 500);
         a.AccountNumber = a.AccountNumber ?? string.Empty;
         a.ServicePlan = a.ServicePlan ?? string.Empty;
         a.ContactName = a.ContactName ?? string.Empty;
@@ -808,7 +921,7 @@ public async Task<bool> CreateAccountAsync(Account a)
         a.Type = a.Type ?? string.Empty;
         a.Id=0; if(a.CreatedAt==default) a.CreatedAt=DateTime.UtcNow; if(string.IsNullOrWhiteSpace(a.AccountNumber)) a.AccountNumber="";
         _db.Accounts.Add(a); var rows=await _db.SaveChangesAsync(); if(rows<=0) LastError="Insert affected 0 rows"; await MaybeSyncOrEnqueueAsync("Create", a, a.Id.ToString()); return rows>0;
-    } catch(Exception ex){ LastError=ex.Message; System.Diagnostics.Debug.WriteLine($"AdminService.CreateAccountAsync error: {ex}"); return false; }
+    } catch(Exception ex){ LastError=SanitizeError(ex); System.Diagnostics.Debug.WriteLine($"AdminService.CreateAccountAsync error: {ex}"); return false; }
 }
 public async Task<bool> UpdateAccountAsync(Account a)
 {
@@ -817,14 +930,16 @@ public async Task<bool> UpdateAccountAsync(Account a)
         var existing=await _db.Accounts.FindAsync(a.Id); if(existing==null){ LastError="Not found"; return false; }
         existing.ServicePlan=a.ServicePlan ?? string.Empty; existing.IsActive=a.IsActive; existing.ContactName=a.ContactName ?? string.Empty; existing.ContactEmail=a.ContactEmail ?? string.Empty; existing.ContactPhone=a.ContactPhone ?? string.Empty; existing.BillingAddress=a.BillingAddress ?? string.Empty; existing.ServiceStatus= string.IsNullOrWhiteSpace(a.ServiceStatus)?"Active":a.ServiceStatus; existing.Name=a.Name ?? string.Empty; existing.Type=a.Type ?? string.Empty;
         _db.Accounts.Update(existing); var rows=await _db.SaveChangesAsync(); if(rows<=0) LastError="Update affected 0 rows"; await MaybeSyncOrEnqueueAsync("Update", existing, existing.Id.ToString()); return rows>0;
-    } catch(Exception ex){ LastError=ex.Message; System.Diagnostics.Debug.WriteLine($"AdminService.UpdateAccountAsync error: {ex}"); return false; }
+    } catch(Exception ex){ LastError=SanitizeError(ex); System.Diagnostics.Debug.WriteLine($"AdminService.UpdateAccountAsync error: {ex}"); return false; }
 }
 public async Task<bool> DeleteAccountAsync(int id)
 {
     try {
-        LastError=null; var acc=await _db.Accounts.FindAsync(id); if(acc==null){ LastError="Not found"; return false; }
+        LastError=null;
+        if (!RequireRole("Administrator")) return false;
+        var acc=await _db.Accounts.FindAsync(id);
         _db.Accounts.Remove(acc); var rows=await _db.SaveChangesAsync(); if(rows<=0) LastError="Delete affected 0 rows"; await MaybeSyncOrEnqueueAsync("Delete", acc, acc.Id.ToString()); return rows>0;
-    } catch(Exception ex){ LastError=ex.Message; System.Diagnostics.Debug.WriteLine($"AdminService.DeleteAccountAsync error: {ex}"); return false; }
+    } catch(Exception ex){ LastError=SanitizeError(ex); System.Diagnostics.Debug.WriteLine($"AdminService.DeleteAccountAsync error: {ex}"); return false; }
 }
 
 public async Task<List<Invoice>> GetInvoicesAsync()
@@ -835,7 +950,7 @@ public async Task<List<Invoice>> GetInvoicesAsync()
     }
     catch (Exception ex)
     {
-    LastError = ex.Message;
+    LastError = SanitizeError(ex);
     return new List<Invoice>();
     }
 }
@@ -851,7 +966,7 @@ public async Task<bool> CreateInvoiceAsync(Invoice inv)
     }
     catch (Exception ex)
     {
-    LastError = ex.Message;
+    LastError = SanitizeError(ex);
     return false;
     }
 }
@@ -867,7 +982,7 @@ public async Task<bool> UpdateInvoiceAsync(Invoice inv)
     }
     catch (Exception ex)
     {
-    LastError = ex.Message;
+    LastError = SanitizeError(ex);
     return false;
     }
 }
@@ -885,7 +1000,7 @@ public async Task<bool> DeleteInvoiceAsync(int id)
     }
     catch (Exception ex)
     {
-    LastError = ex.Message;
+    LastError = SanitizeError(ex);
     return false;
     }
 }
@@ -905,7 +1020,7 @@ public async Task<bool> MarkInvoicePaidAsync(int id, string reference)
     }
     catch (Exception ex)
     {
-    LastError = ex.Message;
+    LastError = SanitizeError(ex);
     return false;
     }
 }
@@ -1137,10 +1252,23 @@ public async Task<bool> CreateTechnicianAsync(Technician technician, string plai
     try
     {
         LastError = null;
+        if (!RequireRole("Administrator")) return false;
         if (technician == null) { LastError = "Technician data is required"; return false; }
         if (string.IsNullOrWhiteSpace(technician.Email)) { LastError = "Email is required"; return false; }
-        if (string.IsNullOrWhiteSpace(plainPassword)) { LastError = "Password is required"; return false; }
+        if (!InputValidator.IsValidEmail(technician.Email)) { LastError = "Invalid email format"; return false; }
         if (string.IsNullOrWhiteSpace(technician.FullName)) { LastError = "Full name is required"; return false; }
+        if (string.IsNullOrWhiteSpace(plainPassword)) { LastError = "Password is required"; return false; }
+        var pwError = InputValidator.ValidatePassword(plainPassword);
+        if (pwError != null) { LastError = pwError; return false; }
+        var phoneError = InputValidator.ValidatePhone(technician.Phone);
+        if (phoneError != null) { LastError = phoneError; return false; }
+
+        // Sanitize text inputs
+        technician.FullName = InputValidator.Sanitize(technician.FullName, 200);
+        technician.Department = InputValidator.Sanitize(technician.Department, 100);
+        technician.ServiceArea = InputValidator.Sanitize(technician.ServiceArea, 200);
+        technician.Specialization = InputValidator.Sanitize(technician.Specialization, 200);
+        technician.Notes = InputValidator.Sanitize(technician.Notes, 1000);
 
         var lower = technician.Email.Trim().ToLowerInvariant();
         if (await _db.Technicians.AnyAsync(t => t.Email.ToLower() == lower))
@@ -1246,6 +1374,7 @@ public async Task<bool> DeleteTechnicianAsync(string id)
     try
     {
         LastError = null;
+        if (!RequireRole("Administrator")) return false;
         if (string.IsNullOrWhiteSpace(id))
         {
             LastError = "Invalid technician ID";
@@ -1331,6 +1460,7 @@ public async Task<bool> ArchiveTicketAsync(int ticketId, string? archivedByUserI
     try
     {
         LastError = null;
+        if (!RequireRole("Administrator", "Agent", "Supervisor")) return false;
         if (ticketId <= 0) { LastError = "Invalid ticket ID"; return false; }
 
         var ticket = await _db.Tickets.FindAsync(ticketId);

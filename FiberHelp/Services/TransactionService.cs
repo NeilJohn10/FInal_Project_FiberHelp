@@ -18,12 +18,22 @@ namespace FiberHelp.Services
     {
         private readonly AppDbContext _db;
         private readonly IServiceScopeFactory _scopeFactory;
+        private readonly ErrorHandlingService _errorService;
         public string? LastError { get; private set; }
 
-        public TransactionService(AppDbContext db, IServiceScopeFactory scopeFactory)
+        public TransactionService(AppDbContext db, IServiceScopeFactory scopeFactory, ErrorHandlingService errorService)
         {
             _db = db;
             _scopeFactory = scopeFactory;
+            _errorService = errorService;
+        }
+
+        /// <summary>
+        /// Returns a user-friendly error message without leaking internal details.
+        /// </summary>
+        private string SanitizeError(Exception ex)
+        {
+            return _errorService.GetUserFriendlyMessage(ex);
         }
 
         #region Transaction Proof Methods
@@ -90,7 +100,7 @@ namespace FiberHelp.Services
             }
             catch (Exception ex)
             {
-                LastError = ex.Message;
+                LastError = SanitizeError(ex);
                 System.Diagnostics.Debug.WriteLine($"[TransactionService] GenerateTicketResolutionProofAsync error: {ex}");
                 return null;
             }
@@ -162,7 +172,7 @@ namespace FiberHelp.Services
             }
             catch (Exception ex)
             {
-                LastError = ex.Message;
+                LastError = SanitizeError(ex);
                 System.Diagnostics.Debug.WriteLine($"[TransactionService] GeneratePaymentProofAsync error: {ex}");
                 return null;
             }
@@ -183,7 +193,7 @@ namespace FiberHelp.Services
             }
             catch (Exception ex)
             {
-                LastError = ex.Message;
+                LastError = SanitizeError(ex);
                 return new List<TransactionProof>();
             }
         }
@@ -201,7 +211,7 @@ namespace FiberHelp.Services
             }
             catch (Exception ex)
             {
-                LastError = ex.Message;
+                LastError = SanitizeError(ex);
                 return null;
             }
         }
@@ -248,7 +258,7 @@ namespace FiberHelp.Services
             }
             catch (Exception ex)
             {
-                LastError = ex.Message;
+                LastError = SanitizeError(ex);
                 return false;
             }
         }
@@ -279,7 +289,7 @@ namespace FiberHelp.Services
             }
             catch (Exception ex)
             {
-                LastError = ex.Message;
+                LastError = SanitizeError(ex);
                 return new List<TransactionProof>();
             }
         }
@@ -336,7 +346,7 @@ namespace FiberHelp.Services
             }
             catch (Exception ex)
             {
-                LastError = ex.Message;
+                LastError = SanitizeError(ex);
                 System.Diagnostics.Debug.WriteLine($"[TransactionService] SubmitFeedbackAsync error: {ex}");
                 return null;
             }
@@ -355,7 +365,7 @@ namespace FiberHelp.Services
             }
             catch (Exception ex)
             {
-                LastError = ex.Message;
+                LastError = SanitizeError(ex);
                 return null;
             }
         }
@@ -375,7 +385,7 @@ namespace FiberHelp.Services
             }
             catch (Exception ex)
             {
-                LastError = ex.Message;
+                LastError = SanitizeError(ex);
                 return new List<ClientFeedback>();
             }
         }
@@ -402,7 +412,7 @@ namespace FiberHelp.Services
             }
             catch (Exception ex)
             {
-                LastError = ex.Message;
+                LastError = SanitizeError(ex);
                 return new List<ClientFeedback>();
             }
         }
@@ -440,7 +450,7 @@ namespace FiberHelp.Services
             }
             catch (Exception ex)
             {
-                LastError = ex.Message;
+                LastError = SanitizeError(ex);
                 return false;
             }
         }
@@ -471,7 +481,7 @@ namespace FiberHelp.Services
             }
             catch (Exception ex)
             {
-                LastError = ex.Message;
+                LastError = SanitizeError(ex);
                 return false;
             }
         }
@@ -523,7 +533,7 @@ namespace FiberHelp.Services
             }
             catch (Exception ex)
             {
-                LastError = ex.Message;
+                LastError = SanitizeError(ex);
                 return new FeedbackStatistics(0, 0, 0, 0, 0, 0, 0, new Dictionary<int, int>());
             }
         }
@@ -557,7 +567,7 @@ namespace FiberHelp.Services
             }
             catch (Exception ex)
             {
-                LastError = ex.Message;
+                LastError = SanitizeError(ex);
                 return new List<StaffPerformance>();
             }
         }

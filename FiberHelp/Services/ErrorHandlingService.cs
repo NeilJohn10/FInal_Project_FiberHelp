@@ -1,16 +1,27 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace FiberHelp.Services
 {
     /// <summary>
-    /// Centralized error handling service with user-friendly messages
+    /// Centralized error handling service with user-friendly messages.
+    /// Integrates with AuditLoggingService for persistent error logging.
+    /// Never exposes technical details (stack traces, internal exceptions) to end users.
     /// </summary>
     public class ErrorHandlingService
     {
+        private readonly AuditLoggingService? _auditLog;
         private readonly List<ErrorLog> _errorHistory = new();
         private const int MaxHistorySize = 100;
+
+        public ErrorHandlingService() { }
+
+        public ErrorHandlingService(AuditLoggingService auditLog)
+        {
+            _auditLog = auditLog;
+        }
 
         /// <summary>
         /// Get user-friendly error message from exception
@@ -21,19 +32,19 @@ namespace FiberHelp.Services
 
             return ex switch
             {
-                UnauthorizedAccessException => "? Access Denied: You don't have permission to perform this action.",
-                TimeoutException => "?? Request Timeout: The operation took too long. Please try again.",
-                InvalidOperationException => "?? Invalid Operation: This action cannot be completed right now.",
-                ArgumentNullException => "?? Missing Information: Required data is missing.",
-                ArgumentException => "?? Invalid Data: The provided information is not valid.",
-                KeyNotFoundException => "?? Not Found: The requested item could not be found.",
-                FormatException => "?? Format Error: The data format is incorrect.",
-                OperationCanceledException => "?? Cancelled: The operation was cancelled.",
-                System.Net.Http.HttpRequestException httpEx => $"?? Network Error: {GetNetworkErrorMessage(httpEx)}",
-                Microsoft.EntityFrameworkCore.DbUpdateException dbEx => $"?? Database Error: {GetDatabaseErrorMessage(dbEx)}",
-                Microsoft.Data.SqlClient.SqlException sqlEx => $"??? SQL Error: {GetSqlErrorMessage(sqlEx)}",
-                System.IO.IOException ioEx => $"?? File Error: {GetFileErrorMessage(ioEx)}",
-                _ => $"? Unexpected Error: {GetGenericErrorMessage(ex)}"
+                UnauthorizedAccessException => "\U0001F6AB Access Denied: You don't have permission to perform this action.",
+                TimeoutException => "\u23F3 Request Timeout: The operation took too long. Please try again.",
+                InvalidOperationException => "\u26A0\uFE0F Invalid Operation: This action cannot be completed right now.",
+                ArgumentNullException => "\u26A0\uFE0F Missing Information: Required data is missing.",
+                ArgumentException => "\u26A0\uFE0F Invalid Data: The provided information is not valid.",
+                KeyNotFoundException => "\U0001F50D Not Found: The requested item could not be found.",
+                FormatException => "\u26A0\uFE0F Format Error: The data format is incorrect.",
+                OperationCanceledException => "\u274C Cancelled: The operation was cancelled.",
+                System.Net.Http.HttpRequestException httpEx => $"\U0001F310 Network Error: {GetNetworkErrorMessage(httpEx)}",
+                Microsoft.EntityFrameworkCore.DbUpdateException dbEx => $"\U0001F4BE Database Error: {GetDatabaseErrorMessage(dbEx)}",
+                Microsoft.Data.SqlClient.SqlException sqlEx => $"\U0001F4BE SQL Error: {GetSqlErrorMessage(sqlEx)}",
+                System.IO.IOException ioEx => $"\U0001F4C1 File Error: {GetFileErrorMessage(ioEx)}",
+                _ => $"\u26A0\uFE0F Unexpected Error: {GetGenericErrorMessage(ex)}"
             };
         }
 
@@ -63,21 +74,21 @@ namespace FiberHelp.Services
                 if (dbEx.InnerException?.Message.Contains("duplicate", StringComparison.OrdinalIgnoreCase) == true ||
                     dbEx.InnerException?.Message.Contains("unique", StringComparison.OrdinalIgnoreCase) == true)
                 {
-                    return $"?? Duplicate Entry: This {entity} already exists in the system.";
+                    return $"\u26A0\uFE0F Duplicate Entry: This {entity} already exists in the system.";
                 }
 
                 if (dbEx.InnerException?.Message.Contains("foreign key", StringComparison.OrdinalIgnoreCase) == true ||
                     dbEx.InnerException?.Message.Contains("reference", StringComparison.OrdinalIgnoreCase) == true)
                 {
-                    return $"?? Dependency Error: Cannot delete this {entity} because it's linked to other records.";
+                    return $"\U0001F517 Dependency Error: Cannot delete this {entity} because it's linked to other records.";
                 }
 
                 if (dbEx.InnerException?.Message.Contains("delete", StringComparison.OrdinalIgnoreCase) == true)
                 {
-                    return $"??? Delete Error: Unable to delete {entity}. It may be referenced by other records.";
+                    return $"\U0001F5D1 Delete Error: Unable to delete {entity}. It may be referenced by other records.";
                 }
 
-                return $"?? Database Error: Error {action} {entity}. Please try again.";
+                return $"\U0001F4BE Database Error: Error {action} {entity}. Please try again.";
             }
 
             // Network errors
@@ -85,29 +96,29 @@ namespace FiberHelp.Services
                 ex.Message.Contains("network", StringComparison.OrdinalIgnoreCase) ||
                 ex.Message.Contains("connection", StringComparison.OrdinalIgnoreCase))
             {
-                return $"?? Connection Error: Unable to {action} {entity}. Check your internet connection.";
+                return $"\U0001F310 Connection Error: Unable to {action} {entity}. Check your internet connection.";
             }
 
             // Validation errors
             if (ex is ArgumentException || ex is ArgumentNullException)
             {
-                return $"?? Validation Error: Invalid data provided for {entity}. Please check your input.";
+                return $"\u26A0\uFE0F Validation Error: Invalid data provided for {entity}. Please check your input.";
             }
 
             // Permission errors
             if (ex is UnauthorizedAccessException)
             {
-                return $"? Permission Denied: You don't have permission to {action} {entity}.";
+                return $"\U0001F6AB Permission Denied: You don't have permission to {action} {entity}.";
             }
 
             // Timeout errors
             if (ex is TimeoutException)
             {
-                return $"?? Timeout: {action} {entity} took too long. Please try again.";
+                return $"\u23F3 Timeout: {action} {entity} took too long. Please try again.";
             }
 
             // Generic contextual error
-            return $"? Error: Failed to {action} {entity}. {GetShortErrorMessage(ex)}";
+            return $"\u26A0\uFE0F Error: Failed to {action} {entity}. {GetShortErrorMessage(ex)}";
         }
 
         /// <summary>
@@ -124,7 +135,7 @@ namespace FiberHelp.Services
         }
 
         /// <summary>
-        /// Log error to history
+        /// Log error to history and persist via audit logging
         /// </summary>
         private void LogError(Exception ex, string? operation = null, string? entityType = null)
         {
@@ -145,6 +156,27 @@ namespace FiberHelp.Services
             {
                 _errorHistory.RemoveAt(_errorHistory.Count - 1);
             }
+
+            // Don't try to persist ObjectDisposedException to DB — it will just cause another one
+            if (ex is ObjectDisposedException)
+            {
+                System.Diagnostics.Debug.WriteLine($"[ERROR] {operation ?? "General"} - {entityType ?? "Unknown"}: DbContext disposed (navigation/scope change)");
+                return;
+            }
+
+            // Persist to audit log (fire-and-forget to avoid blocking UI)
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    if (_auditLog != null)
+                        await _auditLog.LogErrorAsync(ex, operation: operation, entityType: entityType);
+                }
+                catch (Exception auditEx)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[ERROR] Audit log persistence failed: {auditEx.Message}");
+                }
+            });
 
             // Also log to debug output
             System.Diagnostics.Debug.WriteLine($"[ERROR] {operation ?? "General"} - {entityType ?? "Unknown"}: {ex.Message}");
@@ -226,26 +258,14 @@ namespace FiberHelp.Services
 
         private string GetGenericErrorMessage(Exception ex)
         {
-            var msg = ex.Message;
-
-            // Truncate long messages
-            if (msg.Length > 200)
-                msg = msg.Substring(0, 197) + "...";
-
-            // Remove technical jargon
-            msg = msg.Replace("System.", "")
-                     .Replace("Exception", "")
-                     .Replace("Microsoft.", "");
-
-            return msg;
+            // Never expose raw exception messages to users — return a safe generic message
+            return "Something went wrong. Please try again or contact support if the issue persists.";
         }
 
         private string GetShortErrorMessage(Exception ex)
         {
-            var msg = ex.Message;
-            if (msg.Length > 100)
-                msg = msg.Substring(0, 97) + "...";
-            return msg;
+            // Never expose raw exception messages to users
+            return "Please try again or contact support.";
         }
 
         /// <summary>

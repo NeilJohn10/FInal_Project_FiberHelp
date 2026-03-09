@@ -319,8 +319,17 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        if (!AuthService.IsAuthenticated || !AuthService.IsTechnician)
+        if (!AuthService.IsAuthenticated)
+        {
+            NavigationManager.NavigateTo("/login", true);
             return;
+        }
+
+        if (!AuthService.IsTechnician)
+        {
+            NavigationManager.NavigateTo("/", true);
+            return;
+        }
 
         await LoadTickets();
     }
@@ -443,11 +452,11 @@ else
                 
                 if (proofId.HasValue)
                 {
-                    ShowNotification("? Ticket resolved! Transaction proof generated for client.", "#10b981");
+                    ShowNotification("Ticket resolved! Transaction proof generated for client.", "#10b981");
                 }
                 else
                 {
-                    ShowNotification("? Ticket resolved successfully!", "#10b981");
+                    ShowNotification("Ticket resolved successfully!", "#10b981");
                 }
             }
             else

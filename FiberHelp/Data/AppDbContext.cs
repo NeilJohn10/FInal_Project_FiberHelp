@@ -20,6 +20,7 @@ namespace FiberHelp.Data
  public DbSet<Technician> Technicians { get; set; }
  public DbSet<TransactionProof> TransactionProofs { get; set; }
  public DbSet<ClientFeedback> ClientFeedbacks { get; set; }
+ public DbSet<AuditLog> AuditLogs { get; set; }
 
  protected override void OnModelCreating(ModelBuilder modelBuilder)
  {
@@ -231,9 +232,31 @@ namespace FiberHelp.Data
      entity.Property(f => f.Status).HasMaxLength(50).HasDefaultValue("Pending");
      entity.Property(f => f.RequiresFollowUp).HasDefaultValue(false);
      entity.Property(f => f.FollowUpNotes).HasMaxLength(1000).IsRequired(false);
-     entity.Property(f => f.FollowUpCompletedAt).IsRequired(false);
- });
- }
+          entity.Property(f => f.FollowUpCompletedAt).IsRequired(false);
+     });
+
+     // AuditLog entity configuration — persistent logging of login attempts, errors, user activities
+     modelBuilder.Entity<AuditLog>(entity =>
+     {
+         entity.ToTable("AuditLogs");
+         entity.HasKey(a => a.Id);
+         entity.Property(a => a.EventType).HasMaxLength(50).IsRequired();
+         entity.Property(a => a.Category).HasMaxLength(50).IsRequired();
+         entity.Property(a => a.Message).HasMaxLength(1000).IsRequired();
+         entity.Property(a => a.TechnicalDetails).HasMaxLength(4000).IsRequired(false);
+         entity.Property(a => a.UserId).HasMaxLength(50).IsRequired(false);
+         entity.Property(a => a.UserEmail).HasMaxLength(256).IsRequired(false);
+         entity.Property(a => a.UserRole).HasMaxLength(50).IsRequired(false);
+         entity.Property(a => a.EntityType).HasMaxLength(100).IsRequired(false);
+         entity.Property(a => a.EntityId).HasMaxLength(50).IsRequired(false);
+         entity.Property(a => a.IsSuccess).HasDefaultValue(true);
+         entity.Property(a => a.Severity).HasMaxLength(20).HasDefaultValue("Info");
+         entity.Property(a => a.Timestamp);
+         entity.HasIndex(a => a.Timestamp);
+         entity.HasIndex(a => a.Category);
+         entity.HasIndex(a => a.UserEmail);
+     });
+     }
 
  public override int SaveChanges()
  {

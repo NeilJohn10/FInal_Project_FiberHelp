@@ -3,6 +3,8 @@
 @using System.Linq
 @inject FiberHelp.Services.AdminService AdminService
 @inject FiberHelp.Services.AuthService AuthService
+@inject FiberHelp.Services.ErrorHandlingService ErrorService
+@inject NavigationManager Navigation
 
 <style>
  .tech-header { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:18px }
@@ -181,11 +183,18 @@ else
     <div class="tech-modal-body">
      @if(!string.IsNullOrEmpty(errorMessage)){<div class="tech-error-message">@errorMessage</div>}
      <div class="tech-form-grid">
-      <div class="tech-form-group"><label>Email</label><input type="email" class="tech-form-input" @bind="newEmail" placeholder="tech@domain.com" /></div>
-      <div class="tech-form-group"><label>Full Name</label><input class="tech-form-input" @bind="newFullName" placeholder="Juan Dela Cruz" /></div>
+      <div class="tech-form-group"><label>Email <span style="color:#ef4444">*</span></label><input type="email" class="tech-form-input" @bind="newEmail" @bind:event="oninput" placeholder="tech@domain.com" />
+       @if(attempted && string.IsNullOrWhiteSpace(newEmail)){<div style="color:#ef4444;font-size:12px;margin-top:4px">Email is required</div>}
+       else if(attempted && !IsValidEmail()){<div style="color:#ef4444;font-size:12px;margin-top:4px">Invalid email format</div>}
+      </div>
+      <div class="tech-form-group"><label>Full Name <span style="color:#ef4444">*</span></label><input class="tech-form-input" @bind="newFullName" @bind:event="oninput" placeholder="Juan Dela Cruz" />
+       @if(attempted && string.IsNullOrWhiteSpace(newFullName)){<div style="color:#ef4444;font-size:12px;margin-top:4px">Full name is required</div>}
+      </div>
       <div class="tech-form-group"><label>Service Area <span class="tech-label-hint">(coverage)</span></label><input class="tech-form-input" @bind="newServiceArea" placeholder="e.g. Metro Manila" /></div>
       <div class="tech-form-group"><label>Specialization</label><input class="tech-form-input" @bind="newSpecialization" placeholder="e.g. Fiber Installation" /></div>
-      <div class="tech-form-group"><label>Phone</label><input type="tel" class="tech-form-input" @bind="newPhone" placeholder="+639123456789" /></div>
+      <div class="tech-form-group"><label>Phone</label><input type="tel" class="tech-form-input" @bind="newPhone" @bind:event="oninput" placeholder="+639123456789" />
+       @if(attempted && !IsValidPhone()){<div style="color:#ef4444;font-size:12px;margin-top:4px">Invalid phone format</div>}
+      </div>
       <div class="tech-form-group"><label>Department</label><input class="tech-form-input" @bind="newDept" placeholder="Field Operations" /></div>
       <div class="tech-form-group tech-form-span-2"><label>Notes</label><textarea class="tech-form-input" @bind="newNotes" placeholder="Additional notes..." rows="2"></textarea></div>
       <div class="tech-form-group tech-form-span-2"><div class="tech-checkbox-group"><input type="checkbox" id="activeCheck" @bind="newActive" /><label for="activeCheck">Active</label></div></div>
@@ -208,7 +217,7 @@ else
     </div>
     <div class="tech-modal-actions">
       <button class="btn" @onclick="CloseModal">Cancel</button>
-      <button class="btn primary" style="background:linear-gradient(135deg,#2563eb,#1d4ed8)" @onclick="SaveTechnician" disabled="@(!CanSubmit())">@(isEditing ? "Save" : "Create")</button>
+      <button class="btn primary" style="background:linear-gradient(135deg,#2563eb,#1d4ed8)" @onclick="SaveTechnician">@(isEditing ? "Save" : "Create")</button>
     </div>
    </div>
   </div>
@@ -297,14 +306,27 @@ else
  bool DigitOk => newPassword.Any(char.IsDigit); 
  bool SpecialOk => newPassword.Any(c => !char.IsLetterOrDigit(c));
  bool IsValidPassword() => LenOk && UpperOk && DigitOk && SpecialOk && !string.IsNullOrWhiteSpace(newEmail) && !string.IsNullOrWhiteSpace(newFullName);
+ bool IsValidEmail() => FiberHelp.Helpers.InputValidator.IsValidEmail(newEmail);
+ bool IsValidPhone() => FiberHelp.Helpers.InputValidator.IsValidPhone(newPhone);
  bool CanSubmit() => isEditing 
-   ? (!string.IsNullOrWhiteSpace(newPassword) ? IsValidPassword() && newPassword == confirmPassword : !string.IsNullOrWhiteSpace(newEmail) && !string.IsNullOrWhiteSpace(newFullName)) 
-   : IsValidPassword() && newPassword == confirmPassword;
+   ? (!string.IsNullOrWhiteSpace(newPassword) ? IsValidPassword() && IsValidEmail() && IsValidPhone() && newPassword == confirmPassword : !string.IsNullOrWhiteSpace(newEmail) && IsValidEmail() && IsValidPhone() && !string.IsNullOrWhiteSpace(newFullName)) 
+   : IsValidPassword() && IsValidEmail() && IsValidPhone() && newPassword == confirmPassword;
  
- protected override async Task OnInitializedAsync() 
- { 
-   if(AuthService.IsAuthenticated && string.Equals(AuthService.Role,"Administrator",StringComparison.OrdinalIgnoreCase)) 
-     await LoadDataAsync(); 
+ protected override async Task OnInitializedAsync()
+ {
+   if(!AuthService.IsAuthenticated)
+   {
+     Navigation.NavigateTo("/login", true);
+     return;
+   }
+
+   if (!AuthService.IsAdministrator)
+   {
+     Navigation.NavigateTo("/", true);
+     return;
+   }
+
+   await LoadDataAsync();
  }
  
  async Task LoadDataAsync()
@@ -327,7 +349,7 @@ else
    }
    catch (Exception ex)
    {
-     notification = $"Error: {ex.Message}";
+     notification = ErrorService.GetContextualMessage(ex, "load", "technicians");
      technicianRecords = new List<Technician>();
    }
  }
@@ -373,7 +395,28 @@ else
  async Task SaveTechnician() 
  { 
    attempted = true;
-   if (!CanSubmit()) { errorMessage = "Please fill all required fields correctly."; return; }
+   if (!CanSubmit())
+   {
+     var errors = new List<string>();
+     if (string.IsNullOrWhiteSpace(newEmail)) errors.Add("Email is required.");
+     else if (!IsValidEmail()) errors.Add("Invalid email format.");
+     if (string.IsNullOrWhiteSpace(newFullName)) errors.Add("Full name is required.");
+     if (!isEditing || !string.IsNullOrWhiteSpace(newPassword))
+     {
+       if (string.IsNullOrWhiteSpace(newPassword)) errors.Add("Password is required.");
+       else if (!IsValidPassword())
+       {
+         if (!LenOk) errors.Add("Password must be at least 12 characters.");
+         if (!UpperOk) errors.Add("Password must contain an uppercase letter.");
+         if (!DigitOk) errors.Add("Password must contain a number.");
+         if (!SpecialOk) errors.Add("Password must contain a special character.");
+       }
+       if (!string.IsNullOrWhiteSpace(newPassword) && newPassword != confirmPassword) errors.Add("Passwords do not match.");
+     }
+     if (!string.IsNullOrWhiteSpace(newPhone) && !IsValidPhone()) errors.Add("Invalid phone format.");
+     errorMessage = errors.Any() ? string.Join(" ", errors) : "Please fix the highlighted errors.";
+     return;
+   }
    
    errorMessage = ""; notification = ""; 
    var t = new Technician 

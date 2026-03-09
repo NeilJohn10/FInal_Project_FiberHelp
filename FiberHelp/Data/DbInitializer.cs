@@ -1,6 +1,5 @@
 using FiberHelp.Models;
-using System.Security.Cryptography;
-using System.Text;
+using FiberHelp.Helpers;
 using System;
 using System.Linq;
 using Microsoft.Data.SqlClient;
@@ -10,14 +9,6 @@ namespace FiberHelp.Data
 {
     public static class DbInitializer
     {
-        private static string HashPassword(string password)
-        {
-            using var sha = SHA256.Create();
-            var bytes = Encoding.UTF8.GetBytes(password ?? string.Empty);
-            var hash = sha.ComputeHash(bytes);
-            return Convert.ToHexString(hash); // uppercase hex
-        }
-
         public static void Initialize(AppDbContext context)
         {
             try
@@ -29,11 +20,18 @@ namespace FiberHelp.Data
                 System.Diagnostics.Debug.WriteLine($"DbInitializer: EnsureCreated error: {ex.Message}");
             }
 
-            var adminEmail = "admin@fiberhelp.com";
-            var adminPassword = "Adminlogin123@";
-            var adminHash = HashPassword(adminPassword);
+            // Read admin credentials from environment variables (secure coding practice)
+            var adminEmail = Environment.GetEnvironmentVariable("FIBERHELP_ADMIN_EMAIL")
+                ?? "admin@fiberhelp.com";
+            var adminPassword = Environment.GetEnvironmentVariable("FIBERHELP_ADMIN_PASSWORD");
 
-            System.Diagnostics.Debug.WriteLine($"DbInitializer: Admin hash = {adminHash}");
+            if (string.IsNullOrWhiteSpace(adminPassword))
+            {
+                System.Diagnostics.Debug.WriteLine("DbInitializer: FIBERHELP_ADMIN_PASSWORD environment variable not set. Skipping admin seed.");
+                return;
+            }
+
+            var adminHash = PasswordHasher.Hash(adminPassword);
 
             // Users table seeding (ONLY Administrator - agents/technicians should be created manually)
             try
@@ -45,15 +43,15 @@ namespace FiberHelp.Data
                     context.Users.Add(admin);
                     System.Diagnostics.Debug.WriteLine("DbInitializer: Created admin in Users table");
                 }
-                else
+                else if (PasswordHasher.NeedsUpgrade(admin.PasswordHash))
                 {
-                    // Always update to ensure correct password hash
+                    // Upgrade legacy SHA256 hash to PBKDF2
                     admin.PasswordHash = adminHash;
                     admin.Role = "Administrator";
                     context.Users.Update(admin);
-                    System.Diagnostics.Debug.WriteLine("DbInitializer: Updated admin in Users table");
+                    System.Diagnostics.Debug.WriteLine("DbInitializer: Upgraded admin password hash to PBKDF2");
                 }
-                
+
                 context.SaveChanges();
             }
             catch (Exception ex)
@@ -61,12 +59,7 @@ namespace FiberHelp.Data
                 System.Diagnostics.Debug.WriteLine($"DbInitializer: Users table error: {ex.Message}");
             }
 
-            // NOTE: Agents and Technicians are NOT auto-created anymore.
-            // They should be created manually through the application UI.
-            // This prevents inconsistent data after database cleanup.
-
             System.Diagnostics.Debug.WriteLine("DbInitializer: Initialization complete");
-            System.Diagnostics.Debug.WriteLine($"DbInitializer: Default login - Admin: {adminEmail}/{adminPassword}");
         }
     }
 }

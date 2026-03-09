@@ -3,6 +3,7 @@
 @using Microsoft.AspNetCore.Components.Web
 @inject FiberHelp.Services.AuthService AuthService
 @inject FiberHelp.Services.AdminService AdminService
+@inject FiberHelp.Services.ErrorHandlingService ErrorService
 @inject NavigationManager Navigation
 @inject Microsoft.JSInterop.IJSRuntime JS
 
@@ -551,20 +552,26 @@
        Navigation.NavigateTo("/login",true);
        return;
      }
-     
+
+     if (AuthService.IsTechnician)
+     {
+       Navigation.NavigateTo("/technician/dashboard", true);
+       return;
+     }
+
      await LoadDataAsync();
      accounts = await AdminService.GetAccountsAsync();
      technicians = await AdminService.GetActiveTechniciansAsync();
      
      if (!string.IsNullOrEmpty(AdminService.LastError))
      {
-       ticketToast = $"? Error loading accounts: {AdminService.LastError}";
+       ticketToast = $"Error loading accounts: {AdminService.LastError}";
        accounts = new List<Account>();
      }
    }
    catch (Exception ex)
    {
-     ticketToast = $"? Failed to initialize: {ex.Message}";
+     ticketToast = ErrorService.GetContextualMessage(ex, "load", "tickets");
      System.Diagnostics.Debug.WriteLine($"[Tickets] OnInitializedAsync error: {ex}");
      tickets = new List<Ticket>();
      customers = new List<Client>();
@@ -582,7 +589,7 @@
      
      if (!string.IsNullOrEmpty(AdminService.LastError))
      {
-       ticketToast = $"?? Error loading tickets: {AdminService.LastError}";
+       ticketToast = $"Error loading tickets: {AdminService.LastError}";
        allTickets = new List<Ticket>();
      }
      
@@ -604,7 +611,7 @@
      
      if (!string.IsNullOrEmpty(AdminService.LastError))
      {
-       ticketToast = $"?? Error loading clients: {AdminService.LastError}";
+       ticketToast = $"Error loading clients: {AdminService.LastError}";
        customers = new List<Client>();
      }
      
@@ -613,7 +620,7 @@
    }
    catch (Exception ex)
    {
-     ticketToast = $"?? Error loading data: {ex.Message}";
+     ticketToast = ErrorService.GetContextualMessage(ex, "load", "tickets");
      System.Diagnostics.Debug.WriteLine($"[Tickets] LoadDataAsync error: {ex}");
      tickets = new List<Ticket>();
      customers = new List<Client>();
@@ -715,21 +722,21 @@
  {
    if(newTicketAccountId==null)
    {
-     serviceError = "? Account is required";
+     serviceError = "Account is required";
      ticketToast="Account required";
      StateHasChanged();
      return;
    }
    if(string.IsNullOrWhiteSpace(newTicketTitle))
    {
-     serviceError = "? Title is required";
+     serviceError = "Title is required";
      ticketToast="Title required";
      StateHasChanged();
      return;
    }
    if (string.IsNullOrWhiteSpace(newTicketClientId))
    {
-     serviceError = "? No linked client found for the selected account";
+     serviceError = "No linked client found for the selected account";
      ticketToast = "Linked client required";
      StateHasChanged();
      return;
@@ -755,7 +762,7 @@
      
      if(newTicketAccountId==null)
      {
-       serviceError = "? Account is required";
+       serviceError = "Account is required";
        ticketToast="Account required";
        StateHasChanged();
        await Task.Delay(1600);
@@ -765,7 +772,7 @@
      
      if(string.IsNullOrWhiteSpace(newTicketTitle))
      {
-       serviceError = "? Title is required";
+       serviceError = "Title is required";
        ticketToast="Title required";
        StateHasChanged();
        await Task.Delay(1600);
@@ -775,7 +782,7 @@
      
      if (string.IsNullOrWhiteSpace(newTicketClientId))
      {
-       serviceError = "? No linked client found for the selected account";
+       serviceError = "No linked client found for the selected account";
        ticketToast = "Linked client required";
        StateHasChanged();
        await Task.Delay(1600);
@@ -800,15 +807,15 @@
      
      if(!ok || !string.IsNullOrEmpty(AdminService.LastError))
      {
-       serviceError = AdminService.LastError ?? "? Failed to create ticket";
-       ticketToast = "? Failed to create ticket";
+       serviceError = AdminService.LastError ?? "Failed to create ticket";
+       ticketToast = "Failed to create ticket";
        StateHasChanged();
        await Task.Delay(2000);
        ticketToast="";
        return;
      }
      
-     ticketToast = "? Ticket created successfully";
+     ticketToast = "Ticket created successfully";
      await LoadDataAsync();
      CloseNewTicketModal();
      StateHasChanged();
@@ -817,8 +824,8 @@
    }
    catch (Exception ex)
    {
-     serviceError = $"? Error: {ex.Message}";
-     ticketToast = $"? Error: {ex.Message}";
+     serviceError = ErrorService.GetContextualMessage(ex, "create", "ticket");
+     ticketToast = serviceError;
      System.Diagnostics.Debug.WriteLine($"[Tickets] OnCreateNewTicketClicked error: {ex}");
      StateHasChanged();
      await Task.Delay(2000);
@@ -859,7 +866,7 @@
    }
    catch (Exception ex)
    {
-     ticketToast = $"? Error: {ex.Message}";
+     ticketToast = ErrorService.GetContextualMessage(ex, "load", "ticket");
      System.Diagnostics.Debug.WriteLine($"[Tickets] ShowEditTicketModal error: {ex}");
    }
  }
@@ -876,7 +883,7 @@
  {
    if(editingTicket==null || string.IsNullOrWhiteSpace(editingTicket.Title))
    {
-     ticketToast = "? Title is required";
+     ticketToast = "Title is required";
      StateHasChanged();
      return;
    }
@@ -896,7 +903,7 @@
    {
      if(editingTicket==null || string.IsNullOrWhiteSpace(editingTicket.Title))
      {
-       ticketToast = "? Title is required";
+       ticketToast = "Title is required";
        StateHasChanged();
        return;
      }
@@ -916,11 +923,11 @@
      
      if (!string.IsNullOrEmpty(AdminService.LastError))
      {
-       ticketToast = $"? Update failed: {AdminService.LastError}";
+       ticketToast = $"Update failed: {AdminService.LastError}";
      }
      else
      {
-       ticketToast = "? Ticket updated successfully";
+       ticketToast = "Ticket updated successfully";
      }
      
      await LoadDataAsync();
@@ -931,7 +938,7 @@
    }
    catch (Exception ex)
    {
-     ticketToast = $"? Update error: {ex.Message}";
+     ticketToast = ErrorService.GetContextualMessage(ex, "update", "ticket");
      System.Diagnostics.Debug.WriteLine($"[Tickets] UpdateTicketAsync error: {ex}");
      StateHasChanged();
      await Task.Delay(2000);
@@ -985,7 +992,7 @@
    }
    catch (Exception ex)
    {
-     ticketToast = $"Archive error: {ex.Message}";
+     ticketToast = ErrorService.GetContextualMessage(ex, "archive", "ticket");
      System.Diagnostics.Debug.WriteLine($"[Tickets] ConfirmArchive error: {ex}");
      StateHasChanged();
      await Task.Delay(2000);
@@ -1022,7 +1029,7 @@
    }
    catch (Exception ex)
    {
-     ticketToast = $"Restore error: {ex.Message}";
+     ticketToast = ErrorService.GetContextualMessage(ex, "restore", "ticket");
      System.Diagnostics.Debug.WriteLine($"[Tickets] ConfirmUnarchive error: {ex}");
      StateHasChanged();
      await Task.Delay(2000);
@@ -1036,7 +1043,7 @@
    {
      if(id<=0)
      {
-       ticketToast = "? Invalid ticket ID";
+       ticketToast = "Invalid ticket ID";
        StateHasChanged();
        return;
      }
@@ -1044,7 +1051,7 @@
      var ticket = tickets?.FirstOrDefault(t => t.Id == id);
      if (ticket == null)
      {
-       ticketToast = "? Ticket not found";
+       ticketToast = "Ticket not found";
        StateHasChanged();
        return;
      }
@@ -1056,7 +1063,7 @@
    }
    catch (Exception ex)
    {
-     ticketToast = $"? Error: {ex.Message}";
+     ticketToast = ErrorService.GetContextualMessage(ex, "delete", "ticket");
      System.Diagnostics.Debug.WriteLine($"[Tickets] DeleteTicketAsync error: {ex}");
      StateHasChanged();
    }
@@ -1092,7 +1099,7 @@
    }
    catch (Exception ex)
    {
-     ticketToast = $"Delete error: {ex.Message}";
+     ticketToast = ErrorService.GetContextualMessage(ex, "delete", "ticket");
      System.Diagnostics.Debug.WriteLine($"[Tickets] ConfirmDelete error: {ex}");
      StateHasChanged();
      await Task.Delay(2000);
@@ -1108,7 +1115,7 @@
      
      if (rows.Count == 0)
      {
-       ticketToast = "? No tickets to export";
+       ticketToast = "No tickets to export";
        StateHasChanged();
        await Task.Delay(2000);
        ticketToast="";
@@ -1123,14 +1130,14 @@
      
      await JS.InvokeAsync<bool>("FiberExport.saveFile","tickets.csv",sb.ToString());
      
-     ticketToast=$"? Exported {rows.Count} ticket(s)";
+     ticketToast=$"Exported {rows.Count} ticket(s)";
      StateHasChanged();
      await Task.Delay(2000);
      ticketToast="";
    }
    catch (Exception ex)
    {
-     ticketToast = $"? Export failed: {ex.Message}";
+     ticketToast = ErrorService.GetContextualMessage(ex, "export", "tickets");
      System.Diagnostics.Debug.WriteLine($"[Tickets] ExportTickets error: {ex}");
      StateHasChanged();
      await Task.Delay(2000);

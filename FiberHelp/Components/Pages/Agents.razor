@@ -3,6 +3,8 @@
 @using System.Linq
 @inject FiberHelp.Services.AdminService AdminService
 @inject FiberHelp.Services.AuthService AuthService
+@inject FiberHelp.Services.ErrorHandlingService ErrorService
+@inject NavigationManager Navigation
 @inject Microsoft.JSInterop.IJSRuntime JS
 
 <style>
@@ -163,10 +165,17 @@ else
     <div class="agents-modal-body">
      @if(!string.IsNullOrEmpty(errorMessage)){<div class="agents-error-message">@errorMessage</div>}
      <div class="agents-form-grid">
-      <div class="agents-form-group agents-form-span-2"><label>Email</label><input type="email" class="agents-form-input" @bind="newEmail" placeholder="agent@domain.com" /></div>
-      <div class="agents-form-group agents-form-span-2"><label>Full Name</label><input class="agents-form-input" @bind="newFullName" placeholder="John Doe" /></div>
+      <div class="agents-form-group agents-form-span-2"><label>Email <span style="color:#ef4444">*</span></label><input type="email" class="agents-form-input" @bind="newEmail" @bind:event="oninput" placeholder="agent@domain.com" />
+       @if(attempted && string.IsNullOrWhiteSpace(newEmail)){<div style="color:#ef4444;font-size:12px;margin-top:4px">Email is required</div>}
+       else if(attempted && !IsValidEmail()){<div style="color:#ef4444;font-size:12px;margin-top:4px">Invalid email format</div>}
+      </div>
+      <div class="agents-form-group agents-form-span-2"><label>Full Name <span style="color:#ef4444">*</span></label><input class="agents-form-input" @bind="newFullName" @bind:event="oninput" placeholder="John Doe" />
+       @if(attempted && string.IsNullOrWhiteSpace(newFullName)){<div style="color:#ef4444;font-size:12px;margin-top:4px">Full name is required</div>}
+      </div>
       <div class="agents-form-group"><label>Department</label><input class="agents-form-input" @bind="newDept" placeholder="Support" /></div>
-      <div class="agents-form-group"><label>Phone</label><input type="tel" class="agents-form-input" @bind="newPhone" placeholder="+639123456789" /></div>
+      <div class="agents-form-group"><label>Phone</label><input type="tel" class="agents-form-input" @bind="newPhone" @bind:event="oninput" placeholder="+639123456789" />
+       @if(attempted && !IsValidPhone()){<div style="color:#ef4444;font-size:12px;margin-top:4px">Invalid phone format</div>}
+      </div>
       <div class="agents-form-group agents-form-span-2"><div class="agents-checkbox-group"><input type="checkbox" id="activeCheck" @bind="newActive" /><label for="activeCheck">Active</label></div></div>
       <div class="agents-form-group agents-form-span-2">
        <label>@(isEditing ? "Password (leave blank to keep)" : "Password")</label>
@@ -175,7 +184,7 @@ else
       </div>
       @if(!isEditing){<div class="agents-form-group agents-form-span-2"><label>Confirm Password</label><input type="password" class="agents-form-input" @bind="confirmPassword" @bind:event="oninput" placeholder="Re-enter password" /></div>}
      </div>
-     <div class="agents-modal-actions"><button class="btn" @onclick="CloseModal">Cancel</button><button class="btn primary" @onclick="ShowCreateConfirmation" disabled="@(!CanSubmit())">@(isEditing ? "Save" : "Create")</button></div>
+     <div class="agents-modal-actions"><button class="btn" @onclick="CloseModal">Cancel</button><button class="btn primary" @onclick="ShowCreateConfirmation">@(isEditing ? "Save" : "Create")</button></div>
     </div>
    </div>
   </div>
@@ -263,14 +272,27 @@ else
  
  bool LenOk => newPassword.Length >= 12; bool UpperOk => newPassword.Any(char.IsUpper); bool DigitOk => newPassword.Any(char.IsDigit); bool SpecialOk => newPassword.Any(c => !char.IsLetterOrDigit(c));
  bool IsValidPassword() => LenOk && UpperOk && DigitOk && SpecialOk && !string.IsNullOrWhiteSpace(newEmail) && !string.IsNullOrWhiteSpace(newFullName);
- bool CanSubmit() => isEditing ? (!string.IsNullOrWhiteSpace(newPassword) ? IsValidPassword() && newPassword == confirmPassword : !string.IsNullOrWhiteSpace(newEmail) && !string.IsNullOrWhiteSpace(newFullName)) : IsValidPassword() && newPassword == confirmPassword;
+ bool IsValidEmail() => FiberHelp.Helpers.InputValidator.IsValidEmail(newEmail);
+ bool IsValidPhone() => FiberHelp.Helpers.InputValidator.IsValidPhone(newPhone);
+ bool CanSubmit() => isEditing
+   ? (!string.IsNullOrWhiteSpace(newPassword) ? IsValidPassword() && IsValidEmail() && IsValidPhone() && newPassword == confirmPassword : !string.IsNullOrWhiteSpace(newEmail) && IsValidEmail() && IsValidPhone() && !string.IsNullOrWhiteSpace(newFullName))
+   : IsValidPassword() && IsValidEmail() && IsValidPhone() && newPassword == confirmPassword;
  
- protected override async Task OnInitializedAsync() 
- { 
-   if(AuthService.IsAuthenticated && string.Equals(AuthService.Role,"Administrator",StringComparison.OrdinalIgnoreCase)) 
+ protected override async Task OnInitializedAsync()
+ {
+   if(!AuthService.IsAuthenticated)
    {
-     await LoadDataAsync();
+     Navigation.NavigateTo("/login", true);
+     return;
    }
+
+   if (!AuthService.IsAdministrator)
+   {
+     Navigation.NavigateTo("/", true);
+     return;
+   }
+
+   await LoadDataAsync();
  }
  
  async Task LoadDataAsync()
@@ -298,7 +320,7 @@ else
    }
    catch (Exception ex)
    {
-     loadError = ex.Message;
+     loadError = ErrorService.GetContextualMessage(ex, "load", "agents");
      agentRecords = new List<Agent>();
    }
  }
@@ -314,7 +336,34 @@ else
  void PreviousPage() { if (CurrentPage > 1) { CurrentPage--; StateHasChanged(); } }
  void OpenModal(Agent? a) { showModal = true; errorMessage = ""; attempted = false; if (a == null) { isEditing = false; editingId = newEmail = newFullName = newPassword = confirmPassword = newDept = newPhone = ""; newActive = true; } else { isEditing = true; editingId = a.Id; newEmail = a.Email; newFullName = a.FullName; newDept = a.Department; newPhone = a.Phone; newActive = a.IsActive; newPassword = confirmPassword = ""; } }
  void CloseModal() { showModal = false; showCreateConfirm = false; }
- void ShowCreateConfirmation() { attempted = true; if (!CanSubmit()) { errorMessage = "Please fill all required fields."; return; } errorMessage = ""; showCreateConfirm = true; }
+ void ShowCreateConfirmation()
+ {
+   attempted = true;
+   if (!CanSubmit())
+   {
+     var errors = new List<string>();
+     if (string.IsNullOrWhiteSpace(newEmail)) errors.Add("Email is required.");
+     else if (!IsValidEmail()) errors.Add("Invalid email format.");
+     if (string.IsNullOrWhiteSpace(newFullName)) errors.Add("Full name is required.");
+     if (!isEditing || !string.IsNullOrWhiteSpace(newPassword))
+     {
+       if (string.IsNullOrWhiteSpace(newPassword)) errors.Add("Password is required.");
+       else if (!IsValidPassword())
+       {
+         if (!LenOk) errors.Add("Password must be at least 12 characters.");
+         if (!UpperOk) errors.Add("Password must contain an uppercase letter.");
+         if (!DigitOk) errors.Add("Password must contain a number.");
+         if (!SpecialOk) errors.Add("Password must contain a special character.");
+       }
+       if (!string.IsNullOrWhiteSpace(newPassword) && newPassword != confirmPassword) errors.Add("Passwords do not match.");
+     }
+     if (!string.IsNullOrWhiteSpace(newPhone) && !IsValidPhone()) errors.Add("Invalid phone format.");
+     errorMessage = errors.Any() ? string.Join(" ", errors) : "Please fix the highlighted errors.";
+     return;
+   }
+   errorMessage = "";
+   showCreateConfirm = true;
+ }
  async Task ConfirmCreateAgent() { showCreateConfirm = false; await CreateAgent(); }
  
  async Task CreateAgent() 

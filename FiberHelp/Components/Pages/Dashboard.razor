@@ -3,6 +3,7 @@
 @inject FiberHelp.Services.AuthService AuthService
 @inject FiberHelp.Services.AdminService AdminService
 @inject FiberHelp.Services.BillingService BillingService
+@inject FiberHelp.Services.AuditLoggingService AuditLog
 @inject NavigationManager Navigation
 @inject IJSRuntime JS
 
@@ -41,6 +42,33 @@
 .card{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:14px}
 .card h4{margin:0 0 6px 0;font-weight:800;color:#0f172a}
 .muted{color:#64748b;font-size:12.5px}
+
+/* Audit Log Section */
+.audit-section{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:20px;margin-top:20px}
+.audit-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px}
+.audit-header h3{display:flex;align-items:center;gap:8px;margin:0;font-size:18px;font-weight:800;color:#0f172a}
+.audit-filters{display:flex;gap:6px}
+.audit-table-wrap{overflow-x:auto}
+.audit-table{width:100%;border-collapse:separate;border-spacing:0 4px;font-size:13px}
+.audit-table thead th{text-align:left;padding:8px 10px;color:#64748b;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid #e5e7eb}
+.audit-table tbody td{padding:10px;background:#f9fafb;border-top:1px solid #f1f5f9;border-bottom:1px solid #f1f5f9}
+.audit-table tbody tr td:first-child{border-left:1px solid #f1f5f9;border-top-left-radius:8px;border-bottom-left-radius:8px}
+.audit-table tbody tr td:last-child{border-right:1px solid #f1f5f9;border-top-right-radius:8px;border-bottom-right-radius:8px}
+.audit-row-fail td{background:#fef2f2!important}
+.audit-time{color:#64748b;white-space:nowrap;font-size:12px}
+.audit-user{color:#334155;font-weight:600;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.audit-msg{color:#475569;max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.audit-event-badge{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:999px;font-size:11px;font-weight:700}
+.audit-event-login{background:#dcfce7;color:#166534}
+.audit-event-logout{background:#e0e7ff;color:#3730a3}
+.audit-event-error{background:#fee2e2;color:#991b1b}
+.audit-event-create{background:#dbeafe;color:#1e40af}
+.audit-event-update{background:#fef3c7;color:#92400e}
+.audit-event-delete{background:#fce7f3;color:#9d174d}
+.audit-event-archive{background:#f3e8ff;color:#6b21a8}
+.audit-event-default{background:#f1f5f9;color:#475569}
+.audit-status-ok{color:#16a34a;font-weight:800;font-size:16px}
+.audit-status-fail{color:#dc2626;font-weight:800;font-size:16px}
 
 /* Collapsible Analytics Section */
 .analytics-section{background:#f8fafc;border:1px solid #e5e7eb;border-radius:12px;padding:20px;margin-bottom:20px;transition:all 0.3s}
@@ -380,14 +408,83 @@
         </table>
       </div>
     </div>
-  </section>
-</div>
+     </section>
+
+    @if (AuthService.IsAdministrator)
+    {
+      <!-- Recent Activity & Audit Log -->
+      <section class="audit-section">
+        <div class="audit-header">
+          <h3>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
+            </svg>
+            Recent Activity Log
+          </h3>
+          <div class="audit-filters">
+            <button class="chip @(auditFilter == "All" ? "primary" : "")" @onclick='() => FilterAudit("All")'>All</button>
+            <button class="chip @(auditFilter == "Authentication" ? "primary" : "")" @onclick='() => FilterAudit("Authentication")'>Logins</button>
+            <button class="chip @(auditFilter == "UserActivity" ? "primary" : "")" @onclick='() => FilterAudit("UserActivity")'>Activities</button>
+            <button class="chip @(auditFilter == "SystemError" ? "primary" : "")" @onclick='() => FilterAudit("SystemError")'>Errors</button>
+          </div>
+        </div>
+
+        @if (auditLogs != null && auditLogs.Any())
+        {
+          <div class="audit-table-wrap">
+            <table class="audit-table">
+              <thead>
+                <tr>
+                  <th>Time</th>
+                  <th>Event</th>
+                  <th>User</th>
+                  <th>Details</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                @foreach (var log in auditLogs.Take(15))
+                {
+                  <tr class="@(log.IsSuccess ? "" : "audit-row-fail")">
+                    <td class="audit-time">@log.Timestamp.ToLocalTime().ToString("MMM dd, hh:mm tt")</td>
+                    <td>
+                      <span class="audit-event-badge @GetAuditEventClass(log.EventType)">
+                        @GetAuditIcon(log.EventType) @log.EventType
+                      </span>
+                    </td>
+                    <td class="audit-user">@(log.UserEmail ?? "System")</td>
+                    <td class="audit-msg">@TruncateMessage(log.Message, 80)</td>
+                    <td>
+                      @if (log.IsSuccess)
+                      {
+                        <span class="audit-status-ok">&#10003;</span>
+                      }
+                      else
+                      {
+                        <span class="audit-status-fail">&#10007;</span>
+                      }
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+        else
+        {
+          <p class="muted" style="text-align:center;padding:20px;">No activity logs recorded yet. Logs will appear after login attempts and user actions.</p>
+        }
+      </section>
+    }
+  </div>
 
 @code {
   private List<Ticket>? tickets;
   private List<Client>? customers;
   private List<Invoice>? invoices;
   private List<Expense>? expenses;
+  private List<AuditLog>? auditLogs;
+  private string auditFilter = "All";
 
   // Enhanced metrics
   private decimal totalRevenue;
@@ -479,13 +576,20 @@
     customers = await AdminService.GetCustomersAsync();
     invoices = await BillingService.GetInvoicesAsync();
     expenses = await BillingService.GetExpensesAsync();
+
+    // Load audit logs for admin dashboard
+    if (AuthService.IsAdministrator)
+    {
+      await LoadAuditLogsAsync();
+    }
+
     ComputeKpis();
     ComputeAnalyticsMetrics();
     BuildTicketDonut();
     BuildInvoiceDonut();
     BuildCustomerGrowth();
     StateHasChanged();
-    
+
     // Re-render charts after data is loaded
     await Task.Delay(100); // Small delay to ensure DOM is ready
     if (IsAgentRole)
@@ -898,4 +1002,58 @@
   }
 
   public void Dispose() => AuthService.AuthenticationStateChanged -= OnAuthChanged;
+
+  // ?? Audit Log Helpers ??????????????????????????????????????????
+
+  private async Task LoadAuditLogsAsync()
+  {
+    try
+    {
+      string? category = auditFilter == "All" ? null : auditFilter;
+      auditLogs = await AuditLog.GetRecentLogsAsync(15, category);
+    }
+    catch (Exception ex)
+    {
+      System.Diagnostics.Debug.WriteLine($"Error loading audit logs: {ex.Message}");
+      auditLogs = new List<AuditLog>();
+    }
+  }
+
+  private async Task FilterAudit(string filter)
+  {
+    auditFilter = filter;
+    await LoadAuditLogsAsync();
+    StateHasChanged();
+  }
+
+  private string GetAuditEventClass(string eventType) => eventType?.ToLower() switch
+  {
+    "login"   => "audit-event-login",
+    "logout"  => "audit-event-logout",
+    "error"   => "audit-event-error",
+    "create"  => "audit-event-create",
+    "update"  => "audit-event-update",
+    "delete"  => "audit-event-delete",
+    "archive" or "restore" => "audit-event-archive",
+    _ => "audit-event-default"
+  };
+
+  private string GetAuditIcon(string eventType) => eventType?.ToLower() switch
+  {
+    "login"   => "\U0001F511",
+    "logout"  => "\U0001F6AA",
+    "error"   => "\u26A0\uFE0F",
+    "create"  => "\u2795",
+    "update"  => "\u270F\uFE0F",
+    "delete"  => "\U0001F5D1",
+    "archive" => "\U0001F4E6",
+    "restore" => "\u267B\uFE0F",
+    _ => "\U0001F4CB"
+  };
+
+  private string TruncateMessage(string? msg, int max)
+  {
+    if (string.IsNullOrEmpty(msg)) return "—";
+    return msg.Length <= max ? msg : msg[..(max - 3)] + "...";
+  }
 }

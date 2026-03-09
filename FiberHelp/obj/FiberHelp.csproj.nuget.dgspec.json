@@ -69,7 +69,7 @@
           "dependencies": {
             "Microsoft.AspNetCore.Components.WebView.Maui": {
               "target": "Package",
-              "version": "[9.0.111, )"
+              "version": "[9.0.120, )"
             },
             "Microsoft.EntityFrameworkCore.Design": {
               "target": "Package",
@@ -94,12 +94,12 @@
             },
             "Microsoft.Maui.Controls": {
               "target": "Package",
-              "version": "[9.0.111, )"
+              "version": "[9.0.120, )"
             },
             "Microsoft.NET.ILLink.Tasks": {
               "suppressParent": "All",
               "target": "Package",
-              "version": "[9.0.11, )",
+              "version": "[9.0.13, )",
               "autoReferenced": true
             }
           },
@@ -136,14 +136,14 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.100/PortableRuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.103/PortableRuntimeIdentifierGraph.json"
         },
         "net9.0-ios26.0": {
           "targetAlias": "net9.0-ios",
           "dependencies": {
             "Microsoft.AspNetCore.Components.WebView.Maui": {
               "target": "Package",
-              "version": "[9.0.111, )"
+              "version": "[9.0.120, )"
             },
             "Microsoft.EntityFrameworkCore.Design": {
               "target": "Package",
@@ -168,12 +168,12 @@
             },
             "Microsoft.Maui.Controls": {
               "target": "Package",
-              "version": "[9.0.111, )"
+              "version": "[9.0.120, )"
             },
             "Microsoft.NET.ILLink.Tasks": {
               "suppressParent": "All",
               "target": "Package",
-              "version": "[9.0.11, )",
+              "version": "[9.0.13, )",
               "autoReferenced": true
             }
           },
@@ -191,11 +191,11 @@
           "downloadDependencies": [
             {
               "name": "Microsoft.iOS.Ref.net9.0_26.0",
-              "version": "[26.0.9769, 26.0.9769]"
+              "version": "[26.0.9783, 26.0.9783]"
             },
             {
               "name": "Microsoft.iOS.Runtime.iossimulator-x64.net9.0_26.0",
-              "version": "[26.0.9769, 26.0.9769]"
+              "version": "[26.0.9783, 26.0.9783]"
             }
           ],
           "frameworkReferences": {
@@ -206,14 +206,14 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.100/PortableRuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.103/PortableRuntimeIdentifierGraph.json"
         },
         "net9.0-maccatalyst26.0": {
           "targetAlias": "net9.0-maccatalyst",
           "dependencies": {
             "Microsoft.AspNetCore.Components.WebView.Maui": {
               "target": "Package",
-              "version": "[9.0.111, )"
+              "version": "[9.0.120, )"
             },
             "Microsoft.EntityFrameworkCore.Design": {
               "target": "Package",
@@ -238,12 +238,12 @@
             },
             "Microsoft.Maui.Controls": {
               "target": "Package",
-              "version": "[9.0.111, )"
+              "version": "[9.0.120, )"
             },
             "Microsoft.NET.ILLink.Tasks": {
               "suppressParent": "All",
               "target": "Package",
-              "version": "[9.0.11, )",
+              "version": "[9.0.13, )",
               "autoReferenced": true
             }
           },
@@ -262,11 +262,11 @@
           "downloadDependencies": [
             {
               "name": "Microsoft.MacCatalyst.Ref.net9.0_26.0",
-              "version": "[26.0.9769, 26.0.9769]"
+              "version": "[26.0.9783, 26.0.9783]"
             },
             {
               "name": "Microsoft.MacCatalyst.Runtime.maccatalyst-x64.net9.0_26.0",
-              "version": "[26.0.9769, 26.0.9769]"
+              "version": "[26.0.9783, 26.0.9783]"
             }
           ],
           "frameworkReferences": {
@@ -277,14 +277,14 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.100/PortableRuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.103/PortableRuntimeIdentifierGraph.json"
         },
         "net9.0-windows10.0.19041": {
           "targetAlias": "net9.0-windows10.0.19041.0",
           "dependencies": {
             "Microsoft.AspNetCore.Components.WebView.Maui": {
               "target": "Package",
-              "version": "[9.0.111, )"
+              "version": "[9.0.120, )"
             },
             "Microsoft.EntityFrameworkCore.Design": {
               "target": "Package",
@@ -309,7 +309,7 @@
             },
             "Microsoft.Maui.Controls": {
               "target": "Package",
-              "version": "[9.0.111, )"
+              "version": "[9.0.120, )"
             }
           },
           "imports": [
@@ -337,7 +337,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.100\\RuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.103\\RuntimeIdentifierGraph.json"
         }
       },
       "runtimes": {

@@ -172,12 +172,12 @@
       <RelatedAsset></RelatedAsset>
       <AssetTraitName></AssetTraitName>
       <AssetTraitValue></AssetTraitValue>
-      <Fingerprint>lbal82b4wf</Fingerprint>
-      <Integrity>gSfsVyu26ZIAngosk+dVaX6ok3kG0pi627SXW9+3suw=</Integrity>
+      <Fingerprint>lux7aggf4g</Fingerprint>
+      <Integrity>4w6FPLPgqMWPEyyx+3xsyA4/8OH94rbtsGZ81Mf6Mn4=</Integrity>
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
-      <FileLength>12504</FileLength>
-      <LastWriteTime>Mon, 08 Dec 2025 07:33:33 GMT</LastWriteTime>
+      <FileLength>15291</FileLength>
+      <LastWriteTime>Mon, 02 Mar 2026 06:27:34 GMT</LastWriteTime>
       <OriginalItemSpec>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\staticwebassets\css\login.css'))</OriginalItemSpec>
     </StaticWebAsset>
     <StaticWebAsset Include="$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\staticwebassets\css\mainlayout.css'))">

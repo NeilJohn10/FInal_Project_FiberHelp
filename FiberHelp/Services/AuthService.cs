@@ -2,6 +2,7 @@ using System;
 using System.Threading.Tasks;
 using FiberHelp.Data;
 using FiberHelp.Data.context;
+using FiberHelp.Helpers;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Cryptography;
 using System.Text;
@@ -14,30 +15,26 @@ namespace FiberHelp.Services
     public class AuthService
     {
         private readonly IServiceProvider _serviceProvider;
-        public AuthService(IServiceProvider serviceProvider) { _serviceProvider = serviceProvider; }
+        private readonly AuditLoggingService _auditLog;
+        public AuthService(IServiceProvider serviceProvider, AuditLoggingService auditLog) 
+        { 
+            _serviceProvider = serviceProvider;
+            _auditLog = auditLog;
+        }
 
         public bool IsAuthenticated { get; private set; }
         public string? Email { get; private set; }
         public string? Role { get; private set; }
         public string? FullName { get; private set; }
         public string? UserId { get; private set; }
-        public string? ServiceArea { get; private set; } // For technicians
+        public string? ServiceArea { get; private set; }
         public string? LastLoginError { get; private set; }
         public event Action? AuthenticationStateChanged;
-
-        private static string HashPassword(string password)
-        {
-            using var sha = SHA256.Create();
-            var normalized = (password ?? string.Empty).Trim();
-            var bytes = Encoding.UTF8.GetBytes(normalized);
-            var hash = sha.ComputeHash(bytes);
-            return Convert.ToHexString(hash);
-        }
 
         public async Task<bool> SignInAsync(string email, string password)
         {
             LastLoginError = null;
-            
+
             try
             {
                 if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
@@ -60,12 +57,11 @@ namespace FiberHelp.Services
                 }
 
                 var lowered = email.Trim().ToLowerInvariant();
-                var hashed = HashPassword(password);
-                
+
                 System.Diagnostics.Debug.WriteLine($"AuthService: Attempting login for '{lowered}'");
 
                 // Try local database first, then cloud if available
-                var result = await TryLoginFromContext(_db, lowered, hashed, password);
+                var result = await TryLoginFromContext(_db, lowered, password);
                 if (result) return true;
 
                 // If local login fails, try cloud database
@@ -79,7 +75,7 @@ namespace FiberHelp.Services
                             if (onlineContext.Database.CanConnect())
                             {
                                 System.Diagnostics.Debug.WriteLine($"AuthService: Local login failed, trying cloud database...");
-                                result = await TryLoginFromContext(onlineContext, lowered, hashed, password);
+                                result = await TryLoginFromContext(onlineContext, lowered, password);
                                 if (result) return true;
                             }
                         }
@@ -99,32 +95,54 @@ namespace FiberHelp.Services
                     LastLoginError = "Email not found.";
                 }
                 System.Diagnostics.Debug.WriteLine($"AuthService: No user found with email '{lowered}'");
+                await _auditLog.LogLoginFailureAsync(lowered, LastLoginError ?? "Email not found");
                 return false;
             }
             catch (Exception ex)
             {
-                LastLoginError = $"Login error: {ex.Message}";
+                LastLoginError = "An unexpected error occurred during login. Please try again.";
                 System.Diagnostics.Debug.WriteLine($"AuthService: Exception during login: {ex}");
+                await _auditLog.LogErrorAsync(ex, operation: "Login", entityType: "Authentication");
                 return false;
             }
         }
 
-        private async Task<bool> TryLoginFromContext(AppDbContext db, string loweredEmail, string hashedPassword, string plainPassword)
+        private async Task<bool> TryLoginFromContext(AppDbContext db, string loweredEmail, string plainPassword)
         {
             // 1. Check Users table first (Administrator, CSR)
             try
             {
                 var user = await db.Users.AsNoTracking()
                     .FirstOrDefaultAsync(u => u.Email.ToLower() == loweredEmail);
-                    
+
                 if (user != null)
                 {
                     System.Diagnostics.Debug.WriteLine($"AuthService: Found user in Users table: {user.Email}, Role: {user.Role}");
-                    
-                    if (!string.Equals(user.PasswordHash?.Trim(), hashedPassword, StringComparison.Ordinal))
+
+                    if (!PasswordHasher.Verify(plainPassword, user.PasswordHash))
                     {
                         LastLoginError = "Invalid password.";
+                        await _auditLog.LogLoginFailureAsync(loweredEmail, "Invalid password");
                         return false;
+                    }
+
+                    // Auto-upgrade legacy SHA256 hash to PBKDF2
+                    if (PasswordHasher.NeedsUpgrade(user.PasswordHash))
+                    {
+                        try
+                        {
+                            var tracked = await db.Users.FindAsync(user.Id);
+                            if (tracked != null)
+                            {
+                                tracked.PasswordHash = PasswordHasher.Hash(plainPassword);
+                                await db.SaveChangesAsync();
+                                System.Diagnostics.Debug.WriteLine("AuthService: Upgraded user password hash to PBKDF2");
+                            }
+                        }
+                        catch (Exception upgradeEx)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"AuthService: Hash upgrade failed: {upgradeEx.Message}");
+                        }
                     }
 
                     IsAuthenticated = true;
@@ -133,8 +151,9 @@ namespace FiberHelp.Services
                     FullName = user.FullName;
                     UserId = user.Id;
                     ServiceArea = null;
-                    
+
                     System.Diagnostics.Debug.WriteLine($"AuthService: User login successful! Role = {Role}");
+                    await _auditLog.LogLoginSuccessAsync(user.Id, user.Email, user.Role);
                     AuthenticationStateChanged?.Invoke();
                     return true;
                 }
@@ -142,12 +161,12 @@ namespace FiberHelp.Services
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"AuthService: Users table check error: {ex.Message}");
+                await _auditLog.LogErrorAsync(ex, operation: "Login", entityType: "User");
             }
 
             // 2. Check Agents table (Support Agent, Supervisor)
             try
             {
-                // Use raw SQL to handle cases where IsArchived column may not exist yet
                 Agent? agent = null;
                 try
                 {
@@ -157,7 +176,6 @@ namespace FiberHelp.Services
                 catch (Exception queryEx)
                 {
                     System.Diagnostics.Debug.WriteLine($"AuthService: Agent query with archive fields failed, trying without: {queryEx.Message}");
-                    // Fallback: query without archive fields using raw approach
                     try
                     {
                         var agents = await db.Agents.AsNoTracking().ToListAsync();
@@ -168,31 +186,33 @@ namespace FiberHelp.Services
                         System.Diagnostics.Debug.WriteLine($"AuthService: Agent fallback query also failed: {fallbackEx.Message}");
                     }
                 }
-                    
+
                 if (agent != null)
                 {
                     System.Diagnostics.Debug.WriteLine($"AuthService: Found agent '{agent.Email}', IsActive={agent.IsActive}, IsLocked={agent.IsLocked}");
-                    
-                    // Check if archived (may not be present in older databases)
+
                     if (agent.IsArchived)
                     {
                         LastLoginError = "Account has been archived. Contact administrator.";
+                        await _auditLog.LogLoginFailureAsync(loweredEmail, "Account archived");
                         return false;
                     }
-                    
+
                     if (!agent.IsActive)
                     {
                         LastLoginError = "Account is inactive. Contact administrator.";
+                        await _auditLog.LogLoginFailureAsync(loweredEmail, "Account inactive");
                         return false;
                     }
-                    
+
                     if (agent.IsLocked)
                     {
                         LastLoginError = "Account is locked due to too many failed attempts.";
+                        await _auditLog.LogLoginFailureAsync(loweredEmail, "Account locked");
                         return false;
                     }
-                    
-                    if (!string.Equals(agent.PasswordHash?.Trim(), hashedPassword, StringComparison.Ordinal))
+
+                    if (!PasswordHasher.Verify(plainPassword, agent.PasswordHash))
                     {
                         try
                         {
@@ -206,9 +226,11 @@ namespace FiberHelp.Services
                         }
                         catch { }
                         LastLoginError = "Invalid password.";
+                        await _auditLog.LogLoginFailureAsync(loweredEmail, "Invalid password");
                         return false;
                     }
 
+                    // Auto-upgrade legacy hash to PBKDF2
                     try
                     {
                         var trackedSuccess = await db.Agents.FirstOrDefaultAsync(a => a.Id == agent.Id);
@@ -216,6 +238,11 @@ namespace FiberHelp.Services
                         {
                             trackedSuccess.FailedLoginCount = 0;
                             trackedSuccess.LastLoginAt = DateTime.UtcNow;
+                            if (PasswordHasher.NeedsUpgrade(agent.PasswordHash))
+                            {
+                                trackedSuccess.PasswordHash = PasswordHasher.Hash(plainPassword);
+                                System.Diagnostics.Debug.WriteLine("AuthService: Upgraded agent password hash to PBKDF2");
+                            }
                             await db.SaveChangesAsync();
                         }
                     }
@@ -227,8 +254,9 @@ namespace FiberHelp.Services
                     FullName = agent.FullName;
                     Role = string.IsNullOrWhiteSpace(agent.Role) ? "Agent" : agent.Role;
                     ServiceArea = agent.ServiceArea;
-                    
+
                     System.Diagnostics.Debug.WriteLine($"AuthService: Agent login successful! Role = {Role}");
+                    await _auditLog.LogLoginSuccessAsync(agent.Id, agent.Email, Role);
                     AuthenticationStateChanged?.Invoke();
                     return true;
                 }
@@ -260,33 +288,34 @@ namespace FiberHelp.Services
                         System.Diagnostics.Debug.WriteLine($"AuthService: Technician fallback query also failed: {fallbackEx.Message}");
                     }
                 }
-                    
+
                 if (technician != null)
                 {
                     System.Diagnostics.Debug.WriteLine($"AuthService: Found technician '{technician.Email}', IsActive={technician.IsActive}, IsLocked={technician.IsLocked}");
-                    
-                    // Check if archived
+
                     if (technician.IsArchived)
                     {
                         LastLoginError = "Account has been archived. Contact administrator.";
+                        await _auditLog.LogLoginFailureAsync(loweredEmail, "Account archived");
                         return false;
                     }
-                    
+
                     if (!technician.IsActive)
                     {
                         LastLoginError = "Account is inactive. Contact administrator.";
+                        await _auditLog.LogLoginFailureAsync(loweredEmail, "Account inactive");
                         return false;
                     }
-                    
+
                     if (technician.IsLocked)
                     {
                         LastLoginError = "Account is locked due to too many failed attempts.";
+                        await _auditLog.LogLoginFailureAsync(loweredEmail, "Account locked");
                         return false;
                     }
-                    
-                    if (!string.Equals(technician.PasswordHash?.Trim(), hashedPassword, StringComparison.Ordinal))
+
+                    if (!PasswordHasher.Verify(plainPassword, technician.PasswordHash))
                     {
-                        // Increment failed login count
                         try
                         {
                             var tracked = await db.Technicians.FirstOrDefaultAsync(t => t.Id == technician.Id);
@@ -299,10 +328,11 @@ namespace FiberHelp.Services
                         }
                         catch { }
                         LastLoginError = "Invalid password.";
+                        await _auditLog.LogLoginFailureAsync(loweredEmail, "Invalid password");
                         return false;
                     }
 
-                    // Successful login - reset failed count
+                    // Auto-upgrade legacy hash to PBKDF2
                     try
                     {
                         var trackedSuccess = await db.Technicians.FirstOrDefaultAsync(t => t.Id == technician.Id);
@@ -310,6 +340,11 @@ namespace FiberHelp.Services
                         {
                             trackedSuccess.FailedLoginCount = 0;
                             trackedSuccess.LastLoginAt = DateTime.UtcNow;
+                            if (PasswordHasher.NeedsUpgrade(technician.PasswordHash))
+                            {
+                                trackedSuccess.PasswordHash = PasswordHasher.Hash(plainPassword);
+                                System.Diagnostics.Debug.WriteLine("AuthService: Upgraded technician password hash to PBKDF2");
+                            }
                             await db.SaveChangesAsync();
                         }
                     }
@@ -321,8 +356,9 @@ namespace FiberHelp.Services
                     FullName = technician.FullName;
                     Role = "Technician";
                     ServiceArea = technician.ServiceArea;
-                    
+
                     System.Diagnostics.Debug.WriteLine($"AuthService: Technician login successful!");
+                    await _auditLog.LogLoginSuccessAsync(technician.Id, technician.Email, "Technician");
                     AuthenticationStateChanged?.Invoke();
                     return true;
                 }
@@ -337,6 +373,8 @@ namespace FiberHelp.Services
 
         public void SignOut()
         {
+            var logEmail = Email;
+            var logUserId = UserId;
             IsAuthenticated = false;
             Email = null;
             Role = null;
@@ -344,6 +382,7 @@ namespace FiberHelp.Services
             UserId = null;
             ServiceArea = null;
             LastLoginError = null;
+            _ = _auditLog.LogLogoutAsync(logUserId, logEmail);
             AuthenticationStateChanged?.Invoke();
         }
 
