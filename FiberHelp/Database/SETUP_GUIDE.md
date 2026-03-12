@@ -67,10 +67,11 @@ Expected results:
 
 ### Step 5: Test the Application
 1. Stop your application if it's running
-2. Restart the application
-3. Log in as admin: `admin@fiberhelp.com` / `Adminlogin123@`
-4. Navigate to **Reports** page - Cash Flow should now load
-5. Navigate to **Billing** page - All data should display
+2. Set environment variables (see `.env.example`)
+3. Restart the application
+4. Log in with the admin credentials set in your `.env` file
+5. Navigate to **Reports** page - Cash Flow should now load
+6. Navigate to **Billing** page - All data should display
 
 ## What Each Table Does
 

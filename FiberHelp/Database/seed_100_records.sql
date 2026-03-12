@@ -263,8 +263,9 @@ GO
 -- ==========================================
 PRINT 'Seeding Agents (10 records)...';
 
--- Password hash for 'Password123@'
-DECLARE @defaultHash NVARCHAR(256) = '4F8996DA763B7A969B1028EE3007569EAF3A635486DDAB211D512C85B9DF8FB';
+-- Agent/Technician password hash — sample data only, not used for real login.
+-- Real agents/technicians should be created through the app UI for secure PBKDF2 hashing.
+DECLARE @defaultHash NVARCHAR(256) = 'SAMPLE_DATA_HASH_NOT_FOR_LOGIN';
 
 IF (SELECT COUNT(*) FROM Agents) < 10
 BEGIN
@@ -312,7 +313,7 @@ BEGIN
 END
 GO
 
-DECLARE @techHash NVARCHAR(256) = '4F8996DA763B7A969B1028EE3007569EAF3A635486DDAB211D512C85B9DF8FB'; -- Password123@
+DECLARE @techHash NVARCHAR(256) = 'SAMPLE_DATA_HASH_NOT_FOR_LOGIN'; -- Create technicians via app for secure hashing
 
 IF (SELECT COUNT(*) FROM Technicians) < 10
 BEGIN

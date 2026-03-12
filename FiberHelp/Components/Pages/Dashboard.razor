@@ -349,7 +349,7 @@
         </div>
         <div class="panel-actions">
           <div class="filter-pill">This week</div>
-          <button class="btn-text" @onclick="NavigateToTickets">View all ?</button>
+          <button class="btn-text" @onclick="NavigateToTickets">View all &#8594;</button>
         </div>
       </div>
 
@@ -443,7 +443,7 @@
                 </tr>
               </thead>
               <tbody>
-                @foreach (var log in auditLogs.Take(15))
+                @foreach (var log in PaginatedAuditLogs)
                 {
                   <tr class="@(log.IsSuccess ? "" : "audit-row-fail")">
                     <td class="audit-time">@log.Timestamp.ToLocalTime().ToString("MMM dd, hh:mm tt")</td>
@@ -469,6 +469,19 @@
               </tbody>
             </table>
           </div>
+          @if (AuditTotalPages > 1)
+          {
+            <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-top:16px;padding:12px 0">
+              <button style="border:1px solid #e5e7eb;background:#fff;color:#475569;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600" disabled="@(auditCurrentPage == 1)" @onclick="() => { auditCurrentPage--; StateHasChanged(); }">&#9664;</button>
+              @for (int i = 1; i <= AuditTotalPages; i++)
+              {
+                int p = i;
+                <button style="border:1px solid @(auditCurrentPage == p ? "#2563eb" : "#e5e7eb");background:@(auditCurrentPage == p ? "#2563eb" : "#fff");color:@(auditCurrentPage == p ? "#fff" : "#475569");padding:6px 12px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600" @onclick="() => { auditCurrentPage = p; StateHasChanged(); }">@p</button>
+              }
+              <button style="border:1px solid #e5e7eb;background:#fff;color:#475569;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600" disabled="@(auditCurrentPage == AuditTotalPages)" @onclick="() => { auditCurrentPage++; StateHasChanged(); }">&#9654;</button>
+              <span style="color:#64748b;font-size:13px;padding:0 8px">Page @auditCurrentPage of @AuditTotalPages</span>
+            </div>
+          }
         }
         else
         {
@@ -485,6 +498,10 @@
   private List<Expense>? expenses;
   private List<AuditLog>? auditLogs;
   private string auditFilter = "All";
+  private int auditCurrentPage = 1;
+  private int auditPageSize = 10;
+  private int AuditTotalPages => auditLogs == null || !auditLogs.Any() ? 1 : (int)Math.Ceiling(auditLogs.Count / (double)auditPageSize);
+  private IEnumerable<AuditLog> PaginatedAuditLogs => auditLogs?.Skip((auditCurrentPage - 1) * auditPageSize).Take(auditPageSize) ?? Enumerable.Empty<AuditLog>();
 
   // Enhanced metrics
   private decimal totalRevenue;
@@ -1010,7 +1027,8 @@
     try
     {
       string? category = auditFilter == "All" ? null : auditFilter;
-      auditLogs = await AuditLog.GetRecentLogsAsync(15, category);
+      auditLogs = await AuditLog.GetRecentLogsAsync(200, category);
+      auditCurrentPage = 1;
     }
     catch (Exception ex)
     {

@@ -66,23 +66,18 @@ DBCC CHECKIDENT ('OutboxMessages', RESEED, 0);
 PRINT 'Identity columns reset to 0';
 
 -- ==========================================
--- CREATE DEFAULT ADMIN USER
+-- ADMIN USER
 -- ==========================================
-PRINT '';
-PRINT 'Creating default admin user...';
-
--- Password hash for 'Adminlogin123@'
-INSERT INTO Users (Id, Email, PasswordHash, Role, FullName, IsActive)
-VALUES (NEWID(), 'admin@fiberhelp.com', '9AF15B336E6A9619928537DF30B2E6A2376569FCF9D7E773ECCEDE65606529A0', 'Administrator', 'System Admin', 1);
-
-PRINT 'Admin user created: admin@fiberhelp.com / Adminlogin123@';
+-- Admin is seeded automatically by the app via FIBERHELP_ADMIN_EMAIL
+-- and FIBERHELP_ADMIN_PASSWORD environment variables (see .env.example).
+-- No credentials are hardcoded in SQL scripts.
 
 -- ==========================================
 -- VERIFICATION
 -- ==========================================
 PRINT '';
 PRINT '=================================================================';
-PRINT 'VERIFICATION - All tables should show 0 records (except Users=1):';
+PRINT 'VERIFICATION - All tables should show 0 records:';
 PRINT '=================================================================';
 
 SELECT 'Accounts' AS [Table], COUNT(*) AS [RecordCount] FROM Accounts
@@ -106,6 +101,6 @@ SELECT 'OutboxMessages', COUNT(*) FROM OutboxMessages;
 PRINT '';
 PRINT '=================================================================';
 PRINT 'DATABASE CLEANUP COMPLETED!';
-PRINT 'Login with: admin@fiberhelp.com / Adminlogin123@';
+PRINT 'Run the app to seed admin via FIBERHELP_ADMIN_EMAIL env var.';
 PRINT '=================================================================';
 GO

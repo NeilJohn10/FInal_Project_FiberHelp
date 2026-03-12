@@ -102,11 +102,10 @@
      <div class="cust-avatar">@((customer.Name ?? "?").Substring(0,1).ToUpper())</div>
      <div>
        <div class="cust-name">@customer.Name</div>
-       <div class="cust-email">@customer.Email</div>
      </div>
    </div>
  </td>
- <td>@customer.Email</td>
+ <td>@MaskEmail(customer.Email)</td>
  <td><span class="plan-chip">@customer.Plan</span></td>
  <td><span class="badge @(string.Equals(customer.Status,"Active",StringComparison.OrdinalIgnoreCase)?"badge-active":"badge-inactive")">@customer.Status</span></td>
  <td>@customer.JoinDate.ToString("MMM dd, yyyy")</td>
@@ -206,8 +205,20 @@
        <div class="modal-desc">@(isEditing ? "Modify the client details and save changes." : "Create a new client record. Select an account first.")</div>
      </div>
    </div>
+   @if(clientAttempted && !CanSubmit)
+   {
+     <div style="background:#fee2e2;color:#7f1d1d;border:1px solid #fecaca;padding:10px 12px;border-radius:10px;margin-bottom:10px;font-size:13px">
+       @{ var clientErrors = new List<string>();
+          if(string.IsNullOrWhiteSpace(newCustomerAccountId)) clientErrors.Add("Account is required.");
+          if(string.IsNullOrWhiteSpace(newCustomerName)) clientErrors.Add("Name is required.");
+          if(string.IsNullOrWhiteSpace(newCustomerEmail)) clientErrors.Add("Email is required.");
+          else if(!FiberHelp.Helpers.InputValidator.IsValidEmail(newCustomerEmail)) clientErrors.Add("Invalid email format.");
+       }
+       @string.Join(" ", clientErrors)
+     </div>
+   }
    <div class="form-group">
-   <label>Account</label>
+   <label>Account <span style="color:#ef4444">*</span></label>
    <input class="form-input" placeholder="Type to search account (id, name, or email)" list="accountList" @bind="accountText" @bind:event="onchange" @bind:after="OnAccountTextChanged" />
    <datalist id="accountList">
      @if(accounts != null)
@@ -218,6 +229,7 @@
        }
      }
    </datalist>
+   @if(clientAttempted && string.IsNullOrWhiteSpace(newCustomerAccountId)){<div style="color:#ef4444;font-size:12px;margin-top:4px">Account is required</div>}
    @if(selectedAccount != null)
    {
      <div class="account-preview">Plan: @selectedAccount.ServicePlan · Status: @(selectedAccount.ServiceStatus ?? "Active")</div>
@@ -226,11 +238,15 @@
    <div class="form-group">
    <label>Name <span style="color:#ef4444">*</span></label>
    <input class="form-input" @bind="newCustomerName" @bind:event="oninput" placeholder="Client name" />
+   @if(clientAttempted && string.IsNullOrWhiteSpace(newCustomerName)){<div style="color:#ef4444;font-size:12px;margin-top:4px">Name is required</div>}
    </div>
    <div class="form-group">
    <label>Email <span style="color:#ef4444">*</span></label>
    <input class="form-input" @bind="newCustomerEmail" @bind:event="oninput" placeholder="Email address" />
-   @if(!string.IsNullOrWhiteSpace(newCustomerEmail) && !FiberHelp.Helpers.InputValidator.IsValidEmail(newCustomerEmail)){<div style="color:#ef4444;font-size:12px;margin-top:4px">Invalid email format (e.g. user@domain.com)</div>}
+   @if(clientAttempted && string.IsNullOrWhiteSpace(newCustomerEmail))
+   {<div style="color:#ef4444;font-size:12px;margin-top:4px">Email is required</div>}
+   else if(!string.IsNullOrWhiteSpace(newCustomerEmail) && !FiberHelp.Helpers.InputValidator.IsValidEmail(newCustomerEmail))
+   {<div style="color:#ef4444;font-size:12px;margin-top:4px">Invalid email format (e.g. user@domain.com)</div>}
    </div>
    <div class="form-group">
    <label>Plan</label>
@@ -366,6 +382,7 @@
  private string accountSearch = string.Empty;
  private List<Account>? filteredAccounts;
  private string accountText = string.Empty;
+ private bool clientAttempted = false;
  private string deleteTargetId = string.Empty;
  private string deleteTargetName = string.Empty;
  private string archiveTargetId = string.Empty;
@@ -546,6 +563,7 @@
  try
  {
    showNewCustomerModal = show;
+   clientAttempted = false;
    if (!show)
    {
      // reset
@@ -653,6 +671,7 @@
 
  private void ShowSaveConfirmation()
  {
+   clientAttempted = true;
    if (!CanSubmit)
    {
      var errors = new List<string>();
@@ -1009,9 +1028,21 @@
    }
  }
  
- private bool IsAgent()
- {
-   // Use AuthService.IsAgent which correctly checks for both "Agent" and "Support Agent" roles
-   return AuthService.IsAgent;
+   private bool IsAgent()
+   {
+     // Use AuthService.IsAgent which correctly checks for both "Agent" and "Support Agent" roles
+     return AuthService.IsAgent;
+   }
+
+   private string MaskEmail(string? email)
+   {
+       if (string.IsNullOrWhiteSpace(email)) return "—";
+       var atIndex = email.IndexOf('@');
+       if (atIndex <= 0) return "***@***";
+       var local = email[..atIndex];
+       var domain = email[atIndex..];
+       var visibleCount = Math.Min(3, local.Length);
+       var maskedLocal = local[..visibleCount] + new string('*', Math.Max(0, local.Length - visibleCount));
+       return maskedLocal + domain;
+   }
  }
-}

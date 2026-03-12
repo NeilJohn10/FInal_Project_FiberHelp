@@ -232,8 +232,23 @@
        <div class="modal-desc">Select an account (type to search) then enter ticket details. Client auto-links from account.</div>
      </div>
    </div>
+   @if(ticketAttempted && (newTicketAccountId==null || string.IsNullOrWhiteSpace(newTicketTitle) || string.IsNullOrWhiteSpace(newTicketClientId)))
+   {
+     <div style="background:#fee2e2;color:#7f1d1d;border:1px solid #fecaca;padding:10px 12px;border-radius:10px;margin-bottom:10px;font-size:13px">
+       @{ var tktErrors = new List<string>();
+          if(newTicketAccountId==null) tktErrors.Add("Account is required.");
+          if(string.IsNullOrWhiteSpace(newTicketTitle)) tktErrors.Add("Title is required.");
+          if(newTicketAccountId!=null && string.IsNullOrWhiteSpace(newTicketClientId)) tktErrors.Add("No linked client found for the selected account.");
+       }
+       @string.Join(" ", tktErrors)
+     </div>
+   }
+   @if (!string.IsNullOrEmpty(serviceError) && !ticketAttempted)
+   {
+     <div style="background:#fee2e2;color:#7f1d1d;border:1px solid #fecaca;padding:10px 12px;border-radius:10px;margin-bottom:10px;font-size:13px">@serviceError</div>
+   }
    <div class="form-group">
-     <label>Account</label>
+     <label>Account <span style="color:#ef4444">*</span></label>
      <input class="form-input" placeholder="Type to search account (id, name, or email)" list="accountList" @bind="accountText" @bind:event="oninput" @bind:after="OnAccountTextChanged" />
      <datalist id="accountList">
        @if(accounts != null)
@@ -244,6 +259,7 @@
          }
        }
      </datalist>
+     @if(ticketAttempted && newTicketAccountId==null){<div style="color:#ef4444;font-size:12px;margin-top:4px">Account is required</div>}
      @if(selectedAccount != null)
      {
        <div class="selected-customer" style="margin-top:6px">Plan: @selectedAccount.ServicePlan — Status: @(selectedAccount.ServiceStatus ?? "Active")</div>
@@ -252,11 +268,12 @@
      {
        <div class="selected-customer" style="margin-top:4px">Client: @newTicketClientName (@newTicketClientId)</div>
      }
+     @if(ticketAttempted && newTicketAccountId!=null && string.IsNullOrWhiteSpace(newTicketClientId)){<div style="color:#ef4444;font-size:12px;margin-top:4px">No linked client found for the selected account</div>}
    </div>
    <div class="two-col">
      <div class="form-group">
-       <label for="ticketTitle">Title</label>
-       <input id="ticketTitle" class="form-input" @bind="newTicketTitle" placeholder="Enter ticket title" list="complaintList" />
+       <label for="ticketTitle">Title <span style="color:#ef4444">*</span></label>
+       <input id="ticketTitle" class="form-input" @bind="newTicketTitle" @bind:event="oninput" placeholder="Enter ticket title" list="complaintList" />
        <datalist id="complaintList">
          <option value="No internet" />
          <option value="Slow internet" />
@@ -269,9 +286,10 @@
          <option value="Account suspended" />
          <option value="Wrong credentials" />
          <option value="Cannot access website/app" />
-         <option value="Service outage in area" />
-       </datalist>
-     </div>
+             <option value="Service outage in area" />
+           </datalist>
+           @if(ticketAttempted && string.IsNullOrWhiteSpace(newTicketTitle)){<div style="color:#ef4444;font-size:12px;margin-top:4px">Title is required</div>}
+         </div>
      <div class="form-group">
        <label>Priority</label>
        <select class="form-input" @bind="newTicketPriority">
@@ -314,14 +332,13 @@
      <label>Account Id (auto)</label>
      <input class="form-input" value="@(newTicketAccountId?.ToString() ?? "(none)")" disabled />
    </div>
-   <div class="modal-actions">
-     <button class="btn subtle" @onclick="CloseNewTicketModal">Cancel</button>
-     <button class="btn primary" @onclick="ShowSaveConfirmation">Create</button>
+     <div class="modal-actions">
+       <button class="btn subtle" @onclick="CloseNewTicketModal">Cancel</button>
+       <button class="btn primary" @onclick="ShowSaveConfirmation">Create</button>
+     </div>
    </div>
-   @if (!string.IsNullOrEmpty(serviceError)) { <p style="color:#dc2626;font-size:0.85rem;margin-top:8px">@serviceError</p> }
- </div>
- </div>
- }
+   </div>
+   }
 
  @* Edit Ticket modal - keep existing code *@
  @if (showEditTicketModal && editingTicket != null)
@@ -528,6 +545,7 @@
  private string editingStatus="Open";
  private string ticketToast="";
  private string serviceError="";
+ private bool ticketAttempted = false;
  private string fallbackClientName = string.Empty;
  private bool isCreating = false;
  private int deleteTargetId = 0;
@@ -664,6 +682,7 @@
  
  private void ShowNewTicketModal()
  { 
+   ticketAttempted=false;
    newTicketTitle=""; 
    newTicketAccountId=null; 
    newTicketClientId=""; 
@@ -720,6 +739,7 @@
  
  private void ShowSaveConfirmation()
  {
+   ticketAttempted = true;
    if(newTicketAccountId==null)
    {
      serviceError = "Account is required";

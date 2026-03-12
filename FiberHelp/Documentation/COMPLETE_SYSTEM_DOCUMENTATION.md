@@ -98,10 +98,14 @@ cd FiberHelp
 ```json
 {
   "ConnectionStrings": {
-    "DefaultConnection": "Data Source=(localdb)\\MSSQLLocalDB;Initial Catalog=FiberhelpDB;...",
-    "OnlineConnection": "Data Source=your-cloud-server;..."
+    "DefaultConnection": "",
+    "OnlineConnection": ""
   }
 }
+```
+
+> **Note:** Connection strings and credentials are loaded from environment variables.
+> See `.env.example` for required values.
 ```
 
 ### Step 3: Run Database Scripts
@@ -130,11 +134,12 @@ dotnet run
 
 ### Default Login Credentials
 
-| Role | Email | Password |
-|------|-------|----------|
-| Administrator | admin@fiberhelp.com | Adminlogin123@ |
-| Support Agent | agent@fiberhelp.com | Agentlogin123@ |
-| Technician | tech1@fiberhelp.com | Password123@ |
+Credentials are configured via environment variables (see `.env.example`):
+- `FIBERHELP_ADMIN_EMAIL` — admin email address
+- `FIBERHELP_ADMIN_PASSWORD` — admin password
+
+Agents and technicians are created through the app’s Admin UI with secure PBKDF2 hashing.
+No credentials are hardcoded in source code or SQL scripts.
 
 ---
 
@@ -405,10 +410,12 @@ Task<bool> AddExpenseAsync(Expense expense)
 
 ### Authentication
 
-- **SHA256 password hashing**
-- **Account lockout** after 5 failed attempts
-- **Role-based access control**
+- **PBKDF2 password hashing** (100,000 iterations, random salt, constant-time comparison)
+- **Legacy SHA256 auto-upgrade** on login
+- **Account lockout** after 5 failed attempts (progressive suspension)
+- **Role-based access control** (Administrator, Agent, Supervisor, Technician)
 - **Session management** via AuthService
+- **CAPTCHA verification** on login
 
 ### Password Requirements
 
@@ -422,6 +429,9 @@ Task<bool> AddExpenseAsync(Expense expense)
 - **HTTPS** for cloud connections
 - **Parameterized queries** via EF Core (SQL injection protection)
 - **Input validation** on all forms
+- **AES-256 encryption** for sensitive data at rest
+- **Environment variables** for all sensitive configuration (no hardcoded credentials)
+- **SQL data masking** for PII in database views
 
 ---
 

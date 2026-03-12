@@ -1,6 +1,7 @@
 ﻿@* Login.razor *@
 @page "/login"
 @layout FiberHelp.Components.Layout.EmptyLayout
+@implements IDisposable
 @inject NavigationManager NavigationManager
 @inject FiberHelp.Services.AuthService AuthService
 @using System.Linq
@@ -41,9 +42,19 @@
 
       @if(!string.IsNullOrEmpty(errorMessage))
    {
-     <div class="error-message">@errorMessage</div>
+     <div class="error-message">
+       @errorMessage
+       @if (lockoutCountdown != null && isLockedOut)
+       {
+         <div style="margin-top:8px;font-weight:700;font-size:16px;color:#7f1d1d;text-align:center">
+           &#9203; @lockoutCountdown
+         </div>
        }
+     </div>
+   }
 
+ @if (!showForgotPassword)
+ {
  <div class="login-form">
   <div class="form-group">
    <label for="email">Email Address</label>
@@ -54,7 +65,7 @@
      <path d="M3 7l9 6 9-6" />
    </svg>
  </span>
-     <input type="email" id="email" class="form-input" placeholder="your.email@example.com" @bind="email" required />
+     <input type="email" id="email" class="form-input" placeholder="your.email@example.com" @bind="Email" @bind:event="oninput" required />
   </div>
  </div>
 
@@ -152,10 +163,10 @@
    <input type="checkbox" @bind="rememberMe" />
        <span>Remember me</span>
    </label>
-         <a href="#" class="forgot-password">Forgot Password?</a>
+          <a href="#" class="forgot-password" @onclick:preventDefault="true" @onclick="ShowForgotPassword">Forgot Password?</a>
       </div>
 
-   <button type="button" class="btn-login" disabled="@(isLoading || string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(_password))" @onclick="HandleLogin">
+   <button type="button" class="btn-login" disabled="@(isLoading || isLockedOut || string.IsNullOrWhiteSpace(_email) || string.IsNullOrWhiteSpace(_password))" @onclick="HandleLogin">
          @if(isLoading)
   {
    <span>Logging in...</span>
@@ -179,15 +190,64 @@
  </svg> 
          Staff / Admin Login
       </a>
-           </div>
- </div>
+  </div>
+    </div>
+ }
+ else
+ {
+   <div class="login-form">
+     @if (!string.IsNullOrWhiteSpace(forgotMessage))
+     {
+       <div class="error-message" style="background:#ecfdf3;border-color:#86efac;color:#166534;">@forgotMessage</div>
+     }
+
+     <div class="form-group">
+       <label for="reset-email">Email Address</label>
+       <div class="input-wrapper">
+         <input type="email" id="reset-email" class="form-input" placeholder="your.email@example.com" @bind="resetEmail" @bind:event="oninput" />
+       </div>
+     </div>
+
+     @if (resetCodeSent)
+     {
+       <div class="form-group">
+         <label for="reset-code">Reset Code</label>
+         <div class="input-wrapper">
+           <input type="text" id="reset-code" class="form-input" placeholder="Enter 6-digit code" @bind="resetCode" @bind:event="oninput" maxlength="6" />
+         </div>
+       </div>
+
+       <div class="form-group">
+         <label for="reset-new-password">New Password</label>
+         <div class="input-wrapper">
+           <input type="password" id="reset-new-password" class="form-input" placeholder="Enter new password" @bind="resetNewPassword" @bind:event="oninput" />
+         </div>
+       </div>
+
+       <div class="form-group">
+         <label for="reset-confirm-password">Confirm Password</label>
+         <div class="input-wrapper">
+           <input type="password" id="reset-confirm-password" class="form-input" placeholder="Confirm new password" @bind="resetConfirmPassword" @bind:event="oninput" />
+         </div>
+       </div>
+     }
+
+     <button type="button" class="btn-login" disabled="@isResetLoading" @onclick="(resetCodeSent ? ResetPassword : SendResetCode)">
+       <span>@(isResetLoading ? "Please wait..." : resetCodeSent ? "Reset Password" : "Send Reset Code")</span>
+     </button>
+
+     <div class="admin-link" style="margin-top:14px;">
+       <a href="#" @onclick:preventDefault="true" @onclick="BackToLogin">Back to Login</a>
+     </div>
+   </div>
+ }
    </div>
         </div>
     </div>
 </div>
 
 @code {
-    private string email="";
+    private string _email="";
     private string _password=string.Empty;
     private bool rememberMe=false;
     private bool isLoading=false;
@@ -198,11 +258,80 @@
     private bool hasSpecial=false;
     private bool attemptedSignIn=false;
     private bool showPassword = false;
+    private bool showForgotPassword = false;
+    private bool resetCodeSent = false;
+    private bool isResetLoading = false;
+    private string resetEmail = string.Empty;
+    private string resetCode = string.Empty;
+    private string resetNewPassword = string.Empty;
+    private string resetConfirmPassword = string.Empty;
+    private string forgotMessage = string.Empty;
 
     // CAPTCHA state
     private bool captchaVerified = false;
     private bool captchaVerifying = false;
     private bool showCaptchaError = false;
+
+    // Lockout countdown — per email
+    private string? lockedEmail = null;
+    private DateTime? lockoutExpiry = null;
+    private string? lockoutCountdown = null;
+    private bool isLockedOut => lockedEmail != null 
+        && string.Equals(_email.Trim(), lockedEmail, StringComparison.OrdinalIgnoreCase) 
+        && lockoutExpiry.HasValue && DateTime.UtcNow < lockoutExpiry.Value;
+    private System.Threading.Timer? countdownTimer;
+
+    private string Email
+    {
+        get => _email;
+        set
+        {
+            _email = value ?? string.Empty;
+            // If user changes to a different email, hide lockout UI
+            if (lockedEmail != null && !string.Equals(_email.Trim(), lockedEmail, StringComparison.OrdinalIgnoreCase))
+            {
+                errorMessage = string.Empty;
+                lockoutCountdown = null;
+            }
+        }
+    }
+
+    public void Dispose()
+    {
+        countdownTimer?.Dispose();
+    }
+
+    private void StartLockoutCountdown(DateTime expiryUtc, string emailLocked)
+    {
+        lockedEmail = emailLocked.Trim().ToLowerInvariant();
+        lockoutExpiry = expiryUtc;
+        countdownTimer?.Dispose();
+        countdownTimer = new System.Threading.Timer(_ =>
+        {
+            InvokeAsync(() =>
+            {
+                if (lockoutExpiry == null) return;
+                var remaining = lockoutExpiry.Value - DateTime.UtcNow;
+                if (remaining.TotalSeconds <= 0)
+                {
+                    // Lockout expired
+                    lockoutCountdown = null;
+                    lockoutExpiry = null;
+                    lockedEmail = null;
+                    errorMessage = "Suspension expired. You can try logging in again.";
+                    countdownTimer?.Dispose();
+                    countdownTimer = null;
+                }
+                else
+                {
+                    var mins = (int)remaining.TotalMinutes;
+                    var secs = remaining.Seconds;
+                    lockoutCountdown = $"{mins:D2}:{secs:D2}";
+                }
+                StateHasChanged();
+            });
+        }, null, 0, 1000);
+    }
 
     private string Password
     {
@@ -244,7 +373,7 @@ private bool IsPasswordValid()=>hasMinLength&&hasUpper&&hasDigit&&hasSpecial;
         showCaptchaError = false;
         StateHasChanged();
 
-        if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(_password))
+        if (string.IsNullOrWhiteSpace(_email) || string.IsNullOrWhiteSpace(_password))
         {
             errorMessage = "Email and password required.";
             return;
@@ -266,7 +395,7 @@ private bool IsPasswordValid()=>hasMinLength&&hasUpper&&hasDigit&&hasSpecial;
         isLoading = true;
         StateHasChanged();
 
-        var ok = await AuthService.SignInAsync(email.Trim(), _password);
+        var ok = await AuthService.SignInAsync(_email.Trim(), _password);
         isLoading = false;
 
         if (ok)
@@ -280,6 +409,12 @@ private bool IsPasswordValid()=>hasMinLength&&hasUpper&&hasDigit&&hasSpecial;
             ? AuthService.LastLoginError 
             : "Invalid credentials.";
 
+        // Start countdown timer if account is locked out
+        if (AuthService.LockoutExpiresAt.HasValue && AuthService.LockoutExpiresAt.Value > DateTime.UtcNow)
+        {
+            StartLockoutCountdown(AuthService.LockoutExpiresAt.Value, _email);
+        }
+
         _password = "";
         hasMinLength = hasUpper = hasDigit = hasSpecial = false;
         attemptedSignIn = false;
@@ -290,5 +425,71 @@ private bool IsPasswordValid()=>hasMinLength&&hasUpper&&hasDigit&&hasSpecial;
     private void ToggleShowPassword()
     {
         showPassword = !showPassword;
+    }
+
+    private void ShowForgotPassword()
+    {
+        showForgotPassword = true;
+        forgotMessage = string.Empty;
+        resetCodeSent = false;
+        resetEmail = _email;
+        resetCode = string.Empty;
+        resetNewPassword = string.Empty;
+        resetConfirmPassword = string.Empty;
+    }
+
+    private void BackToLogin()
+    {
+        showForgotPassword = false;
+        forgotMessage = string.Empty;
+        resetCodeSent = false;
+    }
+
+    private async Task SendResetCode()
+    {
+        forgotMessage = string.Empty;
+        if (string.IsNullOrWhiteSpace(resetEmail))
+        {
+            forgotMessage = "Please enter your email.";
+            return;
+        }
+
+        isResetLoading = true;
+        var result = await AuthService.RequestPasswordResetAsync(resetEmail);
+        isResetLoading = false;
+
+        forgotMessage = result.Message;
+        if (result.Success)
+            resetCodeSent = true;
+
+        StateHasChanged();
+    }
+
+    private async Task ResetPassword()
+    {
+        forgotMessage = string.Empty;
+        if (!resetCodeSent)
+            return;
+
+        if (!string.Equals(resetNewPassword, resetConfirmPassword, StringComparison.Ordinal))
+        {
+            forgotMessage = "New password and confirm password do not match.";
+            return;
+        }
+
+        isResetLoading = true;
+        var result = await AuthService.ResetPasswordAsync(resetEmail, resetCode, resetNewPassword);
+        isResetLoading = false;
+
+        forgotMessage = result.Message;
+        if (result.Success)
+        {
+            resetCodeSent = false;
+            resetCode = string.Empty;
+            resetNewPassword = string.Empty;
+            resetConfirmPassword = string.Empty;
+        }
+
+        StateHasChanged();
     }
 }

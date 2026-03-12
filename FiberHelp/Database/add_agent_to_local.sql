@@ -7,15 +7,12 @@
 USE FiberhelpDB;
 GO
 
--- First, generate the password hash for testing
--- Note: The hash is SHA256 of the password in uppercase hex
--- For password "Test123@" the hash is:
+-- First, generate the password hash using the .NET app
+-- Agents should be created through the app UI (Admin > Agents > Register Agent)
+-- which uses PBKDF2 hashing via PasswordHasher.Hash().
+-- Alternatively, set FIBERHELP_ADMIN_EMAIL/PASSWORD env vars for app-based seeding.
 DECLARE @Email NVARCHAR(255) = 'enjay@gmail.com';
 DECLARE @FullName NVARCHAR(200) = 'Enjay Agent';
-DECLARE @Password NVARCHAR(100) = 'Test123@';  -- Change this to the actual password
-
--- You need to generate the hash using the same method as C#
--- SHA256 hash of 'Test123@' = '...' (you need to calculate this)
 
 -- Option 1: Insert a new agent with a known password
 -- First, let's check if the agent already exists
@@ -24,10 +21,9 @@ BEGIN
     -- Generate a GUID for the ID
     DECLARE @AgentId NVARCHAR(50) = NEWID();
     
-    -- Insert with a temporary password hash (you'll need to update this)
-    -- The hash below is for password 'Test123@'
-    -- You can calculate the correct hash from C# or use the DbInitializer pattern
-    
+    -- Insert with a placeholder hash — create the agent through the app UI instead
+    -- for proper PBKDF2 hashing. This placeholder will NOT work for login.
+
     INSERT INTO Agents (
         Id, Email, PasswordHash, FullName, Role, Department, 
         Phone, IsActive, IsLocked, FailedLoginCount, CreatedAt
@@ -35,8 +31,8 @@ BEGIN
     VALUES (
         @AgentId,
         @Email,
-        -- This is SHA256 hash for 'Agentlogin123@' - use this password to login
-        '7B4F8FBD7E3A7C9F5E2D1A8B6C3E4F9A0B1C2D3E4F5A6B7C8D9E0F1A2B3C4D5E',
+        -- Placeholder: create agents via the app for secure PBKDF2 hashing
+        'PLACEHOLDER_USE_APP_TO_CREATE_AGENT',
         @FullName,
         'Support Agent',
         'Support',
@@ -46,9 +42,8 @@ BEGIN
         0,  -- FailedLoginCount
         GETUTCDATE()
     );
-    
-    PRINT 'Agent created successfully!';
-    PRINT 'Use password: Agentlogin123@ to login';
+
+    PRINT 'Agent record created. Reset password through the app for proper hashing.';
 END
 ELSE
 BEGIN
@@ -77,15 +72,14 @@ SELECT Id, Email, FullName, Role, IsActive, IsLocked FROM Agents;
 -- ============================================
 
 /*
--- Update password hash for existing agent
--- Hash for 'Agentlogin123@': 7B4F8FBD7E3A7C9F5E2D1A8B6C3E4F9A0B1C2D3E4F5A6B7C8D9E0F1A2B3C4D5E
--- Hash for 'Test123Strong!': (calculate using C#)
+-- To reset a password, create the agent through the app UI
+-- which uses secure PBKDF2 hashing. Do NOT hardcode password hashes in SQL.
 
 UPDATE Agents 
-SET PasswordHash = '7B4F8FBD7E3A7C9F5E2D1A8B6C3E4F9A0B1C2D3E4F5A6B7C8D9E0F1A2B3C4D5E',
-    IsLocked = 0,
+SET IsLocked = 0,
     FailedLoginCount = 0
 WHERE Email = 'enjay@gmail.com';
+-- Then reset password through the app's agent management page.
 */
 
 -- ============================================

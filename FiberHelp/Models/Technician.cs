@@ -40,6 +40,10 @@ namespace FiberHelp.Models
 
         public int FailedLoginCount { get; set; } = 0;
 
+        public DateTime? LockedUntil { get; set; }
+
+        public int LockoutCount { get; set; } = 0;
+
         public DateTime? LastLoginAt { get; set; }
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

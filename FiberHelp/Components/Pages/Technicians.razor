@@ -118,7 +118,7 @@ else
    <tr class="@(t.IsArchived ? "archived-row" : "")">
    <td><div style="display:flex;align-items:center"><span class="tech-avatar">@GetInitials(t.FullName)</span><div><div style="font-weight:700">@t.FullName @if(t.IsArchived){<span class="archived-badge">ARCHIVED</span>}</div><div style="font-size:12px;color:#64748b">@t.Email</div></div></div></td>
    <td>@(string.IsNullOrWhiteSpace(t.ServiceArea)?"—":t.ServiceArea)</td>
-   <td>@(string.IsNullOrWhiteSpace(t.Phone)?"—":t.Phone)</td>
+   <td>@(string.IsNullOrWhiteSpace(t.Phone)?"—":MaskPhone(t.Phone!))</td>
    <td>@(string.IsNullOrWhiteSpace(t.Specialization)?"—":t.Specialization)</td>
    <td><span class="badge @(t.IsActive?"on":"off")">@(t.IsActive?"Active":"Inactive")</span></td>
    <td class="actions">
@@ -513,10 +513,20 @@ else
    StateHasChanged();
  }
  
- string GetInitials(string name) 
- { 
-   if (string.IsNullOrWhiteSpace(name)) return "?"; 
-   var p = name.Split(new[] { ' ', '@', '.' }, StringSplitOptions.RemoveEmptyEntries); 
-   return p.Length >= 2 ? $"{p[0][0]}{p[1][0]}".ToUpper() : (p[0].Length >= 2 ? p[0][..2].ToUpper() : p[0][0].ToString().ToUpper()); 
+   string GetInitials(string name) 
+   { 
+     if (string.IsNullOrWhiteSpace(name)) return "?"; 
+     var p = name.Split(new[] { ' ', '@', '.' }, StringSplitOptions.RemoveEmptyEntries); 
+     return p.Length >= 2 ? $"{p[0][0]}{p[1][0]}".ToUpper() : (p[0].Length >= 2 ? p[0][..2].ToUpper() : p[0][0].ToString().ToUpper()); 
+   }
+
+   private string MaskPhone(string phone)
+   {
+       if (string.IsNullOrWhiteSpace(phone)) return "—";
+       var digits = new string(phone.Where(char.IsDigit).ToArray());
+       if (digits.Length <= 6) return new string('*', digits.Length);
+       var masked = new string('*', 6) + digits[6..];
+       if (phone.StartsWith("+")) return "+" + masked;
+       return masked;
+   }
  }
-}

@@ -385,6 +385,7 @@ C:\Users\Genita\source\repos\FiberHelp\FiberHelp\obj\Debug\net9.0-ios\iossimulat
 C:\Users\Genita\source\repos\FiberHelp\FiberHelp\obj\Debug\net9.0-ios\iossimulator-x64\compressed\bh6tzpd41n-{0}-8inm30yfxf-8inm30yfxf.gz
 C:\Users\Genita\source\repos\FiberHelp\FiberHelp\obj\Debug\net9.0-ios\iossimulator-x64\compressed\1fm3akykq0-{0}-8w3wz26in4-8w3wz26in4.gz
 C:\Users\Genita\source\repos\FiberHelp\FiberHelp\obj\Debug\net9.0-ios\iossimulator-x64\compressed\24wn71vrkw-{0}-z4099cn5qv-z4099cn5qv.gz
+C:\Users\Genita\source\repos\FiberHelp\FiberHelp\obj\Debug\net9.0-ios\iossimulator-x64\compressed\l0cek8q40j-{0}-lux7aggf4g-lux7aggf4g.gz
 C:\Users\Genita\source\repos\FiberHelp\FiberHelp\obj\Debug\net9.0-ios\iossimulator-x64\compressed\3i1eyj9tx5-{0}-upyq2yjbqs-upyq2yjbqs.gz
 C:\Users\Genita\source\repos\FiberHelp\FiberHelp\obj\Debug\net9.0-ios\iossimulator-x64\compressed\m36pyyv8ek-{0}-h877aj867w-h877aj867w.gz
 C:\Users\Genita\source\repos\FiberHelp\FiberHelp\obj\Debug\net9.0-ios\iossimulator-x64\compressed\2lpwclkl6e-{0}-davkqtkhcx-davkqtkhcx.gz
@@ -402,6 +403,7 @@ C:\Users\Genita\source\repos\FiberHelp\FiberHelp\obj\Debug\net9.0-ios\iossimulat
 C:\Users\Genita\source\repos\FiberHelp\FiberHelp\obj\Debug\net9.0-ios\iossimulator-x64\staticwebassets\msbuild.buildMultiTargeting.FiberHelp.props
 C:\Users\Genita\source\repos\FiberHelp\FiberHelp\obj\Debug\net9.0-ios\iossimulator-x64\staticwebassets\msbuild.buildTransitive.FiberHelp.props
 C:\Users\Genita\source\repos\FiberHelp\FiberHelp\obj\Debug\net9.0-ios\iossimulator-x64\staticwebassets.pack.json
+C:\Users\Genita\source\repos\FiberHelp\FiberHelp\obj\Debug\net9.0-ios\iossimulator-x64\staticwebassets.upToDateCheck.txt
 C:\Users\Genita\source\repos\FiberHelp\FiberHelp\obj\Debug\net9.0-ios\iossimulator-x64\compressed\publish\2cd1czda0z-{0}-rwand5ns3r-rwand5ns3r.br
 C:\Users\Genita\source\repos\FiberHelp\FiberHelp\obj\Debug\net9.0-ios\iossimulator-x64\compressed\publish\ou2fy3bf1m-{0}-nrmg4i4fhs-nrmg4i4fhs.br
 C:\Users\Genita\source\repos\FiberHelp\FiberHelp\obj\Debug\net9.0-ios\iossimulator-x64\compressed\publish\o3myxf91dn-{0}-e5tk7yf482-e5tk7yf482.br
@@ -409,6 +411,7 @@ C:\Users\Genita\source\repos\FiberHelp\FiberHelp\obj\Debug\net9.0-ios\iossimulat
 C:\Users\Genita\source\repos\FiberHelp\FiberHelp\obj\Debug\net9.0-ios\iossimulator-x64\compressed\publish\bh6tzpd41n-{0}-8inm30yfxf-8inm30yfxf.br
 C:\Users\Genita\source\repos\FiberHelp\FiberHelp\obj\Debug\net9.0-ios\iossimulator-x64\compressed\publish\1fm3akykq0-{0}-8w3wz26in4-8w3wz26in4.br
 C:\Users\Genita\source\repos\FiberHelp\FiberHelp\obj\Debug\net9.0-ios\iossimulator-x64\compressed\publish\24wn71vrkw-{0}-z4099cn5qv-z4099cn5qv.br
+C:\Users\Genita\source\repos\FiberHelp\FiberHelp\obj\Debug\net9.0-ios\iossimulator-x64\compressed\publish\l0cek8q40j-{0}-lux7aggf4g-lux7aggf4g.br
 C:\Users\Genita\source\repos\FiberHelp\FiberHelp\obj\Debug\net9.0-ios\iossimulator-x64\compressed\publish\3i1eyj9tx5-{0}-upyq2yjbqs-upyq2yjbqs.br
 C:\Users\Genita\source\repos\FiberHelp\FiberHelp\obj\Debug\net9.0-ios\iossimulator-x64\compressed\publish\m36pyyv8ek-{0}-h877aj867w-h877aj867w.br
 C:\Users\Genita\source\repos\FiberHelp\FiberHelp\obj\Debug\net9.0-ios\iossimulator-x64\compressed\publish\2lpwclkl6e-{0}-davkqtkhcx-davkqtkhcx.br
@@ -472,6 +475,3 @@ C:\Users\Genita\source\repos\FiberHelp\FiberHelp\obj\Debug\net9.0-ios\iossimulat
 C:\Users\Genita\source\repos\FiberHelp\FiberHelp\obj\Debug\net9.0-ios\iossimulator-x64\FiberHelp.pdb
 C:\Users\Genita\source\repos\FiberHelp\FiberHelp\obj\Debug\net9.0-ios\iossimulator-x64\FiberHelp.genruntimeconfig.cache
 C:\Users\Genita\source\repos\FiberHelp\FiberHelp\obj\Debug\net9.0-ios\iossimulator-x64\ref\FiberHelp.dll
-C:\Users\Genita\source\repos\FiberHelp\FiberHelp\obj\Debug\net9.0-ios\iossimulator-x64\compressed\l0cek8q40j-{0}-lux7aggf4g-lux7aggf4g.gz
-C:\Users\Genita\source\repos\FiberHelp\FiberHelp\obj\Debug\net9.0-ios\iossimulator-x64\compressed\publish\l0cek8q40j-{0}-lux7aggf4g-lux7aggf4g.br
-C:\Users\Genita\source\repos\FiberHelp\FiberHelp\obj\Debug\net9.0-ios\iossimulator-x64\staticwebassets.upToDateCheck.txt

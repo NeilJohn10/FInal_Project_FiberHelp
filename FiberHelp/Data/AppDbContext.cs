@@ -21,6 +21,7 @@ namespace FiberHelp.Data
  public DbSet<TransactionProof> TransactionProofs { get; set; }
  public DbSet<ClientFeedback> ClientFeedbacks { get; set; }
  public DbSet<AuditLog> AuditLogs { get; set; }
+ public DbSet<PasswordResetToken> PasswordResetTokens { get; set; }
 
  protected override void OnModelCreating(ModelBuilder modelBuilder)
  {
@@ -255,6 +256,21 @@ namespace FiberHelp.Data
          entity.HasIndex(a => a.Timestamp);
          entity.HasIndex(a => a.Category);
          entity.HasIndex(a => a.UserEmail);
+     });
+
+     modelBuilder.Entity<PasswordResetToken>(entity =>
+     {
+         entity.ToTable("PasswordResetTokens");
+         entity.HasKey(p => p.Id);
+         entity.Property(p => p.Email).HasMaxLength(256).IsRequired();
+         entity.Property(p => p.AccountType).HasMaxLength(30).IsRequired();
+         entity.Property(p => p.CodeHash).HasMaxLength(200).IsRequired();
+         entity.Property(p => p.ExpiresAt).IsRequired();
+         entity.Property(p => p.CreatedAt).IsRequired();
+         entity.Property(p => p.UsedAt).IsRequired(false);
+         entity.Property(p => p.AttemptCount).HasDefaultValue(0);
+         entity.HasIndex(p => p.Email);
+         entity.HasIndex(p => p.CreatedAt);
      });
      }
 

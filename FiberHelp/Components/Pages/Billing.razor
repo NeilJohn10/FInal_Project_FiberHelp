@@ -125,11 +125,11 @@ else
             
             /* Modal styles */
             .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center; z-index:1000 }
-            .modal-content { background:white; padding:24px; border-radius:14px; width:100%; max-width:480px; max-height:85vh; overflow-y:auto }
+            .modal-content { background:white; padding:24px; border-radius:14px; width:100%; max-width:520px; max-height:80vh; overflow-y:auto }
             .modal-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; padding-bottom:10px; border-bottom:2px solid #e5e7eb }
             .modal-title { font-size:18px; font-weight:700; color:#1e293b; margin:0 }
             .modal-close { background:none; border:none; font-size:22px; cursor:pointer; color:#64748b }
-            .form-group { margin-bottom:14px }
+            .form-group { margin-bottom:10px }
             .form-label { display:block; font-weight:600; margin-bottom:5px; color:#475569; font-size:13px }
             .form-input { width:100%; padding:9px 12px; border:1px solid #e2e8f0; border-radius:8px; font-size:14px }
             .form-input:focus { outline:none; border-color:#2563eb; box-shadow:0 0 0 3px rgba(37,99,235,0.1) }
@@ -516,6 +516,16 @@ else
                         <h3 class="modal-title">@(_editingInvoice?.Id > 0 ? "Edit Invoice" : "Create New Invoice")</h3>
                         <button class="modal-close" @onclick="CloseModals">×</button>
                     </div>
+                    @if(_invoiceAttempted && (string.IsNullOrWhiteSpace(_newInvoice.ClientId) || _newInvoice.AmountDue <= 0))
+                    {
+                        <div style="background:#fee2e2;color:#7f1d1d;border:1px solid #fecaca;padding:10px 12px;border-radius:10px;margin-bottom:10px;font-size:13px">
+                            @{ var invErrors = new List<string>();
+                               if(string.IsNullOrWhiteSpace(_newInvoice.ClientId)) invErrors.Add("Client is required.");
+                               if(_newInvoice.AmountDue <= 0) invErrors.Add("Amount must be greater than 0.");
+                            }
+                            @string.Join(" ", invErrors)
+                        </div>
+                    }
                     <div class="form-group">
                         <label class="form-label">Invoice Type</label>
                         <select class="form-input" @bind="_newInvoice.InvoiceType">
@@ -525,7 +535,7 @@ else
                         </select>
                     </div>
                     <div class="form-group">
-                        <label class="form-label">Client (Customer)</label>
+                        <label class="form-label">Client (Customer) <span style="color:#ef4444">*</span></label>
                         <select class="form-input" @bind="_newInvoice.ClientId" @oninput="OnClientSelected">
                             <option value="">-- Select Client --</option>
                             @foreach (var client in _clients)
@@ -533,6 +543,7 @@ else
                                 <option value="@client.Id">@client.Name (@client.Plan)</option>
                             }
                         </select>
+                        @if(_invoiceAttempted && string.IsNullOrWhiteSpace(_newInvoice.ClientId)){<div style="color:#ef4444;font-size:12px;margin-top:4px">Client is required</div>}
                     </div>
                     <div class="form-group">
                         <label class="form-label">Account (Optional)</label>
@@ -545,8 +556,9 @@ else
                         </select>
                     </div>
                     <div class="form-group">
-                        <label class="form-label">Amount (?)</label>
+                        <label class="form-label">Amount (&#8369;) <span style="color:#ef4444">*</span></label>
                         <input type="number" class="form-input" step="0.01" min="0" @bind="_newInvoice.AmountDue" />
+                        @if(_invoiceAttempted && _newInvoice.AmountDue <= 0){<div style="color:#ef4444;font-size:12px;margin-top:4px">Amount must be greater than 0</div>}
                     </div>
                     <div class="form-group">
                         <label class="form-label">Issue Date</label>
@@ -594,7 +606,7 @@ else
                         <input type="text" class="form-input" @bind="_newExpense.Description" placeholder="e.g., Electric bill for December" />
                     </div>
                     <div class="form-group">
-                        <label class="form-label">Amount (?)</label>
+                        <label class="form-label">Amount (&#8369;)</label>
                         <input type="number" class="form-input" step="0.01" min="0" @bind="_newExpense.Amount" />
                     </div>
                     <div class="form-group">
@@ -708,6 +720,7 @@ else
     private string? _error;
 
     // Modal states
+    private bool _invoiceAttempted = false;
     private bool _showInvoiceModal = false;
     private bool _showExpenseModal = false;
     private bool _showDetailsModal = false;
@@ -897,6 +910,7 @@ else
     // Modal handlers
     private void ShowCreateInvoiceModal()
     {
+        _invoiceAttempted = false;
         _newInvoice = new FiberHelp.Models.Invoice 
         { 
             IssueDate = DateTime.UtcNow, 
@@ -966,8 +980,15 @@ else
 
     private async Task SaveInvoice()
     {
+        _invoiceAttempted = true;
         try
         {
+            if (string.IsNullOrWhiteSpace(_newInvoice.ClientId))
+            {
+                StateHasChanged();
+                return;
+            }
+
             if (_newInvoice.AccountId.HasValue)
             {
                 var account = _accounts.FirstOrDefault(a => a.Id == _newInvoice.AccountId.Value);

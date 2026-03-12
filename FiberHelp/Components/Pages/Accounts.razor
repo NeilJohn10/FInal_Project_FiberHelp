@@ -97,13 +97,13 @@ else
             <thead>
                 <tr>
                     <th style="width:70px">Account ID</th>
-                    <th style="width:180px">Account Number</th>
-                    <th style="width:180px">Name</th>
-                    <th style="width:160px">Contact Name</th>
-                    <th style="width:120px">Type</th>
-                    <th style="width:130px">Plan</th>
-                    <th style="width:120px">Status</th>
-                    <th style="width:90px">Active</th>
+                    <th style="width:170px">Account Number</th>
+                    <th style="width:160px">Name</th>
+                    <th style="width:140px">Contact Name</th>
+                    <th style="width:150px">Contact Phone</th>
+                    <th style="width:110px">Type</th>
+                    <th style="width:110px">Plan</th>
+                    <th style="width:100px">Status</th>
                     <th style="text-align:right">Action</th>
                 </tr>
             </thead>
@@ -123,9 +123,9 @@ else
                             </td>
                             <td>@(string.IsNullOrWhiteSpace(a.Name)?"—":a.Name)</td>
                             <td>@(string.IsNullOrWhiteSpace(a.ContactName)?"—":a.ContactName)</td>
+                            <td>@(string.IsNullOrWhiteSpace(a.ContactPhone)?"—":MaskPhone(a.ContactPhone!))</td>
                             <td>@(string.IsNullOrWhiteSpace(a.Type)?"—":a.Type)</td>
                             <td>@(string.IsNullOrWhiteSpace(a.ServicePlan)?"—":a.ServicePlan)</td>
-                            <td>@(string.IsNullOrWhiteSpace(a.ServiceStatus)?"—":a.ServiceStatus)</td>
                             <td><span class="badge @(a.IsActive?"on":"off")">@(a.IsActive?"Active":"Inactive")</span></td>
                             <td class="accounts-actions" style="text-align:right">
                                 @if (!IsAgent())
@@ -239,7 +239,8 @@ else
                     <div class="form-row" style="margin-top:14px;">
                         <div class="form-col">
                             <label>Account Name <span style="color:#ef4444">*</span></label>
-                            <input class="form-input" @bind="formName" placeholder="Business or company name" />
+                            <input class="form-input" @bind="formName" @bind:event="oninput" placeholder="Business or company name" />
+                            @if(formAttempted && string.IsNullOrWhiteSpace(formName)){<div style="color:#ef4444;font-size:12px;margin-top:4px">Account name is required</div>}
                         </div>
                         <div class="form-col">
                             <label>Type</label>
@@ -429,6 +430,7 @@ else
     private string formServiceStatus="Active";
     private string formName="";
     private string formType="";
+    private bool formAttempted=false;
     private string formMessage="";
     private string pageToast="";
     private string notification="";
@@ -567,6 +569,7 @@ else
     {
         try
         {
+            formAttempted=false;
             editingAccount=null;
             formAccountNumber = "(auto)";
             formServicePlan="";
@@ -633,6 +636,7 @@ else
 
     private void ShowSaveConfirmation()
     {
+        formAttempted = true;
         if (!CanSave())
         {
             var errors = new List<string>();
@@ -961,5 +965,16 @@ else
     private bool IsAgent()
     {
         return (AuthService.Role ?? "").Equals("Agent", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private string MaskPhone(string phone)
+    {
+        if (string.IsNullOrWhiteSpace(phone)) return "—";
+        var digits = new string(phone.Where(char.IsDigit).ToArray());
+        if (digits.Length <= 6) return new string('*', digits.Length);
+        var masked = new string('*', 6) + digits[6..];
+        // Reformat with original non-digit characters preserved
+        if (phone.StartsWith("+")) return "+" + masked;
+        return masked;
     }
 }

@@ -101,10 +101,10 @@ else
    @foreach(var a in PaginatedAgents)
    {
    <tr class="@(a.IsArchived ? "archived-row" : "")">
-   <td>@a.Email</td>
-   <td><div style="display:flex;align-items:center"><span class="agent-avatar">@GetInitials(a.FullName)</span><div><div style="font-weight:700">@a.FullName @if(a.IsArchived){<span class="archived-badge">ARCHIVED</span>}</div><div style="font-size:12px;color:#64748b">@a.Email</div></div></div></td>
+   <td>@MaskEmail(a.Email)</td>
+   <td><div style="display:flex;align-items:center"><span class="agent-avatar">@GetInitials(a.FullName)</span><div><div style="font-weight:700">@a.FullName @if(a.IsArchived){<span class="archived-badge">ARCHIVED</span>}</div></div></div></td>
    <td>@(string.IsNullOrWhiteSpace(a.Department)?"—":a.Department)</td>
-   <td>@(string.IsNullOrWhiteSpace(a.Phone)?"—":a.Phone)</td>
+   <td>@(string.IsNullOrWhiteSpace(a.Phone)?"—":MaskPhone(a.Phone!))</td>
    <td><span class="badge @(a.IsActive?"on":"off")">@(a.IsActive?"Active":"Inactive")</span></td>
    <td class="actions">
       @if (!a.IsArchived)
@@ -454,5 +454,27 @@ else
  }
  
  void ExportAgents() { notification = "Export not implemented."; }
- string GetInitials(string name) { if (string.IsNullOrWhiteSpace(name)) return "?"; var p = name.Split(new[] { ' ', '@', '.' }, StringSplitOptions.RemoveEmptyEntries); return p.Length >= 2 ? $"{p[0][0]}{p[1][0]}".ToUpper() : (p[0].Length >= 2 ? p[0][..2].ToUpper() : p[0][0].ToString().ToUpper()); }
-}
+   string GetInitials(string name) { if (string.IsNullOrWhiteSpace(name)) return "?"; var p = name.Split(new[] { ' ', '@', '.' }, StringSplitOptions.RemoveEmptyEntries); return p.Length >= 2 ? $"{p[0][0]}{p[1][0]}".ToUpper() : (p[0].Length >= 2 ? p[0][..2].ToUpper() : p[0][0].ToString().ToUpper()); }
+
+   private string MaskPhone(string phone)
+   {
+       if (string.IsNullOrWhiteSpace(phone)) return "—";
+       var digits = new string(phone.Where(char.IsDigit).ToArray());
+       if (digits.Length <= 6) return new string('*', digits.Length);
+       var masked = new string('*', 6) + digits[6..];
+       if (phone.StartsWith("+")) return "+" + masked;
+       return masked;
+   }
+
+   private string MaskEmail(string email)
+   {
+       if (string.IsNullOrWhiteSpace(email)) return "—";
+       var atIndex = email.IndexOf('@');
+       if (atIndex <= 0) return "***@***";
+       var local = email[..atIndex];
+       var domain = email[atIndex..];
+       var visibleCount = Math.Min(3, local.Length);
+       var maskedLocal = local[..visibleCount] + new string('*', Math.Max(0, local.Length - visibleCount));
+       return maskedLocal + domain;
+   }
+  }

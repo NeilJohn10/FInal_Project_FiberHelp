@@ -87,12 +87,25 @@ namespace FiberHelp.Helpers
             return null;
         }
 
-        /// <summary>Sanitize string input — trim and limit length</summary>
+        /// <summary>Sanitize string input — trim, encode HTML entities, and limit length to prevent XSS</summary>
         public static string Sanitize(string? input, int maxLength = 500)
         {
             if (string.IsNullOrWhiteSpace(input)) return string.Empty;
-            var trimmed = input.Trim();
-            return trimmed.Length > maxLength ? trimmed[..maxLength] : trimmed;
+            // Encode HTML special characters to prevent XSS
+            var encoded = System.Net.WebUtility.HtmlEncode(input.Trim());
+            return encoded.Length > maxLength ? encoded[..maxLength] : encoded;
         }
+
+        /// <summary>Sanitize for database storage — trim, strip HTML tags, and limit length</summary>
+        public static string SanitizeForStorage(string? input, int maxLength = 500)
+        {
+            if (string.IsNullOrWhiteSpace(input)) return string.Empty;
+            // Strip any HTML/script tags
+            var stripped = StripHtmlTags().Replace(input.Trim(), string.Empty);
+            return stripped.Length > maxLength ? stripped[..maxLength] : stripped;
+        }
+
+        [GeneratedRegex(@"<[^>]*>", RegexOptions.Compiled)]
+        private static partial Regex StripHtmlTags();
     }
 }

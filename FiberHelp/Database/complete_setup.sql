@@ -187,47 +187,11 @@ GO
 -- ==========================================
 PRINT 'Starting seed data insertion...';
 
--- Seed Users
-IF NOT EXISTS (SELECT * FROM Users WHERE Email = 'admin@fiberhelp.com')
-BEGIN
-    INSERT INTO Users (Id, Email, PasswordHash, Role, FullName, IsActive)
-    VALUES 
-    ('user-admin', 'admin@fiberhelp.com', 
-     'B6B0D451BBFEB62AED57BAE5683F481396E7A37F3CE8E9B3C2CF9A0AEF8E23AF', -- SHA256 of 'Adminlogin123@'
-     'Administrator', 'System Admin', 1);
-    PRINT 'Admin user seeded';
-END
-
-IF NOT EXISTS (SELECT * FROM Users WHERE Email = 'agent@fiberhelp.com')
-BEGIN
-    INSERT INTO Users (Id, Email, PasswordHash, Role, FullName, IsActive)
-    VALUES 
-    ('user-agent', 'agent@fiberhelp.com',
-     '8D969EEF6ECAD3C29A3A629280E686CF0C3F5D5A86AFF3CA12020C923ADC6C92', -- SHA256 of 'Agentlogin123@'
-     'Agent', 'Support Agent', 1);
-    PRINT 'Agent user seeded';
-END
-
--- Seed Agents
-IF NOT EXISTS (SELECT * FROM Agents WHERE Email = 'admin@fiberhelp.com')
-BEGIN
-    INSERT INTO Agents (Id, Email, PasswordHash, FullName, Department, IsActive, IsLocked, FailedLoginCount, CreatedAt)
-    VALUES 
-    ('agent-admin', 'admin@fiberhelp.com',
-     'B6B0D451BBFEB62AED57BAE5683F481396E7A37F3CE8E9B3C2CF9A0AEF8E23AF',
-     'System Admin', 'Admin', 1, 0, 0, SYSUTCDATETIME());
-    PRINT 'Admin agent seeded';
-END
-
-IF NOT EXISTS (SELECT * FROM Agents WHERE Email = 'agent@fiberhelp.com')
-BEGIN
-    INSERT INTO Agents (Id, Email, PasswordHash, FullName, Department, IsActive, IsLocked, FailedLoginCount, CreatedAt)
-    VALUES 
-    ('agent-support', 'agent@fiberhelp.com',
-     '8D969EEF6ECAD3C29A3A629280E686CF0C3F5D5A86AFF3CA12020C923ADC6C92',
-     'Support Agent', 'Support', 1, 0, 0, SYSUTCDATETIME());
-    PRINT 'Support agent seeded';
-END
+-- Seed Users / Agents
+-- Admin and agent credentials are seeded by the .NET app via environment variables
+-- (FIBERHELP_ADMIN_EMAIL, FIBERHELP_ADMIN_PASSWORD). See .env.example.
+-- No hardcoded password hashes in SQL scripts.
+PRINT 'User/Agent seeding is handled by the app via environment variables.';
 
 -- Seed Accounts
 IF NOT EXISTS (SELECT * FROM Accounts)
@@ -296,9 +260,9 @@ PRINT '=================================================================';
 PRINT 'Database setup completed successfully!';
 PRINT '=================================================================';
 PRINT '';
-PRINT 'Login credentials:';
-PRINT '  Admin: admin@fiberhelp.com / Adminlogin123@';
-PRINT '  Agent: agent@fiberhelp.com / Agentlogin123@';
+PRINT 'Admin credentials are set via environment variables:';
+PRINT '  FIBERHELP_ADMIN_EMAIL and FIBERHELP_ADMIN_PASSWORD';
+PRINT '  See .env.example for details.';
 PRINT '';
 PRINT 'All tables and seed data have been created.';
 GO

@@ -23,7 +23,7 @@ Based on the CRM_IT13_RUBRIC_FINAL requirements, here's your compliance status:
 |-------------|--------|----------|
 | Fully cloud-hosted | ? DONE | SQL Server on databaseasp.net |
 | Real-time synchronization | ? DONE | DualWriteService + OutboxProcessor |
-| Stable and accessible | ? DONE | Connection string in appsettings.json |
+| Stable and accessible | ? DONE | Connection string via environment variables |
 | Local sync for offline | ? DONE | SQLite + DataSyncService |
 
 ---
@@ -32,10 +32,12 @@ Based on the CRM_IT13_RUBRIC_FINAL requirements, here's your compliance status:
 
 | Requirement | Status | Evidence |
 |-------------|--------|----------|
-| Strong authentication | ? DONE | SHA256 password hashing |
-| Authorization | ? DONE | Role-based access (Admin/Agent/Tech) |
+| Strong authentication | ? DONE | PBKDF2 password hashing (100k iterations) |
+| Authorization | ? DONE | Role-based access (Admin/Agent/Supervisor/Tech) |
 | Role-based access control | ? DONE | AuthService.IsAdministrator, IsAgent, etc. |
-| Account lockout | ? DONE | After 5 failed attempts |
+| Account lockout | ? DONE | After 5 failed attempts (progressive suspension) |
+| No hardcoded credentials | ? DONE | All secrets via environment variables (.env) |
+| Secure queries | ? DONE | EF Core parameterized queries throughout |
 
 ---
 
@@ -216,6 +218,37 @@ Added `SyncStatusIndicator.razor` to MainLayout showing:
 1. **Run seed_100_records.sql** on your cloud database
 2. **Test offline/online sync** - disconnect, add data, reconnect
 3. **Practice your presentation** - prepare demo script
+
+---
+
+## SECURITY FINAL CHECK (FOR 10/10 DEFENSE)
+
+1. Rotate all exposed secrets (Gmail app password, DB credentials).
+2. Keep real credentials only in `.env` and never in `.env.example` or screenshots.
+3. Capture screenshots/evidence for:
+   - OTP forgot-password request and successful reset.
+   - Lockout after failed attempts.
+   - RBAC denial for unauthorized roles.
+   - Audit logs (login success/failure, reset events, errors).
+4. Run code audit commands and attach outputs:
+   - `dotnet list package --vulnerable`
+   - `dotnet list package --outdated`
+5. Confirm no sensitive details shown in UI errors.
+
+### Audit Tool Execution Evidence (Completed)
+
+- `dotnet build` -> **Build successful**
+- `dotnet list FiberHelp/FiberHelp.csproj package --vulnerable` -> **No vulnerable packages**
+- `dotnet list FiberHelp/FiberHelp.csproj package --outdated` -> **Outdated packages listed (documented for upgrade planning)**
+- `dotnet-sonarscanner` global tool -> **Installed successfully (v11.2.0)**
+
+### SonarQube Final Step (Run when server/token is available)
+
+Run these commands and attach screenshots/results:
+
+1. `dotnet sonarscanner begin /k:"FiberHelp" /d:sonar.host.url="<YOUR_SONAR_URL>" /d:sonar.token="<YOUR_TOKEN>"`
+2. `dotnet build FiberHelp/FiberHelp.csproj`
+3. `dotnet sonarscanner end /d:sonar.token="<YOUR_TOKEN>"`
 
 ### ?? Optional Enhancements
 1. Add PDF receipt generation for paid invoices
