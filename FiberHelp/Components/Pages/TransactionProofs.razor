@@ -8,21 +8,21 @@
 @inject Microsoft.JSInterop.IJSRuntime JS
 
 <style>
-    .proofs-header { display: flex; align-items: center; justify-content: space-between; padding-bottom: 20px; margin-bottom: 22px; border-bottom: 1px solid #e5e7eb; }
+    .proofs-header { display: flex; align-items: center; justify-content: space-between; padding-bottom: 20px; margin-bottom: 22px; border-bottom:1px solid var(--border-color); }
     .proofs-header .page-title { font-size: 42px; line-height: 1.1; margin: 0 0 4px; }
     .proofs-controls { display: flex; gap: 14px; align-items: center; }
-    .filter-select { padding: 10px 16px; border-radius: 10px; border: 1px solid #e5e7eb; background: #fff; font-size: 14px; }
-    .search-input { width: 280px; padding: 10px 16px; border-radius: 10px; border: 1px solid #e5e7eb; font-size: 14px; }
+    .filter-select { padding: 10px 16px; border-radius: 10px; border:1px solid var(--border-color); background:var(--card-bg); font-size: 14px; }
+    .search-input { width: 280px; padding: 10px 16px; border-radius: 10px; border:1px solid var(--border-color); font-size: 14px; }
     
     .proofs-table { width: 100%; border-collapse: separate; border-spacing: 0 8px; }
-    .proofs-table thead th { font-size: 12px; font-weight: 700; padding: 10px 12px; color: #475569; text-align: left; text-transform: uppercase; }
-    .proofs-table tbody td { background: #f9fafb; padding: 14px 12px; font-size: 14px; border-top: 1px solid #edf2f7; border-bottom: 1px solid #edf2f7; }
+    .proofs-table thead th { font-size: 12px; font-weight: 700; padding: 10px 12px; color:var(--text-muted); text-align: left; text-transform: uppercase; }
+    .proofs-table tbody td { background: var(--card-bg); padding: 14px 12px; font-size: 14px; border-top: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color); }
     .proofs-table tbody tr td:first-child { border-left: 1px solid #edf2f7; border-top-left-radius: 10px; border-bottom-left-radius: 10px; }
     .proofs-table tbody tr td:last-child { border-right: 1px solid #edf2f7; border-top-right-radius: 10px; border-bottom-right-radius: 10px; }
-    .proofs-table tbody tr:hover td { background: #f1f5f9; }
+    .proofs-table tbody tr:hover td { background:var(--card-bg); }
     
     .ref-number { font-family: monospace; font-weight: 600; color: #2563eb; background: #eff6ff; padding: 4px 8px; border-radius: 6px; }
-    .verification-code { font-family: monospace; font-size: 11px; color: #64748b; background: #f1f5f9; padding: 2px 6px; border-radius: 4px; }
+    .verification-code { font-family: monospace; font-size: 11px; color:var(--text-muted); background:var(--card-bg); padding: 2px 6px; border-radius: 4px; }
     
     .badge { display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 11px; font-weight: 700; }
     .badge-ticket { background: #dbeafe; color: #1e40af; }
@@ -32,8 +32,8 @@
     .badge-sent { background: #dbeafe; color: #1e40af; }
     
     .client-info { display: flex; flex-direction: column; gap: 2px; }
-    .client-info .name { font-weight: 600; color: #1e293b; }
-    .client-info .id { font-size: 11px; color: #64748b; font-family: monospace; }
+    .client-info .name { font-weight: 600; color:var(--text-main); }
+    .client-info .id { font-size: 11px; color:var(--text-muted); font-family: monospace; }
     
     .amount { font-weight: 700; color: #059669; }
     
@@ -41,35 +41,35 @@
     .action-btn:hover { background: #eef2ff; }
     
     .btn { padding: 10px 20px; border-radius: 10px; font-weight: 600; font-size: 14px; cursor: pointer; border: none; }
-    .btn-secondary { background: #fff; color: #475569; border: 1px solid #e5e7eb; }
+    .btn-secondary { background:var(--card-bg); color:var(--text-muted); border:1px solid var(--border-color); }
     
-    .empty-state { text-align: center; padding: 60px 20px; color: #64748b; }
-    .empty-state h3 { color: #475569; margin-bottom: 8px; }
+    .empty-state { text-align: center; padding: 60px 20px; color:var(--text-muted); }
+    .empty-state h3 { color:var(--text-muted); margin-bottom: 8px; }
     
     .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,0.4); display: grid; place-items: center; z-index: 60000; }
-    .modal-card { width: calc(100% - 80px); max-width: 600px; background: #fff; border-radius: 16px; padding: 28px; box-shadow: 0 20px 60px rgba(0,0,0,0.2); }
+    .modal-card { width: calc(100% - 80px); max-width: 600px; background:var(--card-bg); border-radius: 16px; padding: 28px; box-shadow: 0 20px 60px rgba(0,0,0,0.2); }
     .modal-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; }
-    .modal-header h3 { margin: 0; font-size: 22px; color: #1e293b; }
+    .modal-header h3 { margin: 0; font-size: 22px; color:var(--text-main); }
     .modal-close { border: none; background: transparent; cursor: pointer; padding: 8px; border-radius: 8px; }
     
     .proof-detail { background: linear-gradient(135deg, #f0fdf4, #dcfce7); border: 1px solid #86efac; border-radius: 12px; padding: 20px; margin-bottom: 20px; }
     .proof-detail .ref { font-family: monospace; font-size: 18px; font-weight: 700; color: #166534; margin-bottom: 8px; }
-    .proof-detail .verification { font-family: monospace; font-size: 12px; color: #15803d; background: #fff; padding: 4px 8px; border-radius: 4px; display: inline-block; }
+    .proof-detail .verification { font-family: monospace; font-size: 12px; color: #15803d; background:var(--card-bg); padding: 4px 8px; border-radius: 4px; display: inline-block; }
     
     .detail-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-top: 16px; }
-    .detail-item { background: #f8fafc; padding: 12px; border-radius: 8px; }
-    .detail-item .label { font-size: 12px; color: #64748b; margin-bottom: 4px; }
-    .detail-item .value { font-weight: 600; color: #1e293b; }
+    .detail-item { background:var(--card-bg); padding: 12px; border-radius: 8px; }
+    .detail-item .label { font-size: 12px; color:var(--text-muted); margin-bottom: 4px; }
+    .detail-item .value { font-weight: 600; color:var(--text-main); }
     
-    .description-box { background: #f8fafc; padding: 16px; border-radius: 10px; margin-top: 16px; }
-    .description-box .label { font-size: 12px; color: #64748b; margin-bottom: 8px; }
-    .description-box .value { color: #1e293b; line-height: 1.5; }
+    .description-box { background:var(--card-bg); padding: 16px; border-radius: 10px; margin-top: 16px; }
+    .description-box .label { font-size: 12px; color:var(--text-muted); margin-bottom: 8px; }
+    .description-box .value { color:var(--text-main); line-height: 1.5; }
 </style>
 
 <div>
     <header class="proofs-header">
         <div>
-            <p class="eyebrow">FIBERHELP · TRANSACTION MANAGEMENT</p>
+            <p class="eyebrow">FIBERHELP ï¿½ TRANSACTION MANAGEMENT</p>
             <h1 class="page-title">Transaction Proofs</h1>
         </div>
         <div class="proofs-controls">
@@ -83,7 +83,7 @@
         </div>
     </header>
 
-    <section class="panel" style="background:#fff;border-radius:16px;padding:24px;box-shadow:0 2px 12px rgba(0,0,0,0.04);">
+    <section class="panel" style="background:var(--card-bg);border-radius:16px;padding:24px;box-shadow:0 2px 12px rgba(0,0,0,0.04);">
         <table class="proofs-table">
             <thead>
                 <tr>
@@ -378,3 +378,4 @@
         return date.ToLocalTime().ToString("MMM dd");
     }
 }
+

@@ -512,8 +512,9 @@ namespace FiberHelp.Services
                 var reviewedCount = feedbackList.Count(f => f.IsReviewed);
                 var requiresFollowUpCount = feedbackList.Count(f => f.RequiresFollowUp && !f.FollowUpCompletedAt.HasValue);
                 var wouldRecommendCount = feedbackList.Count(f => f.WouldRecommend == true);
-                var wouldRecommendPercentage = totalCount > 0 
-                    ? (double)wouldRecommendCount / feedbackList.Count(f => f.WouldRecommend.HasValue) * 100 
+                var recommendBasis = feedbackList.Count(f => f.WouldRecommend.HasValue);
+                var wouldRecommendPercentage = (totalCount > 0 && recommendBasis > 0)
+                    ? (double)wouldRecommendCount / recommendBasis * 100 
                     : 0;
 
                 var ratingDistribution = feedbackList

@@ -1,20 +1,20 @@
 /* Login Design - FiberHelp Style - Optimized for Desktop */
 
 :root {
-    --primary-blue: #2563eb;
-    --primary-blue-dark: #1d4ed8;
-    --primary-indigo: #6366f1;
-    --primary-indigo-dark: #4f46e5;
-    --light-blue: #93c5fd;
-    --light-indigo: #a5b4fc;
-    --accent-cyan: #06b6d4;
+    --primary-blue: #0ea5e9;
+    --primary-blue-dark: #0284c7;
+    --primary-indigo: #0ea5e9;
+    --primary-indigo-dark: #0284c7;
+    --light-blue: #38bdf8;
+    --light-indigo: #7dd3fc;
+    --accent-cyan: #22d3ee;
     --success: #10b981;
     --danger: #ef4444;
-    --bg-gray: #f8fafc;
-    --card-white: #ffffff;
-    --text-dark: #0f172a;
-    --text-muted: #64748b;
-    --border-gray: #e2e8f0;
+    --bg-gray: #0f172a;
+    --card-white: #1e293b;
+    --text-dark: #f8fafc;
+    --text-muted: #94a3b8;
+    --border-gray: #334155;
 }
 
 * {
@@ -54,18 +54,9 @@ body {
     height: 100vh;
 }
 
-/* Left Hero Panel - Matching Sidebar Color (Indigo/Purple) */
+/* Hidden Hero Panel for Centered Layout */
 .hero-panel {
-    flex: 0 0 60%;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 40px 60px;
-    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
-    color: #fff;
-    position: relative;
-    overflow-y: auto;
+    display: none;
 }
 
 .hero-logo {
@@ -183,9 +174,9 @@ body {
     opacity: 0.95;
 }
 
-/* Right Card Panel - 40% Width */
+/* Centered Login Card Panel */
 .login-container {
-    flex: 0 0 40%;
+    flex: 1;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -283,7 +274,7 @@ body {
     border: 1.5px solid var(--border-gray);
     border-radius: 10px;
     font-size: 13px;
-    background: #fff;
+    background: var(--bg-gray);
     transition: border 0.2s, box-shadow 0.2s;
     color: var(--text-dark);
 }
@@ -420,7 +411,7 @@ body {
 
 .btn-google {
     width: 100%;
-    background: #fff;
+    background: var(--card-white);
     color: var(--text-dark);
     border: 1.5px solid var(--border-gray);
     padding: 10px;
@@ -520,7 +511,7 @@ body {
 
 .req.invalid {
     color: var(--danger);
-    background: #fff6f6;
+    background: rgba(239, 68, 68, 0.1);
     border-color: rgba(239, 68, 68, 0.2);
 }
 

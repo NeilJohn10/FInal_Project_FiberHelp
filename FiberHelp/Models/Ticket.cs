@@ -17,7 +17,7 @@ namespace FiberHelp.Models
  // Client relationship (nullable)
  public string? ClientId { get; set; }
  
- // Convenience display name (maps to CustomerName column)
+ // Convenience display name (maps to ClientName column)
  public string ClientName { get; set; } = string.Empty;
  
  // Priority column (nullable). If DB does not yet have column add via script.
@@ -33,6 +33,7 @@ namespace FiberHelp.Models
  public string? AssignedTechnicianId { get; set; } // Technician assigned to resolve
  public string? ResolvedByTechnicianId { get; set; } // Technician who resolved it
  public DateTime? AssignedAt { get; set; } // When ticket was assigned to technician
+ public DateTime? StartedAt { get; set; } // When technician started working on the ticket
  public DateTime? ResolvedAt { get; set; } // When ticket was resolved
  public string? ResolutionNotes { get; set; } // Notes from technician about resolution
  

@@ -1,10 +1,96 @@
-```css
+/* Global Theme Variables */
+:root {
+    --primary: #0ea5e9;
+    --primary-hover: #0284c7;
+    --success: #10b981;
+    --warning: #f59e0b;
+    --danger: #ef4444;
+    --purple: #8b5cf6;
+    --bg: #0f172a;
+    --card-bg: #1e293b;
+    --text-main: #f8fafc;
+    --text-muted: #cbd5e1;
+    --border-color: #334155;
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.4);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
+
+    /* Legacy/Component variable mapping */
+    --text: var(--text-main);
+    --border: var(--border-color);
+    --card: var(--card-bg);
+    --primary-color: var(--primary);
+}
+
+/* Typography Standards */
+h1 { font-size: 32px; font-weight: 800; letter-spacing: -0.025em; margin-bottom: 0.5rem; }
+h2 { font-size: 24px; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 0.5rem; }
+h3 { font-size: 20px; font-weight: 600; margin-bottom: 0.5rem; }
+
 /* Global toast */
-.toast-global{ position:fixed; right:24px; bottom:24px; background:#111827; color:#fff; padding:10px 16px; border-radius:10px; box-shadow:0 10px 26px rgba(0,0,0,0.2); z-index:30000; }
+.toast-global {
+    position: fixed;
+    right: 24px;
+    bottom: 24px;
+    background: var(--card-bg);
+    color: var(--text-main);
+    padding: 10px 16px;
+    border-radius: 10px;
+    box-shadow: var(--shadow-md);
+    z-index: 30000;
+    border: 1px solid var(--border-color);
+}
+
 /* Normalize topbar styles across pages */
-.topbar{ display:flex; align-items:center; justify-content:space-between; padding-bottom:16px; border-bottom:1px solid #e5e7eb; margin-bottom:16px }
-.top-actions{ display:flex; gap:12px; align-items:center }
-.agents-search{ padding:10px 14px; border-radius:10px; border:1px solid #e5e7eb; background:#fff }
-/* Remove old header leftovers by neutralizing conflicting rules (if any) */
-.user-pill{ display:flex; align-items:center; gap:10px }
-```
+.topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border-color);
+    margin-bottom: 16px;
+    background: transparent;
+}
+
+.top-actions {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.agents-search {
+    padding: 10px 14px;
+    border-radius: 10px;
+    border: 1px solid var(--border-color);
+    background: var(--card-bg);
+    color: var(--text-main);
+}
+
+.user-pill {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* Generic table visibility fixes */
+table.table th,
+.table thead th {
+    color: var(--text-main) !important;
+}
+
+table.table td {
+    color: var(--text-main) !important;
+}
+
+.text-muted,
+.muted-text {
+    color: var(--text-muted) !important;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    color: var(--text-main) !important;
+}

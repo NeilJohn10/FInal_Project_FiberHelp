@@ -12,6 +12,7 @@ window.renderAgentCharts = function(ticketTrendsData, priorityDistributionData) 
                 position: 'top',
                 labels: {
                     padding: 15,
+                    color: '#FFFFFF', // Bright white for legibility
                     font: {
                         size: 12,
                         weight: '600'
@@ -22,12 +23,36 @@ window.renderAgentCharts = function(ticketTrendsData, priorityDistributionData) 
                 backgroundColor: 'rgba(15, 23, 42, 0.9)',
                 padding: 12,
                 cornerRadius: 8,
+                titleColor: '#FFFFFF',
+                bodyColor: '#FFFFFF',
                 titleFont: {
                     size: 14,
                     weight: '700'
                 },
                 bodyFont: {
                     size: 13
+                }
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                grace: '5%', // Add some space at the top
+                ticks: {
+                    color: '#FFFFFF',
+                    font: { weight: '500' }
+                },
+                grid: {
+                    color: 'rgba(255, 255, 255, 0.1)'
+                }
+            },
+            x: {
+                ticks: {
+                    color: '#FFFFFF',
+                    font: { weight: '500' }
+                },
+                grid: {
+                    display: false
                 }
             }
         }
@@ -44,22 +69,6 @@ window.renderAgentCharts = function(ticketTrendsData, priorityDistributionData) 
             data: ticketTrendsData,
             options: {
                 ...commonOptions,
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        ticks: {
-                            stepSize: 1
-                        },
-                        grid: {
-                            color: 'rgba(0,0,0,0.05)'
-                        }
-                    },
-                    x: {
-                        grid: {
-                            display: false
-                        }
-                    }
-                },
                 elements: {
                     line: {
                         tension: 0.4
@@ -92,6 +101,7 @@ window.renderAgentCharts = function(ticketTrendsData, priorityDistributionData) 
                         position: 'right',
                         labels: {
                             padding: 10,
+                            color: '#FFFFFF',
                             font: {
                                 size: 11,
                                 weight: '600'
@@ -106,7 +116,8 @@ window.renderAgentCharts = function(ticketTrendsData, priorityDistributionData) 
                                         text: `${label}: ${value} (${percentage}%)`,
                                         fillStyle: data.datasets[0].backgroundColor[i],
                                         hidden: false,
-                                        index: i
+                                        index: i,
+                                        fontColor: '#FFFFFF'
                                     };
                                 });
                             }
@@ -139,6 +150,7 @@ window.renderAnalyticsCharts = function(
                 position: 'top',
                 labels: {
                     padding: 15,
+                    color: '#FFFFFF',
                     font: {
                         size: 12,
                         weight: '600'
@@ -149,12 +161,36 @@ window.renderAnalyticsCharts = function(
                 backgroundColor: 'rgba(15, 23, 42, 0.9)',
                 padding: 12,
                 cornerRadius: 8,
+                titleColor: '#FFFFFF',
+                bodyColor: '#FFFFFF',
                 titleFont: {
                     size: 14,
                     weight: '700'
                 },
                 bodyFont: {
                     size: 13
+                }
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                grace: '5%',
+                ticks: {
+                    color: '#FFFFFF',
+                    font: { weight: '500' }
+                },
+                grid: {
+                    color: 'rgba(255, 255, 255, 0.1)'
+                }
+            },
+            x: {
+                ticks: {
+                    color: '#FFFFFF',
+                    font: { weight: '500' }
+                },
+                grid: {
+                    display: false
                 }
             }
         }
@@ -171,22 +207,6 @@ window.renderAnalyticsCharts = function(
             data: ticketTrendsData,
             options: {
                 ...commonOptions,
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        ticks: {
-                            stepSize: 1
-                        },
-                        grid: {
-                            color: 'rgba(0,0,0,0.05)'
-                        }
-                    },
-                    x: {
-                        grid: {
-                            display: false
-                        }
-                    }
-                },
                 elements: {
                     line: {
                         tension: 0.4
@@ -212,20 +232,14 @@ window.renderAnalyticsCharts = function(
             options: {
                 ...commonOptions,
                 scales: {
+                    ...commonOptions.scales,
                     y: {
-                        beginAtZero: true,
+                        ...commonOptions.scales.y,
                         ticks: {
+                            ...commonOptions.scales.y.ticks,
                             callback: function(value) {
                                 return '$' + value.toLocaleString();
                             }
-                        },
-                        grid: {
-                            color: 'rgba(0,0,0,0.05)'
-                        }
-                    },
-                    x: {
-                        grid: {
-                            display: false
                         }
                     }
                 }
@@ -244,22 +258,6 @@ window.renderAnalyticsCharts = function(
             data: clientGrowthData,
             options: {
                 ...commonOptions,
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        ticks: {
-                            stepSize: 1
-                        },
-                        grid: {
-                            color: 'rgba(0,0,0,0.05)'
-                        }
-                    },
-                    x: {
-                        grid: {
-                            display: false
-                        }
-                    }
-                },
                 elements: {
                     line: {
                         tension: 0.4
@@ -292,6 +290,7 @@ window.renderAnalyticsCharts = function(
                         position: 'right',
                         labels: {
                             padding: 10,
+                            color: '#FFFFFF',
                             font: {
                                 size: 11,
                                 weight: '600'
@@ -306,7 +305,8 @@ window.renderAnalyticsCharts = function(
                                         text: `${label}: ${value} (${percentage}%)`,
                                         fillStyle: data.datasets[0].backgroundColor[i],
                                         hidden: false,
-                                        index: i
+                                        index: i,
+                                        fontColor: '#FFFFFF'
                                     };
                                 });
                             }
@@ -327,25 +327,7 @@ window.renderAnalyticsCharts = function(
             new Chart(statusCtx, {
                 type: 'bar',
                 data: statusComparisonData,
-                options: {
-                    ...commonOptions,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: {
-                                stepSize: 1
-                            },
-                            grid: {
-                                color: 'rgba(0,0,0,0.05)'
-                            }
-                        },
-                        x: {
-                            grid: {
-                                display: false
-                            }
-                        }
-                    }
-                }
+                options: commonOptions
             });
         }
     }
@@ -368,6 +350,7 @@ window.renderAnalyticsCharts = function(
                             position: 'right',
                             labels: {
                                 padding: 12,
+                                color: '#FFFFFF',
                                 font: {
                                     size: 12,
                                     weight: '600'
@@ -380,7 +363,8 @@ window.renderAnalyticsCharts = function(
                                             text: `${label}: $${value.toLocaleString()}`,
                                             fillStyle: data.datasets[0].backgroundColor[i],
                                             hidden: false,
-                                            index: i
+                                            index: i,
+                                            fontColor: '#FFFFFF'
                                         };
                                     });
                                 }
@@ -423,6 +407,7 @@ window.renderAnalyticsCharts = function(
                             position: 'bottom',
                             labels: {
                                 padding: 15,
+                                color: '#FFFFFF',
                                 font: {
                                     size: 12,
                                     weight: '600'
@@ -437,7 +422,8 @@ window.renderAnalyticsCharts = function(
                                             text: `${label}: ${value} (${percentage}%)`,
                                             fillStyle: data.datasets[0].backgroundColor[i],
                                             hidden: false,
-                                            index: i
+                                            index: i,
+                                            fontColor: '#FFFFFF'
                                         };
                                     });
                                 }

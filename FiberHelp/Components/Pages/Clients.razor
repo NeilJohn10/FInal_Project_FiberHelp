@@ -7,21 +7,21 @@
 @inject Microsoft.JSInterop.IJSRuntime JS
 
 <style>
-  .customers-header{display:flex;align-items:center;justify-content:space-between;padding-bottom:20px;margin-bottom:22px;border-bottom:1px solid #e5e7eb}
+  .customers-header{display:flex;align-items:center;justify-content:space-between;padding-bottom:20px;margin-bottom:22px;border-bottom:1px solid var(--border-color)}
   .customers-header .page-title{font-size:42px;line-height:1.1;margin:0 0 4px}
   .customers-controls{display:flex;gap:14px;align-items:center}
-  .customers-search{width:360px;padding:12px 18px;border-radius:14px;border:1px solid #e5e7eb;background:#fff;box-shadow:0 8px 22px rgba(2,6,23,0.08);font-size:15px}
-  .customers-controls .btn.subtle{background:#fff;color:#0f172a;border:1px solid #e5e7eb;border-radius:14px;padding:10px 22px;box-shadow:0 4px 10px rgba(2,6,23,0.04)}
-  .customers-controls .btn.primary{background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;border:none;border-radius:14px;padding:10px 26px;box-shadow:0 14px 32px rgba(29,78,216,0.30);font-weight:600}
+  .customers-search{width:360px;padding:11px 18px;border-radius:14px;border:1px solid var(--border-color);background:var(--card-bg);box-shadow:0 8px 22px rgba(2,6,23,0.08);font-size:15px;height:46px;box-sizing:border-box}
+  .customers-controls .btn.subtle{background:var(--card-bg);color:var(--text-main);border:1px solid var(--border-color);border-radius:14px;padding:0 22px;height:46px;box-shadow:0 4px 10px rgba(2,6,23,0.04);display:flex;align-items:center;box-sizing:border-box}
+  .customers-controls .btn.primary{background:linear-gradient(135deg,#2563eb,#1d4ed8);color:var(--text-main);border:none;border-radius:14px;padding:0 26px;height:46px;box-shadow:0 14px 32px rgba(29,78,216,0.30);font-weight:600;display:flex;align-items:center;box-sizing:border-box}
   .customers-table{width:100%;border-collapse:separate;border-spacing:0 10px}
-  .customers-table thead th{font-size:13px;font-weight:700;padding:10px 12px;color:#475569;text-align:left;border-bottom:1px solid #e5e7eb;position:sticky;top:0;background:#fff;z-index:1}
-  .customers-table tbody td{background:#f9fafb;padding:14px 12px;font-size:14px;border-top:1px solid #edf2f7;border-bottom:1px solid #edf2f7}
-  .customers-table tbody tr td:first-child{border-left:1px solid #edf2f7;border-top-left-radius:12px;border-bottom-left-radius:12px}
-  .customers-table tbody tr td:last-child{border-right:1px solid #edf2f7;border-top-right-border-radius:12px;border-bottom-right-radius:12px}
+  .customers-table thead th{font-size:13px;font-weight:700;padding:10px 12px;color:var(--text-muted);text-align:left;border-bottom:1px solid var(--border-color);position:sticky;top:0;background:var(--card-bg);z-index:1}
+  .customers-table tbody td{background:var(--card-bg);padding:14px 12px;font-size:14px;border-top:1px solid var(--border-color);border-bottom:1px solid var(--border-color)}
+  .customers-table tbody tr td:first-child{border-left:1px solid var(--border-color);border-top-left-radius:12px;border-bottom-left-radius:12px}
+  .customers-table tbody tr td:last-child{border-right:1px solid var(--border-color);border-top-right-radius:12px;border-bottom-right-radius:12px}
   .cust-cell{display:flex;align-items:center;gap:12px}
-  .cust-avatar{width:40px;height:40px;border-radius:999px;background:linear-gradient(135deg,#6366f1,#0ea5e9);display:grid;place-items:center;font-weight:800;color:#fff;font-size:14px;box-shadow:0 8px 18px rgba(99,102,241,0.25)}
+  .cust-avatar{width:40px;height:40px;border-radius:999px;background:linear-gradient(135deg,#6366f1,#0ea5e9);display:grid;place-items:center;font-weight:800;color:var(--text-main);font-size:14px;box-shadow:0 8px 18px rgba(99,102,241,0.25)}
   .cust-name{font-weight:600}
-  .cust-email{font-size:11px;color:#64748b}
+  .cust-email{font-size:11px;color:var(--text-muted)}
   .badge{display:inline-block;padding:6px 10px;border-radius:999px;font-size:12px;font-weight:700}
   .badge-active{background:#dcfce7;color:#065f46;border:1px solid #bbf7d0}
   .badge-inactive{background:#fee2e2;color:#7f1d1d;border:1px solid #fecaca}
@@ -29,27 +29,30 @@
   .action-btn{border:none;background:transparent;padding:6px 8px;border-radius:10px;cursor:pointer}
   .action-btn:hover{background:#eef2ff}
   .modal-bg { position:fixed; inset:0; background:rgba(2,6,23,0.45); display:grid; place-items:center; z-index:20000 }
-  .modal-card { width:520px; max-width:94vw; background:#fff; border-radius:14px; padding:20px; box-shadow:0 24px 56px rgba(2,6,23,0.18); position:relative }
+  .modal-card { width:520px; max-width:94vw; background:var(--card-bg); border-radius:14px; padding:20px; box-shadow:0 24px 56px rgba(2,6,23,0.18); position:relative }
   .modal-header { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:8px }
   .modal-header h3 { margin:0; font-size:22px }
-  .modal-desc { margin:6px 0 0; color:#64748b; font-size:0.9rem }
-  .modal-close { position:absolute; right:14px; top:12px; border:none; background:transparent; cursor:pointer; font-size:18px; color:#64748b; padding:6px; border-radius:8px }
+  .modal-desc { margin:6px 0 0; color:var(--text-muted); font-size:0.9rem }
+  .modal-close { position:absolute; right:14px; top:12px; border:none; background:transparent; cursor:pointer; font-size:18px; color:var(--text-muted); padding:6px; border-radius:8px }
   .modal-close:hover { background:rgba(2,6,23,0.06) }
   .form-group { display:flex; flex-direction:column; gap:6px; margin-top:8px }
-  .form-input { padding:10px 12px; border:1px solid #e6edf3; border-radius:8px; font-size:14px; background:#fff }
+  .form-input { padding:10px 12px; border:1px solid var(--border-color); border-radius:8px; font-size:14px; background:var(--card-bg) }
   .modal-actions { display:flex; justify-content:flex-end; gap:10px; margin-top:16px }
-  .btn.primary { padding:8px 18px; border-radius:10px }
-  .account-preview{margin-top:6px;font-size:12px;color:#64748b}
+  .modal-actions .btn { color:var(--text-main) !important; font-weight:600 }
+  .modal-actions .btn:not(.primary) { color:var(--text-muted) !important }
+  .modal-actions .btn:not(.primary):hover { color:white !important }
+  .btn.primary { padding:8px 18px; border-radius:10px; color:white !important }
+  .account-preview{margin-top:6px;font-size:12px;color:var(--text-muted)}
   .disabled{opacity:0.6;pointer-events:none}
   
   /* Pagination Styles */
   .pagination-container{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:20px;padding:16px 0}
-  .pagination-btn{border:1px solid #e5e7eb;background:#fff;color:#475569;padding:8px 12px;border-radius:8px;cursor:pointer;font-size:14px;font-weight:600;transition:all 0.2s}
-  .pagination-btn:hover:not(:disabled){background:#f8fafc;border-color:#cbd5e1}
+  .pagination-btn{border:1px solid var(--border-color);background:var(--card-bg);color:var(--text-muted);padding:8px 12px;border-radius:8px;cursor:pointer;font-size:14px;font-weight:600;transition:all 0.2s}
+  .pagination-btn:hover:not(:disabled){background:var(--card-bg);border-color:#cbd5e1}
   .pagination-btn:disabled{opacity:0.4;cursor:not-allowed}
-  .pagination-btn.active{background:#2563eb;color:#fff;border-color:#2563eb}
+  .pagination-btn.active{background:#2563eb;color:var(--text-main);border-color:#2563eb}
   .pagination-arrow{display:flex;align-items:center;justify-content:center;width:36px;height:36px}
-  .pagination-info{color:#64748b;font-size:14px;padding:0 12px}
+  .pagination-info{color:var(--text-muted);font-size:14px;padding:0 12px}
   
   @@media (max-width:600px){ .modal-card{width:94vw;padding:14px} .modal-header h3{font-size:18px} }
 </style>
@@ -57,7 +60,7 @@
 <div>
  <header class="customers-header">
    <div>
-     <p class="eyebrow">FIBERHELP · @GetRoleLabel()</p>
+     <p class="eyebrow">FIBERHELP &bull; @GetRoleLabel()</p>
      <h1 class="page-title">Clients</h1>
    </div>
    <div class="customers-controls">
@@ -154,7 +157,7 @@
  else
  {
   <tr>
-    <td colspan="@(IsAgent() ? 6 : 7)" style="text-align:center;padding:40px;color:#64748b">
+    <td colspan="@(IsAgent() ? 6 : 7)" style="text-align:center;padding:40px;color:var(--text-muted)">
       No clients found
     </td>
   </tr>
@@ -230,10 +233,10 @@
      }
    </datalist>
    @if(clientAttempted && string.IsNullOrWhiteSpace(newCustomerAccountId)){<div style="color:#ef4444;font-size:12px;margin-top:4px">Account is required</div>}
-   @if(selectedAccount != null)
-   {
-     <div class="account-preview">Plan: @selectedAccount.ServicePlan · Status: @(selectedAccount.ServiceStatus ?? "Active")</div>
-   }
+    @if(selectedAccount != null)
+    {
+      <div class="account-preview">Plan: @selectedAccount.ServicePlan &bull; Status: @(selectedAccount.ServiceStatus ?? "Active")</div>
+    }
    </div>
    <div class="form-group">
    <label>Name <span style="color:#ef4444">*</span></label>
@@ -276,7 +279,7 @@
      else
      {
        <p>You are about to create a new client:</p>
-       <div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:10px;padding:12px;margin:12px 0">
+       <div style="background:var(--card-bg);border:1px solid var(--border-color);border-radius:10px;padding:12px;margin:12px 0">
          <div style="margin-bottom:8px"><strong>Name:</strong> @newCustomerName</div>
          <div style="margin-bottom:8px"><strong>Email:</strong> @newCustomerEmail</div>
          <div style="margin-bottom:8px"><strong>Plan:</strong> @(string.IsNullOrWhiteSpace(newCustomerPlan) ? (selectedAccount?.ServicePlan ?? "(none)") : newCustomerPlan)</div>
@@ -324,7 +327,7 @@
    </div>
    <div style="padding:10px 0">
      <p>Are you sure you want to archive client <strong>@archiveTargetName</strong>?</p>
-     <p style="color:#64748b;font-size:13px">Archived clients can be restored later from the Archive view.</p>
+     <p style="color:var(--text-muted);font-size:13px">Archived clients can be restored later from the Archive view.</p>
    </div>
    <div class="modal-actions">
      <button class="btn" @onclick="() => { showArchiveConfirm=false; archiveTargetId=string.Empty; archiveTargetName=string.Empty; }">Cancel</button>
@@ -344,7 +347,7 @@
    </div>
    <div style="padding:10px 0">
      <p>Are you sure you want to restore client <strong>@archiveTargetName</strong>?</p>
-     <p style="color:#64748b;font-size:13px">The client will be moved back to Active clients.</p>
+     <p style="color:var(--text-muted);font-size:13px">The client will be moved back to Active clients.</p>
    </div>
    <div class="modal-actions">
      <button class="btn" @onclick="() => { showUnarchiveConfirm=false; archiveTargetId=string.Empty; archiveTargetName=string.Empty; }">Cancel</button>
@@ -1036,7 +1039,7 @@
 
    private string MaskEmail(string? email)
    {
-       if (string.IsNullOrWhiteSpace(email)) return "—";
+       if (string.IsNullOrWhiteSpace(email)) return "ï¿½";
        var atIndex = email.IndexOf('@');
        if (atIndex <= 0) return "***@***";
        var local = email[..atIndex];
@@ -1046,3 +1049,4 @@
        return maskedLocal + domain;
    }
  }
+

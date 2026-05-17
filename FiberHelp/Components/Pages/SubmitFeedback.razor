@@ -1,0 +1,269 @@
+@page "/submit-feedback"
+@using FiberHelp.Models
+@using FiberHelp.Services
+@inject TransactionService TransactionService
+@inject NavigationManager Navigation
+@inject Microsoft.JSInterop.IJSRuntime JS
+
+<div class="feedback-container">
+    <div class="feedback-card">
+        @if (isSubmitted)
+        {
+            <div class="success-state">
+                <div class="success-icon">✓</div>
+                <h2>Thank You!</h2>
+                <p>Your feedback has been submitted successfully. We appreciate your input!</p>
+                <button class="btn-primary mt-4" @onclick='() => Navigation.NavigateTo("/")'>Return to Home</button>
+            </div>
+        }
+        else
+        {
+            <h2>How did we do?</h2>
+            <p class="subtitle">Please rate your experience to help us improve our services.</p>
+
+            <EditForm Model="feedbackModel" OnValidSubmit="HandleSubmit">
+                <DataAnnotationsValidator />
+
+                <div class="form-group">
+                    <label>Client Name / ID</label>
+                    <InputText class="form-control" @bind-Value="feedbackModel.ClientId" placeholder="Enter your Name or Client ID" />
+                    <ValidationMessage For="@(() => feedbackModel.ClientId)" />
+                </div>
+
+                <div class="form-group">
+                    <label>Ticket ID (Optional)</label>
+                    <InputNumber class="form-control" @bind-Value="feedbackModel.TicketId" placeholder="e.g. 104" />
+                </div>
+
+                <div class="form-group rating-group">
+                    <label>Overall Rating</label>
+                    <div class="star-rating">
+                        @for (int i = 1; i <= 5; i++)
+                        {
+                            var starValue = i;
+                            <span class="star @(feedbackModel.Rating >= starValue ? "selected" : "")" @onclick="() => SetRating(starValue)">★</span>
+                        }
+                    </div>
+                    @if (feedbackModel.Rating == 0)
+                    {
+                        <span class="text-danger" style="font-size:12px;">Please select a rating</span>
+                    }
+                </div>
+
+                <div class="form-group">
+                    <label>Category</label>
+                    <InputSelect class="form-control" @bind-Value="feedbackModel.FeedbackCategory">
+                        <option value="General">General</option>
+                        <option value="Technical">Technical Support</option>
+                        <option value="Billing">Billing</option>
+                        <option value="ServiceQuality">Service Quality</option>
+                    </InputSelect>
+                </div>
+
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <InputCheckbox @bind-Value="wouldRecommend" />
+                        Would you recommend us to a friend?
+                    </label>
+                </div>
+
+                <div class="form-group">
+                    <label>Comments</label>
+                    <InputTextArea class="form-control" @bind-Value="feedbackModel.Comments" rows="4" placeholder="Tell us more about your experience..." />
+                </div>
+
+                @if (!string.IsNullOrEmpty(errorMessage))
+                {
+                    <div class="alert alert-danger">@errorMessage</div>
+                }
+
+                <button type="submit" class="btn-primary w-100" disabled="@isSubmitting">
+                    @(isSubmitting ? "Submitting..." : "Submit Feedback")
+                </button>
+            </EditForm>
+        }
+    </div>
+</div>
+
+<style>
+    .feedback-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        background:var(--card-bg);
+        padding: 20px;
+        font-family: 'Inter', sans-serif;
+    }
+    .feedback-card {
+        background:var(--card-bg);
+        border-radius: 16px;
+        box-shadow: 0 12px 32px rgba(2,6,23,0.08);
+        padding: 40px;
+        width: 100%;
+        max-width: 500px;
+    }
+    .feedback-card h2 {
+        margin: 0 0 8px 0;
+        font-size: 24px;
+        font-weight: 800;
+        color:var(--text-main);
+        text-align: center;
+    }
+    .subtitle {
+        text-align: center;
+        color:var(--text-muted);
+        margin-bottom: 24px;
+        font-size: 14px;
+    }
+    .form-group {
+        margin-bottom: 20px;
+    }
+    .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 600;
+        color: #334155;
+        font-size: 14px;
+    }
+    .form-control {
+        width: 100%;
+        padding: 12px 16px;
+        border-radius: 8px;
+        border:1px solid var(--border-color);
+        font-size: 14px;
+        transition: all 0.2s;
+    }
+    .form-control:focus {
+        outline: none;
+        border-color: #6366f1;
+        box-shadow: 0 0 0 3px rgba(99,102,241,0.1);
+    }
+    .star-rating {
+        display: flex;
+        gap: 8px;
+        justify-content: center;
+        margin-bottom: 10px;
+    }
+    .star {
+        font-size: 40px;
+        color: #e2e8f0;
+        cursor: pointer;
+        transition: color 0.2s;
+    }
+    .star:hover, .star.selected {
+        color: #f59e0b;
+    }
+    .checkbox-label {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        cursor: pointer;
+        font-weight: 600;
+        color: #334155;
+    }
+    .btn-primary {
+        background: #6366f1;
+        color:var(--text-main);
+        border: none;
+        padding: 14px;
+        border-radius: 8px;
+        font-weight: 700;
+        font-size: 16px;
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+    .btn-primary:hover {
+        background: #4f46e5;
+    }
+    .btn-primary:disabled {
+        opacity: 0.7;
+        cursor: not-allowed;
+    }
+    .w-100 { width: 100%; }
+    .mt-4 { margin-top: 24px; }
+    .text-danger { color: #ef4444; }
+    .alert-danger {
+        background: #fef2f2;
+        color: #991b1b;
+        padding: 12px;
+        border-radius: 8px;
+        border: 1px solid #fecaca;
+        margin-bottom: 20px;
+        font-size: 14px;
+    }
+    .success-state {
+        text-align: center;
+        padding: 20px 0;
+    }
+    .success-icon {
+        width: 80px;
+        height: 80px;
+        background: #dcfce7;
+        color: #16a34a;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 40px;
+        margin: 0 auto 20px auto;
+    }
+</style>
+
+@code {
+    private ClientFeedback feedbackModel = new ClientFeedback { FeedbackCategory = "General", Rating = 0 };
+    private bool wouldRecommend = true;
+    private bool isSubmitting = false;
+    private bool isSubmitted = false;
+    private string errorMessage = string.Empty;
+
+    private void SetRating(int rating)
+    {
+        feedbackModel.Rating = rating;
+    }
+
+    private async Task HandleSubmit()
+    {
+        if (feedbackModel.Rating == 0)
+        {
+            errorMessage = "Please provide a star rating.";
+            return;
+        }
+        
+        if (string.IsNullOrWhiteSpace(feedbackModel.ClientId))
+        {
+            errorMessage = "Please enter a Client ID or Name.";
+            return;
+        }
+
+        try
+        {
+            isSubmitting = true;
+            errorMessage = string.Empty;
+            
+            feedbackModel.WouldRecommend = wouldRecommend;
+            feedbackModel.ClientName = feedbackModel.ClientId; // Duplicate for display purposes
+
+            // We submit it via the TransactionService
+            var result = await TransactionService.SubmitFeedbackAsync(feedbackModel);
+
+            if (result != null)
+            {
+                isSubmitted = true;
+            }
+            else
+            {
+                errorMessage = TransactionService.LastError ?? "Failed to submit feedback. Please try again.";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"An error occurred: {ex.Message}";
+        }
+        finally
+        {
+            isSubmitting = false;
+        }
+    }
+}
+

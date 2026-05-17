@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging;
 using FiberHelp.Services;
 using Microsoft.EntityFrameworkCore;
 using FiberHelp.Data.context;
@@ -25,6 +25,9 @@ namespace FiberHelp
             // Load configuration from appsettings.json (copied to output via csproj)
             builder.Configuration.AddJsonFile("appsettings.json", optional: true, reloadOnChange: true);
 
+            // Note: environment variables are loaded into the process by LoadDotEnvIfPresent
+            // and can be read via Configuration or Environment.GetEnvironmentVariable.
+
             builder.Services.AddMauiBlazorWebView();
             builder.Services.AddSingleton<AuditLoggingService>();
             builder.Services.AddSingleton<EmailOtpService>();
@@ -36,7 +39,9 @@ namespace FiberHelp
             builder.Services.AddSingleton<DataSyncService>();
             builder.Services.AddSingleton<DualWriteService>();
             builder.Services.AddSingleton<OutboxProcessor>();
-            builder.Services.AddSingleton<SyncScheduler>();
+            builder.Services.AddSingleton<SyncScheduler>(sp => new SyncScheduler(sp.GetRequiredService<IServiceScopeFactory>(), TimeSpan.FromMinutes(5)));
+
+            // NOTE: AddControllers() and MapControllers() are removed because MAUI is a client app, not an API server.
 
             var localDbPath = Path.Combine(FileSystem.AppDataDirectory, "fiberhelp_local.db");
             var sqliteConn = $"Data Source={localDbPath}";
@@ -83,27 +88,47 @@ namespace FiberHelp
                 {
                     var devLocal = scope.ServiceProvider.GetRequiredService<devLocalContext>();
 
-                    // EnsureCreated() does nothing if the DB already exists, even with missing tables.
-                    // Detect stale schema by probing core tables; if missing, drop & recreate.
-                    bool needsRecreate = false;
+                    // Safely ensure ClientFeedbacks table exists without deleting other data
                     try
                     {
-                        devLocal.Database.EnsureCreated();
-                        // Probe both a core table and a recently-added table
-                        _ = devLocal.Agents.Any();
-                        _ = devLocal.AuditLogs.Any();
+                        var conn = devLocal.Database.GetDbConnection();
+                        if (conn.State != System.Data.ConnectionState.Open) conn.Open();
+                        using var cmd = conn.CreateCommand();
+                        cmd.CommandText = @"
+                            IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'ClientFeedbacks')
+                            BEGIN
+                                CREATE TABLE [ClientFeedbacks] (
+                                    [Id] int NOT NULL IDENTITY,
+                                    [TransactionProofId] int NULL,
+                                    [TicketId] int NULL,
+                                    [InvoiceId] int NULL,
+                                    [ClientId] nvarchar(50) NOT NULL,
+                                    [ClientName] nvarchar(200) NULL,
+                                    [Rating] int NOT NULL,
+                                    [ServiceQualityRating] int NULL,
+                                    [ResponseTimeRating] int NULL,
+                                    [ProfessionalismRating] int NULL,
+                                    [CommunicationRating] int NULL,
+                                    [WouldRecommend] bit NULL,
+                                    [Comments] nvarchar(2000) NULL,
+                                    [FeedbackCategory] nvarchar(50) NOT NULL,
+                                    [HandledById] nvarchar(50) NULL,
+                                    [HandledByName] nvarchar(200) NULL,
+                                    [SubmittedAt] datetime2 NOT NULL,
+                                    [IsReviewed] bit NOT NULL,
+                                    [ReviewedAt] datetime2 NULL,
+                                    [ReviewedById] nvarchar(50) NULL,
+                                    [ReviewNotes] nvarchar(1000) NULL,
+                                    [Status] nvarchar(50) NOT NULL,
+                                    [RequiresFollowUp] bit NOT NULL,
+                                    [FollowUpNotes] nvarchar(1000) NULL,
+                                    [FollowUpCompletedAt] datetime2 NULL,
+                                    CONSTRAINT [PK_ClientFeedbacks] PRIMARY KEY ([Id])
+                                );
+                            END";
+                        cmd.ExecuteNonQuery();
                     }
-                    catch
-                    {
-                        needsRecreate = true;
-                    }
-
-                    if (needsRecreate)
-                    {
-                        System.Diagnostics.Debug.WriteLine("MauiProgram: Stale schema detected — recreating LocalDB...");
-                        devLocal.Database.EnsureDeleted();
-                        devLocal.Database.EnsureCreated();
-                    }
+                    catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"Safe table creation failed: {ex.Message}"); }
 
                     DbInitializer.Initialize(devLocal);
                 }
@@ -146,6 +171,8 @@ namespace FiberHelp
                 var proc = app.Services.GetRequiredService<OutboxProcessor>();
                 proc.Start();
             });
+            
+            System.Diagnostics.Debug.WriteLine("MauiProgram: Background sync tasks re-enabled (5 min interval).");
 
             return app;
         }

@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FiberHelp | Client Experience</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #0ea5e9;
+            --primary-glow: rgba(14, 165, 233, 0.4);
+            --bg-dark: #020617;
+            --card-glass: rgba(30, 41, 59, 0.7);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --border-glass: rgba(255, 255, 255, 0.1);
+            --success: #10b981;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--bg-dark);
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(14, 165, 233, 0.15) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(99, 102, 241, 0.15) 0px, transparent 50%);
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 540px;
+            perspective: 1000px;
+        }
+
+        .glass-card {
+            background: var(--card-glass);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--border-glass);
+            border-radius: 24px;
+            padding: 48px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            animation: cardEntrance 0.8s ease-out;
+        }
+
+        @keyframes cardEntrance {
+            from { opacity: 0; transform: translateY(30px) rotateX(-5deg); }
+            to { opacity: 1; transform: translateY(0) rotateX(0); }
+        }
+
+        .brand-logo {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, var(--primary), #6366f1);
+            border-radius: 12px;
+            margin: 0 auto 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 8px 20px var(--primary-glow);
+        }
+
+        .brand-logo svg { color: white; width: 30px; }
+
+        .header { text-align: center; margin-bottom: 40px; }
+        .header h1 { font-size: 32px; font-weight: 700; margin: 0 0 8px; letter-spacing: -0.5px; }
+        .header p { color: var(--text-muted); font-size: 16px; font-weight: 300; }
+
+        .form-group { margin-bottom: 24px; }
+        .form-group label { display: block; font-size: 14px; font-weight: 600; color: var(--text-muted); margin-bottom: 10px; text-transform: uppercase; letter-spacing: 1px; }
+        
+        .input-wrapper { position: relative; }
+        .input-wrapper input, .input-wrapper textarea {
+            width: 100%;
+            padding: 14px 16px;
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid var(--border-glass);
+            border-radius: 12px;
+            color: white;
+            font-size: 16px;
+            font-family: inherit;
+            box-sizing: border-box;
+            transition: all 0.3s ease;
+        }
+
+        .input-wrapper input:focus, .input-wrapper textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            background: rgba(15, 23, 42, 0.8);
+            box-shadow: 0 0 0 4px var(--primary-glow);
+        }
+
+        /* Star Rating Elite */
+        .rating-wrapper {
+            display: flex;
+            flex-direction: row-reverse;
+            justify-content: center;
+            gap: 12px;
+            margin: 10px 0;
+        }
+
+        .rating-wrapper input { display: none; }
+        .rating-wrapper label {
+            cursor: pointer;
+            font-size: 42px;
+            color: #334155;
+            transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .rating-wrapper label:hover,
+        .rating-wrapper label:hover ~ label,
+        .rating-wrapper input:checked ~ label {
+            color: #facc15;
+            text-shadow: 0 0 15px rgba(250, 204, 21, 0.5);
+            transform: scale(1.1);
+        }
+
+        .btn-submit {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, var(--primary), #3b82f6);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 12px;
+            box-shadow: 0 10px 20px -5px var(--primary-glow);
+        }
+
+        .btn-submit:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 30px -5px var(--primary-glow);
+            filter: brightness(1.1);
+        }
+
+        .btn-submit:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+        .id-badge {
+            background: rgba(14, 165, 233, 0.1);
+            color: var(--primary);
+            padding: 4px 12px;
+            border-radius: 99px;
+            font-size: 12px;
+            font-weight: 700;
+            display: inline-block;
+            margin-bottom: 16px;
+        }
+
+        /* Success State */
+        #success-view { display: none; text-align: center; animation: successPop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        @keyframes successPop { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+        .checkmark-circle {
+            width: 80px;
+            height: 80px;
+            background: var(--success);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 24px;
+            box-shadow: 0 10px 20px rgba(16, 185, 129, 0.3);
+        }
+        .checkmark-circle svg { color: white; width: 40px; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="glass-card" id="form-card">
+            <div class="brand-logo">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+            </div>
+            
+            <div class="header">
+                <div id="id-display" class="id-badge" style="display:none">Reference: <span id="id-text"></span></div>
+                <h1>How was your experience?</h1>
+                <p>Your feedback helps us provide elite service to every fiber customer.</p>
+            </div>
+
+            <form id="feedback-form">
+                <!-- Smart Client ID: Hidden if passed in URL -->
+                <div class="form-group" id="id-group">
+                    <label>Account ID</label>
+                    <div class="input-wrapper">
+                        <input type="text" id="clientId" placeholder="e.g. CUST-1234" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Full Name</label>
+                    <div class="input-wrapper">
+                        <input type="text" id="clientName" placeholder="Enter your name">
+                    </div>
+                </div>
+
+                <div class="form-group" style="text-align: center;">
+                    <label>Overall Experience</label>
+                    <div class="rating-wrapper">
+                        <input type="radio" id="s5" name="rating" value="5" required /><label for="s5">★</label>
+                        <input type="radio" id="s4" name="rating" value="4" /><label for="s4">★</label>
+                        <input type="radio" id="s3" name="rating" value="3" /><label for="s3">★</label>
+                        <input type="radio" id="s2" name="rating" value="2" /><label for="s2">★</label>
+                        <input type="radio" id="s1" name="rating" value="1" /><label for="s1">★</label>
+                    </div>
+                </div>
+
+                <div class="form-group" style="display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.05); padding: 15px; border-radius: 12px; margin-bottom: 24px;">
+                    <label style="margin-bottom: 0;">Would you recommend us?</label>
+                    <div style="display: flex; gap: 10px;">
+                        <input type="radio" name="recommend" value="true" id="rec-yes" required> <label for="rec-yes" style="text-transform: none; color: var(--text-main);">Yes</label>
+                        <input type="radio" name="recommend" value="false" id="rec-no"> <label for="rec-no" style="text-transform: none; color: var(--text-main);">No</label>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>What can we improve? (Optional)</label>
+                    <div class="input-wrapper">
+                        <textarea id="comments" rows="3" placeholder="Share your thoughts with us..."></textarea>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-submit" id="submit-btn">Send Feedback</button>
+            </form>
+        </div>
+
+        <div class="glass-card" id="success-view">
+            <div class="checkmark-circle">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4"><polyline points="20 6 9 17 4 12"/></svg>
+            </div>
+            <h1>Thank You!</h1>
+            <p>Your feedback has been delivered successfully to the FiberHelp team.</p>
+            <button class="btn-submit" style="background: rgba(255,255,255,0.1); margin-top: 32px;" onclick="location.reload()">Send Another</button>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = "https://fiberhelpfeedback.runasp.net/api/feedback";
+
+        // --- Smart URL Parameter Logic ---
+        let urlTicketId = null;
+
+        function initForm() {
+            const params = new URLSearchParams(window.location.search);
+            const id = params.get('id') || params.get('clientId');
+            const tid = params.get('ticketId') || params.get('tid');
+            
+            if (id) {
+                document.getElementById('clientId').value = id;
+                document.getElementById('id-group').style.display = 'none';
+                document.getElementById('id-text').innerText = id;
+                document.getElementById('id-display').style.display = 'inline-block';
+            }
+
+            if (tid) {
+                urlTicketId = parseInt(tid);
+            }
+        }
+
+        document.getElementById('feedback-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('submit-btn');
+            btn.disabled = true;
+            btn.innerText = "Delivering...";
+
+            const rating = document.querySelector('input[name="rating"]:checked').value;
+            const recommendValue = document.querySelector('input[name="recommend"]:checked').value === "true";
+            
+            const payload = {
+                ticketId: urlTicketId,
+                clientId: document.getElementById('clientId').value,
+                clientName: document.getElementById('clientName').value || "Valued Client",
+                rating: parseInt(rating),
+                wouldRecommend: recommendValue,
+                comments: document.getElementById('comments').value,
+                feedbackCategory: "General"
+            };
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (response.ok) {
+                    document.getElementById('form-card').style.display = 'none';
+                    document.getElementById('success-view').style.display = 'block';
+                } else {
+                    const data = await response.json();
+                    alert("Submission Error: " + (data.error || "Please check your connection."));
+                }
+            } catch (err) {
+                alert("Connection failed. Please ensure the API is online.");
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "Send Feedback";
+            }
+        });
+
+        initForm();
+    </script>
+</body>
+</html>

@@ -1,0 +1,22 @@
+# FiberHelp local environment configuration
+# Keep this file local only. Do not commit.
+
+# SQL Server Online (optional)
+FIBERHELP_ONLINE_CONNECTION=
+
+# SQL Server Local (used by app when available)
+FIBERHELP_LOCAL_CONNECTION=Data Source=(localdb)\MSSQLLocalDB;Initial Catalog=FiberhelpDB;Integrated Security=True;Encrypt=True;TrustServerCertificate=True
+
+# Admin seed credentials
+FIBERHELP_ADMIN_EMAIL=admin@fiberhelp.com
+FIBERHELP_ADMIN_PASSWORD=Adminlogin123@
+
+# AES-256 encryption key (unique per deployment)
+FIBERHELP_AES_KEY=FiberHelp2025SecureEncryptionKey!
+
+# SMTP settings for Forgot Password OTP
+FIBERHELP_SMTP_HOST=smtp.gmail.com
+FIBERHELP_SMTP_PORT=587
+FIBERHELP_SMTP_USER=
+FIBERHELP_SMTP_PASS=
+FIBERHELP_SMTP_FROM=

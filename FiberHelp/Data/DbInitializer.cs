@@ -1,6 +1,7 @@
 using FiberHelp.Models;
 using FiberHelp.Helpers;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
@@ -22,6 +23,7 @@ namespace FiberHelp.Data
 
             // Ensure new lockout columns exist on Agents and Technicians tables
             EnsureLockoutColumns(context);
+            EnsureTicketMilestoneColumns(context);
             EnsurePasswordResetTable(context);
 
             // Read admin credentials from environment variables (secure coding practice)
@@ -62,6 +64,11 @@ namespace FiberHelp.Data
                 }
 
                 context.SaveChanges();
+
+                // SEED REALISTIC DATA FOR DASHBOARD VISUALIZATION
+                SeedRealisticTickets(context);
+                SeedRealisticBillingData(context);
+                SeedRealisticClientGrowth(context);
             }
             catch (Exception ex)
             {
@@ -123,6 +130,53 @@ END;");
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"DbInitializer: EnsurePasswordResetTable error: {ex.Message}");
+            }
+        }
+
+        private static void EnsureTicketMilestoneColumns(AppDbContext context)
+        {
+            try
+            {
+                bool isSqlite = context.Database.ProviderName?.Contains("Sqlite", StringComparison.OrdinalIgnoreCase) == true;
+                string tableName = isSqlite ? "Tickets" : "[dbo].[Tickets]";
+                string colName = "StartedAt";
+                string colType = isSqlite ? "TEXT" : "DATETIME2 NULL";
+
+                bool columnExists = false;
+                var conn = context.Database.GetDbConnection();
+                if (conn.State != System.Data.ConnectionState.Open) conn.Open();
+
+                if (isSqlite)
+                {
+                    using var cmd = conn.CreateCommand();
+                    cmd.CommandText = "PRAGMA table_info(Tickets)";
+                    using var reader = cmd.ExecuteReader();
+                    while (reader.Read())
+                    {
+                        if (string.Equals(reader.GetString(1), colName, StringComparison.OrdinalIgnoreCase))
+                        {
+                            columnExists = true;
+                            break;
+                        }
+                    }
+                }
+                else
+                {
+                    using var cmd = conn.CreateCommand();
+                    cmd.CommandText = $"SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'Tickets' AND COLUMN_NAME = '{colName}'";
+                    var result = cmd.ExecuteScalar();
+                    columnExists = Convert.ToInt32(result) > 0;
+                }
+
+                if (!columnExists)
+                {
+                    context.Database.ExecuteSqlRaw($"ALTER TABLE {tableName} ADD [{colName}] {colType}");
+                    System.Diagnostics.Debug.WriteLine($"DbInitializer: Added {colName} column to Tickets");
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"DbInitializer: Error adding StartedAt to Tickets: {ex.Message}");
             }
         }
 
@@ -198,6 +252,108 @@ END;");
                     }
                 }
             }
+        }
+
+        private static void SeedRealisticTickets(AppDbContext context)
+        {
+            try
+            {
+                if (context.Tickets.Count() >= 50) return;
+                System.Diagnostics.Debug.WriteLine("DbInitializer: Seeding tickets...");
+                var random = new Random();
+                var now = DateTime.UtcNow;
+                var clients = context.Clients.ToList();
+                if (!clients.Any()) return;
+                var statuses = new[] { "Open", "In Progress", "Resolved", "Closed" };
+                var priorities = new[] { "Low", "Medium", "High", "Critical" };
+                var titles = new[] { "Internet Issue", "Slow Connection", "Router Problem", "Billing Question", "New Setup" };
+                for (int i = 30; i >= 0; i--)
+                {
+                    var date = now.AddDays(-i);
+                    int count = random.Next(1, 6);
+                    for (int j = 0; j < count; j++)
+                    {
+                        var client = clients[random.Next(clients.Count)];
+                        context.Tickets.Add(new Ticket {
+                            Title = titles[random.Next(titles.Length)],
+                            ClientId = client.Id, ClientName = client.Name, AccountId = client.AccountId,
+                            Status = statuses[random.Next(statuses.Length)],
+                            Priority = priorities[random.Next(priorities.Length)],
+                            Created = date.AddHours(random.Next(24)), IsArchived = false
+                        });
+                    }
+                }
+                context.SaveChanges();
+            } catch { }
+        }
+
+        private static void SeedRealisticBillingData(AppDbContext context)
+        {
+            try
+            {
+                if (context.Invoices.Any() || context.Expenses.Any()) return;
+                System.Diagnostics.Debug.WriteLine("DbInitializer: Seeding billing data...");
+                var random = new Random();
+                var now = DateTime.UtcNow;
+                var clients = context.Clients.ToList();
+
+                // Seed Expenses (last 6 months)
+                for (int i = 5; i >= 0; i--)
+                {
+                    var date = now.AddMonths(-i);
+                    context.Expenses.Add(new Expense { Date = date, Category = "Infrastructure", Description = "Server Maintenance", Amount = (decimal)(2000 + random.Next(1000)) });
+                    context.Expenses.Add(new Expense { Date = date.AddDays(15), Category = "Utility", Description = "Electricity", Amount = (decimal)(500 + random.Next(300)) });
+                }
+
+                // Seed Invoices (last 6 months)
+                if (clients.Any())
+                {
+                    for (int i = 5; i >= 0; i--)
+                    {
+                        var date = now.AddMonths(-i);
+                        foreach (var client in clients.Take(10))
+                        {
+                            context.Invoices.Add(new Invoice {
+                                ClientId = client.Id, ClientName = client.Name,
+                                AmountDue = (decimal)(1500 + random.Next(1000)),
+                                IssueDate = date, Status = "Paid", PaidDate = date.AddDays(random.Next(10)),
+                                InvoiceType = "Subscription"
+                            });
+                        }
+                    }
+                }
+                context.SaveChanges();
+            } catch { }
+        }
+
+        private static void SeedRealisticClientGrowth(AppDbContext context)
+        {
+            try
+            {
+                if (context.Clients.Count() > 20) return;
+                System.Diagnostics.Debug.WriteLine("DbInitializer: Seeding client growth...");
+                var random = new Random();
+                var now = DateTime.UtcNow;
+                var plans = new[] { "Basic", "Standard", "Premium", "Enterprise" };
+                
+                for (int i = 5; i >= 0; i--)
+                {
+                    var date = now.AddMonths(-i);
+                    int count = random.Next(5, 15);
+                    for (int j = 0; j < count; j++)
+                    {
+                        context.Clients.Add(new Client {
+                            Id = $"CLT-{random.Next(10000, 99999)}",
+                            Name = $"Customer {random.Next(1000)}",
+                            Email = $"customer{random.Next(1000)}@example.com",
+                            Plan = plans[random.Next(plans.Length)],
+                            Status = "Active",
+                            JoinDate = date.AddDays(random.Next(28))
+                        });
+                    }
+                }
+                context.SaveChanges();
+            } catch { }
         }
     }
 }
